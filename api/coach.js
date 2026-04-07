@@ -1,4 +1,3 @@
-
 // api/coach.js — Vercel serverless function
 // Proxies requests to Anthropic API so the browser doesn't need to call it directly
 // Set ANTHROPIC_API_KEY in Vercel environment variables
