@@ -337,7 +337,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 <div id="app" class="gone">
   <div id="testBanner" class="test-banner" style="display:none">🧪 TEST MODE — data not saved to real stats<button class="bsm" style="padding:5px 11px;font-size:11px" onclick="simRound()">Simulate round</button></div>
   <div class="app-hdr">
-    <h1 id="pgTitle">Links Ledger</h1>
+    <h1 id="pgTitle" style="font-family:'Playfair Display',serif;font-style:italic;letter-spacing:-0.5px">Links Ledger</h1>
     <div class="hdr-acts">
       <button class="hbtn" onclick="SP('profile')">👤</button>
     </div>
@@ -448,7 +448,12 @@ const CDB = {
   belleknowes: {name:'Belleknowes GC',rating:58.2,slope:96,         loc:'Dunedin',   lat:-45.8721,lng:170.4912,h:[{h:1,par:3,y:85,si:9},{h:2,par:3,y:249,si:3},{h:3,par:3,y:185,si:1},{h:4,par:3,y:180,si:8},{h:5,par:3,y:158,si:6},{h:6,par:4,y:310,si:4},{h:7,par:3,y:149,si:7},{h:8,par:4,y:237,si:5},{h:9,par:4,y:215,si:2}]},
   gladfield:   {name:'Gladfield Country GC',rating:65.1,slope:108,   loc:'Dunedin',   lat:-45.9012,lng:170.3812,h:[{h:1,par:4,y:351,si:9},{h:2,par:5,y:489,si:1},{h:3,par:4,y:292,si:3},{h:4,par:3,y:142,si:15},{h:5,par:3,y:131,si:17},{h:6,par:4,y:318,si:5},{h:7,par:4,y:279,si:13},{h:8,par:4,y:318,si:11},{h:9,par:4,y:284,si:7}]},
   jtees:       {name:"J.Tees Golf Centre",rating:63.5,slope:102,     loc:'Mosgiel',   lat:-45.8814,lng:170.3467,approx:true,h:[{h:1,par:4,y:340,si:5},{h:2,par:3,y:155,si:9},{h:3,par:4,y:360,si:1},{h:4,par:4,y:280,si:7},{h:5,par:5,y:460,si:3},{h:6,par:3,y:140,si:8},{h:7,par:4,y:310,si:4},{h:8,par:4,y:295,si:6},{h:9,par:4,y:325,si:2}]},
-  portchalmers:{name:'Port Chalmers GC',rating:64.8,slope:105,       loc:'Dunedin',   lat:-45.8167,lng:170.6333,approx:true,h:[{h:1,par:4,y:320,si:4},{h:2,par:5,y:490,si:2},{h:3,par:3,y:140,si:8},{h:4,par:4,y:380,si:3},{h:5,par:4,y:350,si:5},{h:6,par:4,y:330,si:6},{h:7,par:4,y:310,si:7},{h:8,par:3,y:150,si:9},{h:9,par:4,y:360,si:1}]},
+  portchalmers:{name:'Port Chalmers GC',rating:64.8,slope:105,
+    holeImages:{1:'https://i.imgur.com/drjNtWk.jpg',2:'https://i.imgur.com/aSikusn.jpg',
+    3:'https://i.imgur.com/wrlBgiG.jpg',4:'https://i.imgur.com/RDtK0fY.jpg',
+    5:'https://i.imgur.com/Duwt5Ez.jpg',6:'https://i.imgur.com/DWH6N2W.jpg',
+    7:'https://i.imgur.com/dUlErJw.jpg',8:'https://i.imgur.com/yIdmpMu.jpg',
+    9:'https://i.imgur.com/afEg5yR.jpg'},       loc:'Dunedin',   lat:-45.8167,lng:170.6333,approx:true,h:[{h:1,par:4,y:320,si:4},{h:2,par:5,y:490,si:2},{h:3,par:3,y:140,si:8},{h:4,par:4,y:380,si:3},{h:5,par:4,y:350,si:5},{h:6,par:4,y:330,si:6},{h:7,par:4,y:310,si:7},{h:8,par:3,y:150,si:9},{h:9,par:4,y:360,si:1}]},
   masterton:   {name:'Masterton GC (Lansdowne)',rating:70.4,slope:124,loc:'Masterton', lat:-40.9344,lng:175.6788,h:[{h:1,par:5,y:457,si:14},{h:2,par:5,y:485,si:12},{h:3,par:3,y:216,si:6},{h:4,par:4,y:279,si:16},{h:5,par:4,y:370,si:8},{h:6,par:4,y:399,si:10},{h:7,par:4,y:450,si:2},{h:8,par:3,y:129,si:18},{h:9,par:4,y:411,si:4},{h:10,par:4,y:433,si:1},{h:11,par:3,y:191,si:11},{h:12,par:4,y:330,si:7},{h:13,par:3,y:144,si:9},{h:14,par:4,y:369,si:5},{h:15,par:4,y:371,si:3},{h:16,par:4,y:369,si:15},{h:17,par:4,y:371,si:13},{h:18,par:5,y:505,si:17}]},
   mahunga:     {name:'Mahunga GC',rating:69.2,slope:119,             loc:'Masterton', lat:-40.9329,lng:175.6603,h:[{h:1,par:4,y:306,si:9},{h:2,par:4,y:390,si:1},{h:3,par:3,y:127,si:8},{h:4,par:4,y:345,si:10},{h:5,par:4,y:366,si:4},{h:6,par:3,y:127,si:17},{h:7,par:4,y:295,si:18},{h:8,par:5,y:495,si:15},{h:9,par:4,y:393,si:6},{h:10,par:3,y:197,si:7},{h:11,par:5,y:484,si:12},{h:12,par:4,y:371,si:5},{h:13,par:4,y:388,si:3},{h:14,par:5,y:426,si:13},{h:15,par:4,y:406,si:2},{h:16,par:4,y:354,si:14},{h:17,par:3,y:153,si:16},{h:18,par:5,y:536,si:11}]},
   taierilakes: {name:'Taieri Lakes Golf Club',rating:69.5,slope:120,loc:'Mosgiel',lat:-45.9201,lng:170.2875,h:[
@@ -972,6 +977,20 @@ function rHome(){
   <div class="sc"><div class="sv">${thisMonth}</div><div class="sl">Rounds this month</div></div>
 </div>
 
+${(()=>{const ip=getInProgressRounds();return ip.length?`
+<div class="sec" style="margin-top:4px"><span>⏸ In progress</span></div>
+${ip.map(r=>`<div style="background:var(--gl);border:2px solid var(--g3);border-radius:13px;padding:13px;margin-bottom:9px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div><div style="font-weight:800;font-size:15px">${r.courseName}</div>
+    <div style="font-size:12px;color:var(--txt3)">${r.date} · Hole ${(r.currentHoleIdx||0)+1} of ${r.totalHoles}</div></div>
+    <div style="text-align:right"><div style="font-size:13px;color:var(--txt3)">${r.type==='9f'?'Front 9':r.type==='9b'?'Back 9':r.type==='16f'?'Front 16':'18 holes'}</div></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn bg" onclick="resumeRound('${r.id}')" style="margin:0;padding:12px;font-size:14px;flex:2">▶ Resume round</button>
+    <button class="btn bo" onclick="deleteInProgress('${r.id}')" style="margin:0;padding:12px;font-size:13px;color:var(--red);border-color:var(--red);flex:1">✕ Discard</button>
+  </div>
+</div>`).join('')}`:'';})()}
+
 <div class="sec"><span>Recent rounds</span><button class="bsm" onclick="SP('stats')">See all</button></div>
 ${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;padding:20px">No rounds yet — go play!</p>':
   rr.slice(0,3).map(r=>{
@@ -1133,6 +1152,50 @@ function getTrackingPrefs(){const d=ud();return d.trackingPrefs||{shape:true,dir
 
 function togPriv(){const d=ud();d.settings=d.settings||{};d.settings.privateRounds=!d.settings.privateRounds;sud(d);document.getElementById('privTog')?.classList.toggle('on',d.settings.privateRounds);}
 
+// Auto-save active round every time a hole is saved
+function autoSaveRound(){
+  if(!AR)return;
+  const d=ud();
+  if(!d.roundsInProgress)d.roundsInProgress={};
+  d.roundsInProgress[AR.id]={...AR,savedAt:Date.now(),currentHoleIdx:cHole};
+  sud(d);
+}
+
+// Get any in-progress round
+function getInProgressRounds(){
+  const d=ud();
+  return Object.values(d.roundsInProgress||{}).sort((a,b)=>b.savedAt-a.savedAt);
+}
+
+// Resume a round
+function resumeRound(roundId){
+  const d=ud();
+  const saved=d.roundsInProgress?.[roundId];
+  if(!saved)return;
+  AR={...saved};
+  cHole=saved.currentHoleIdx||0;
+  walkDist=AR.walkDist||0;
+  roundStart=AR.started||Date.now();
+  WF={step:'play',courseId:AR.courseId,holeType:AR.type,mode:AR.mode};
+  testMode=AR.testMode||false;
+  document.getElementById('testBanner').style.display=testMode?'flex':'none';
+  window._hd=AR.holes[cHole]||initHD(getH(AR.courseId,AR.type==='custom'?'18':AR.type)[cHole]);
+  SP('round');
+  fetchWx(gc(AR.courseId).lat,gc(AR.courseId).lng).then(w=>{wxData=w;renderWF();});
+  renderWF();
+  startGPS();
+  toast('Round resumed ✓');
+}
+
+// Delete in-progress round
+function deleteInProgress(roundId){
+  if(!confirm('Remove this saved round?'))return;
+  const d=ud();
+  if(d.roundsInProgress)delete d.roundsInProgress[roundId];
+  sud(d);
+  rHome();
+}
+
 async function beginRound(){
   const holes=getH(WF.courseId,WF.holeType==='custom'?'18':WF.holeType);
   const c=gc(WF.courseId);
@@ -1187,7 +1250,10 @@ ${wxHTML(cHole,hole.y)}
   <div class="hinfo"><div class="hnum2">Hole ${hole.h}</div><div class="hpar">Par ${hole.par} · ${hole.y} yds · S.I. ${hole.si}</div></div>
   <button class="hnb" onclick="diagNext()">›</button>
 </div>
-<div class="hole-diagram-wrap">
+<div class="hole-diagram-wrap" id="holeDiagWrap">
+  <div id="holeDiagImgWrap" style="display:none;position:relative">
+    <img id="holeDiagImg" src="" style="width:100%;max-height:380px;object-fit:contain;display:block;border-radius:12px" alt="Hole diagram">
+  </div>
   <svg id="holeDiagSvg" viewBox="0 0 220 420" style="width:100%;display:block;height:360px"></svg>
 </div>
 <div class="leg">
@@ -1212,10 +1278,39 @@ ${AR.mode==='shot'?`<button class="btn bg" style="margin-top:10px" onclick="WF.s
 ${cHole>0?`<button class="btn bo" onclick="prevHole()">← Previous hole</button>`:''}
 <button class="btn bo" onclick="confirmFinish()">🏁 Finish round</button>`;
 
-  // Draw diagram for current hole
-  const svgEl=document.getElementById('holeDiagSvg');
-  if(svgEl)drawHoleDiagram(svgEl,hole);
+  // Draw diagram - use real image if available, else procedural SVG
   diagramHole=cHole;
+  renderHoleDiagram(hole, cHole);
+}
+
+// Render hole diagram - real image or procedural SVG
+// For 9-hole courses, holes 10-18 mirror holes 1-9
+function renderHoleDiagram(hole, holeIdx){
+  const c=gc(AR?.courseId||WF?.courseId||'');
+  const imgs=c?.holeImages;
+  const svgEl=document.getElementById('holeDiagSvg');
+  const imgEl=document.getElementById('holeDiagImg');
+  const imgWrap=document.getElementById('holeDiagImgWrap');
+
+  if(imgs){
+    // For 9-hole courses playing 18, mirror back 9 to front 9 images
+    let imgHole=hole.h;
+    const maxImgHole=Math.max(...Object.keys(imgs).map(Number));
+    if(imgHole>maxImgHole)imgHole=imgHole-maxImgHole;
+    const imgUrl=imgs[imgHole];
+    if(imgUrl&&imgEl&&imgWrap&&svgEl){
+      imgEl.src=imgUrl;
+      imgWrap.style.display='block';
+      svgEl.style.display='none';
+      return;
+    }
+  }
+  // Fall back to procedural SVG
+  if(imgEl&&imgWrap&&svgEl){
+    imgWrap.style.display='none';
+    svgEl.style.display='block';
+  }
+  if(svgEl)drawHoleDiagram(svgEl,hole);
 }
 
 let diagOffset=0;
@@ -1287,12 +1382,12 @@ ${trk.gps?`<div class="gps-card">
     <div id="gpsLight" style="width:18px;height:18px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px currentColor;transition:background 0.4s;flex-shrink:0" title="GPS not ready"></div>
     <div style="font-size:9px;color:var(--txt3);font-weight:700;text-transform:uppercase;writing-mode:vertical-lr;transform:rotate(180deg);letter-spacing:0.06em">GPS</div>
   </div>
-  <button id="markShotBtn" onclick="openShotMod()" style="flex:1;padding:20px;background:${hd.selectedClub?'var(--gold)':'var(--bg3)'};color:${hd.selectedClub?'#fff':'var(--txt3)'};border:3px solid ${hd.selectedClub?'var(--gold3)':'var(--bdr)'};border-radius:14px;font-size:18px;font-weight:800;font-family:inherit;cursor:pointer;transition:all 0.3s">
-    📍 Mark ball position${hd.selectedClub?'':' — select club first'}
+  <button id="markShotBtn" onclick="openShotMod()" style="flex:1;padding:20px;background:var(--gold);color:#fff;border:3px solid var(--gold3);border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;transition:all 0.3s;opacity:${hd.selectedClub?'1':'0.5'}">
+    ${shots.length===0?'🏌️ Mark tee position':'📍 Mark ball position'}
   </button>
 </div>
 <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;padding:8px 12px;background:var(--bg3);border-radius:9px">
-  <div id="gpsStatusTxt" style="font-size:12px;color:var(--txt3);flex:1">📡 Acquiring GPS...</div>
+  <div id="gpsStatusTxt" style="font-size:12px;color:var(--txt3);flex:1">${shots.length===0?'🏌️ Tap when you are standing on the tee, before you hit':'📍 Tap when standing at your ball, before you swing'}</div>
   <div style="font-size:10px;color:var(--txt3)" id="gpsAccTxt"></div>
 </div>
 
@@ -1309,9 +1404,11 @@ ${shots.length?`<div style="font-size:11px;font-weight:700;text-transform:upperc
 function selClubPS(c){if(window._hd)window._hd.selectedClub=c;stepPreshot();}
 
 function openShotMod(){
+  // Always works - GPS colour is advisory only, never blocks play
   if(!window._hd?.selectedClub){toast('Select a club first');return;}
+  // Record GPS position at moment of tap (best available, even if yellow/red)
+  if(gpsPos)shotStart={...gpsPos};
   const trk=getTrackingPrefs();
-  // If nothing is being tracked in shot modal, skip it entirely
   if(!trk.shape&&!trk.direction&&!trk.contact){
     commitShot();
     WF.step=trk.lie?'lie':'preshot';
@@ -1535,38 +1632,26 @@ function stepScore(pg){
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const hole=holes[cHole];const hd=window._hd;
 
-  // ── AUTO-CALC from shots (smarter logic) ──
+  // Auto-calc from shots
   if(AR.mode==='shot'&&hd.shots?.length){
     const ss=hd.shots;
-    // Putts = shots where lie was Putting
     const puttingShots=ss.filter(s=>s.lie==='Putting');
     if(puttingShots.length)hd.putts=puttingShots.length;
-    // Auto score = total shots taken
-    if(ss.length>0&&hd.score===hole.par)hd.score=ss.length;
-    // Fairway = tee shot lie was Fairway (only applies to par 4/5)
+    // Auto score = total shots
+    hd.score=ss.length;
     if(hole.par>=4&&ss.length>0){
       const teeShot=ss[0];
       if(teeShot.lie==='Fairway')hd.fairway=true;
       else if(teeShot.lie&&teeShot.lie!=='Tee')hd.fairway=false;
-      // else unknown (left as null)
-    } else {
-      hd.fairway=null; // par 3, no fairway stat
-    }
-    // GIR = number of non-putting shots <= par - 2
-    const nonPuttingShots=ss.filter(s=>s.lie!=='Putting'&&s.lie!=='Chipping').length;
-    const requiredForGIR=hole.par-2;
-    // Can only be GIR if reached green within regulation
-    if(nonPuttingShots<=requiredForGIR&&nonPuttingShots>0){
-      hd.gir=true;
-    } else {
-      hd.gir=false;
-    }
-    // Up & down: missed GIR but scored par or better
+    } else { hd.fairway=null; }
+    const nonPutt=ss.filter(s=>s.lie!=='Putting'&&s.lie!=='Chipping').length;
+    hd.gir=nonPutt<=(hole.par-2)&&nonPutt>0;
     if(!hd.gir&&hd.score<=hole.par)hd.updown=true;
     else hd.updown=false;
-    // Driving fairway from tee: par 4/5, tee shot in fairway
-    // (already handled above)
   }
+
+  // Shots to green (non-putting shots)
+  const shotsToGreen=AR.mode==='shot'?(hd.shots||[]).filter(s=>s.lie!=='Putting').length:Math.max(0,hd.score-hd.putts);
 
   pg.innerHTML=`
 <div class="hdr" style="margin-bottom:13px">
@@ -1575,45 +1660,70 @@ function stepScore(pg){
   <div class="hboxes">
     <div class="hbox"><div class="l">Par</div><div class="v">${hole.par}</div></div>
     <div class="hbox"><div class="l">Yards</div><div class="v">${hole.y}</div></div>
-    <div class="hbox"><div class="l">Shots hit</div><div class="v">${(hd.shots||[]).length||'—'}</div></div>
+    <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
   </div>
+</div>
+
+<!-- Intuitive score display -->
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:13px;padding:14px;margin-bottom:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="text-align:center;flex:1">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">Shots to green</div>
+      <div style="font-size:36px;font-weight:900;color:var(--txt)">${shotsToGreen||'—'}</div>
+    </div>
+    <div style="font-size:28px;color:var(--txt3);font-weight:300">+</div>
+    <div style="text-align:center;flex:1">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">Putts</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <button class="sbt" style="width:40px;height:40px;font-size:22px" onclick="aV('putts',-1)">−</button>
+        <span style="font-size:36px;font-weight:900;color:var(--blue);min-width:32px;text-align:center" id="pvEl">${hd.putts}</span>
+        <button class="sbt" style="width:40px;height:40px;font-size:22px" onclick="aV('putts',1)">+</button>
+      </div>
+    </div>
+    <div style="font-size:28px;color:var(--txt3);font-weight:300">=</div>
+    <div style="text-align:center;flex:1">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">Score</div>
+      <div style="font-size:36px;font-weight:900;color:${hd.score<hole.par?'var(--g)':hd.score===hole.par?'var(--txt)':'var(--red)'}" id="svEl">${hd.score}</div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:14px;font-weight:700" id="scoreLbl">${getBdg(hd.score,hole.par)}</div>
 </div>
 
 ${AR.mode==='shot'&&(hd.shots||[]).length?`
-<div style="background:var(--gl);border:1.5px solid var(--gll);border-radius:12px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--gd)">
-  ✓ <strong>Auto-filled from your shots:</strong>
-  ${hd.gir!==null?`GIR: ${hd.gir?'✅ Yes':'❌ No'} · `:''}
-  ${hd.fairway!==null?`Fairway: ${hd.fairway?'✅ Yes':'❌ No'} · `:''}
-  ${hd.updown?'Up & down: ✅ Yes':''}
-  <br><span style="opacity:0.8;font-size:12px">Adjust below if needed</span>
+<div style="background:var(--gl);border:1.5px solid var(--gll);border-radius:12px;padding:11px;margin-bottom:12px;font-size:13px;color:var(--gd)">
+  ✓ Auto-filled: GIR ${hd.gir!==null?hd.gir?'Yes':'No':'—'} · Fairway ${hd.fairway!==null?hd.fairway?'Yes':'No':'—'} · Up&Down ${hd.updown?'Yes':'No'}
+  <span style="opacity:0.7;font-size:11px"> — adjust below if needed</span>
 </div>`:''}
 
-<div class="stpr">
-  <div class="stpr-lbl" id="scoreLbl">Score ${getBdg(hd.score,hole.par)}</div>
-  <div class="stpr-row">
-    <button class="sbt" onclick="aV('score',-1)">−</button>
-    <div class="sval" id="svEl">${hd.score}</div>
-    <button class="sbt" onclick="aV('score',1)">+</button>
-  </div>
-</div>
-<div class="stpr">
-  <div class="stpr-lbl">Putts</div>
-  <div class="stpr-row">
-    <button class="sbt" onclick="aV('putts',-1)">−</button>
-    <div class="sval" id="pvEl">${hd.putts}</div>
-    <button class="sbt" onclick="aV('putts',1)">+</button>
-  </div>
-</div>
 <div class="card" style="padding:11px 13px">
-  <div class="tr"><div><div class="tl">GIR</div><div class="ts">Green in regulation (par - 2 shots or fewer)</div></div><button class="tog ${hd.gir?'on':''}" id="gT" onclick="tH('gir','gT')"></button></div>
-  <div class="tr"><div><div class="tl">Up & down</div><div class="ts">Missed GIR but still made par or better</div></div><button class="tog ${hd.updown?'on':''}" id="uT" onclick="tH('updown','uT')"></button></div>
-  ${hole.par>3?`<div class="tr"><div><div class="tl">Fairway hit</div><div class="ts">Tee shot landed in fairway</div></div><button class="tog ${hd.fairway?'on':''}" id="fT" onclick="tH('fairway','fT')"></button></div>`:'<div class="tr"><div><div class="tl">Fairway hit</div><div class="ts">N/A — par 3</div></div><div style="font-size:13px;color:var(--txt3)">—</div></div>'}
+  <div class="tr"><div><div class="tl">GIR</div><div class="ts">Green in regulation</div></div><button class="tog ${hd.gir?'on':''}" id="gT" onclick="tH('gir','gT')"></button></div>
+  <div class="tr"><div><div class="tl">Up & down</div><div class="ts">Missed GIR but made par or better</div></div><button class="tog ${hd.updown?'on':''}" id="uT" onclick="tH('updown','uT')"></button></div>
+  ${hole.par>3?`<div class="tr"><div><div class="tl">Fairway hit</div></div><button class="tog ${hd.fairway?'on':''}" id="fT" onclick="tH('fairway','fT')"></button></div>`:''}
 </div>
+
 <button class="btn bg" onclick="saveHole()">${cHole<AR.totalHoles-1?'Save & next hole →':'Finish round 🏁'}</button>
 ${AR.mode==='shot'?`<button class="btn bo" onclick="WF.step='preshot';renderWF()">← Add another shot</button>`:''}`;
 }
 
-function aV(k,d){const h=window._hd;if(k==='score')h.score=Math.max(1,h.score+d);if(k==='putts')h.putts=Math.max(0,h.putts+d);document.getElementById(k==='score'?'svEl':'pvEl').textContent=h[k];if(k==='score'){const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);const lbl=document.getElementById('scoreLbl');if(lbl)lbl.innerHTML=`Score ${getBdg(h.score,holes[cHole].par)}`;};}
+
+function aV(k,d){
+  const h=window._hd;
+  const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+  if(k==='putts'){
+    h.putts=Math.max(0,h.putts+d);
+    // Recalc score = shots to green + putts
+    const shotsToGreen=(h.shots||[]).filter(s=>s.lie!=='Putting').length||Math.max(0,h.score-h.putts+d);
+    h.score=shotsToGreen+h.putts;
+    document.getElementById('pvEl').textContent=h.putts;
+    document.getElementById('svEl').textContent=h.score;
+  }
+  if(k==='score'){h.score=Math.max(1,h.score+d);document.getElementById('svEl').textContent=h.score;}
+  const lbl=document.getElementById('scoreLbl');
+  if(lbl)lbl.innerHTML=getBdg(h.score,holes[cHole].par);
+  // Update score colour
+  const svEl=document.getElementById('svEl');
+  if(svEl)svEl.style.color=h.score<holes[cHole].par?'var(--g)':h.score===holes[cHole].par?'var(--txt)':'var(--red)';
+}
 function tH(k,id){const h=window._hd;h[k]=!h[k];document.getElementById(id)?.classList.toggle('on',h[k]);}
 
 function saveHole(){
@@ -1632,6 +1742,7 @@ function saveHole(){
     if(window._hd.shots)d.holeStats[key].shots.push(...window._hd.shots);
     sud(d);
   }
+  autoSaveRound(); // auto-save after every hole
   if(cHole<AR.totalHoles-1){cHole++;shotStart=null;WF.step='play';fetchWx(gc(AR.courseId).lat,gc(AR.courseId).lng).then(w=>{wxData=w;renderWF();});renderWF();}
   else finishRound();
 }
@@ -1645,7 +1756,10 @@ function finishRound(){
   const par=holes.slice(0,ph.length).reduce((s,h)=>s+h.par,0);
   AR.total=total;AR.par=par;AR.toPar=total-par;
   AR.duration=Date.now()-roundStart;AR.walkDist=walkDist;AR.totalHoles=ph.length;
-  const d=ud();d.rounds.unshift(AR);sud(d);
+  const d=ud();d.rounds.unshift(AR);
+  // Remove from in-progress now it's complete
+  if(d.roundsInProgress)delete d.roundsInProgress[AR.id];
+  sud(d);
   checkAch();WF.step='summary';renderWF();
 }
 
@@ -2078,9 +2192,11 @@ function buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm){
 
 async function loadPostRoundMotiv(round,statsCtx){
   const diff=Math.round(to18(round.toPar,round.totalHoles||9));
-  const prompt='You are Coach Foxy, a direct and passionate New Zealand golf coach. A player just finished a round at '+round.courseName+' scoring '+round.total+' ('+diff+' to par, 18H adjusted). '+statsCtx+'. Give ONE short motivating or honest sentence (max 20 words) about their round — either celebrate if it went well, or pick them up if it went badly. Be real, be human, like a Kiwi coach would. No fluff. Speak directly to them.';
+  const prompt='You are Coach Foxy, a direct NZ golf coach. Player just finished '+round.courseName+' scoring '+round.total+' ('+diff+' to par 18H adj). '+statsCtx+'. Give ONE motivating sentence (max 20 words). Real, Kiwi, direct. No fluff.';
   try{
-    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_tokens:80,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({max_tokens:80,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok)throw new Error(res.status);
     const data=await res.json();
     const txt=data.content?.map(i=>i.text||'').join('')||getLocalMotiv(true,diff);
     const el=document.getElementById('motivText');
@@ -2092,9 +2208,13 @@ async function loadPostRoundMotiv(round,statsCtx){
 }
 
 async function loadPreRoundMotiv(statsCtx,roundCount){
-  const prompt=roundCount?'You are Coach Foxy, a direct New Zealand golf coach. A player is about to head out for a round. Their recent stats: '+statsCtx+'. Give ONE short pre-round motivating tip or mental cue (max 20 words). Be specific to their game, like a Kiwi coach — straight-talking, no fluff.':'You are Coach Foxy, a New Zealand golf coach. A new player just joined Links Ledger. Give them ONE short warm welcome and motivating message (max 20 words). Kiwi tone, genuine, no fluff.';
+  const prompt=roundCount?
+    'You are Coach Foxy, NZ golf coach. Player about to play. Stats: '+statsCtx+'. Give ONE pre-round tip or mental cue (max 20 words). Specific, direct, Kiwi.':
+    'You are Coach Foxy, NZ golf coach. New player joined Links Ledger. Give ONE warm welcome (max 20 words). Genuine, Kiwi, no fluff.';
   try{
-    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_tokens:80,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({max_tokens:80,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok)throw new Error(res.status);
     const data=await res.json();
     const txt=data.content?.map(i=>i.text||'').join('')||getLocalMotiv(false,0);
     const el=document.getElementById('motivText');
@@ -2105,7 +2225,7 @@ async function loadPreRoundMotiv(statsCtx,roundCount){
   }
 }
 
-// Fallback motivational quotes if API unavailable
+
 function getLocalMotiv(postRound,diff){
   if(postRound){
     if(diff<0)return"Under par — that\'s what we\'re here for. Build on it.";
@@ -2121,33 +2241,46 @@ function getLocalMotiv(postRound,diff){
 async function genAnalysis(avg,gir,pt,fw,drives,topMiss,clubSumm){
   const ctx=buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm);
   addChat('ai','Analysing your game...');
+  const prompt=COACH_KB+'\n\n'+ctx+'\n\nYou are Coach Foxy, a direct NZ golf coach. Give a 2-sentence analysis citing specific stats. Name top 2-3 priority areas. Be specific, direct, no fluff. If limited data, say so honestly.';
   try{
-    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_tokens:500,messages:[{role:'user',content:`${COACH_KB}\n\n${ctx}\n\nYou are a direct, expert golf coach. Give a 2-sentence analysis citing specific stats (note if some stats are not yet tracked), then name the top 2-3 priority areas. Be specific, direct, no fluff. If limited data, say so honestly.`}]})});
-    const d=await res.json();const txt=d.content?.map(i=>i.text||'').join('')||'Tap a question above to get started.';
+    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({max_tokens:500,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok)throw new Error(res.status);
+    const d=await res.json();
+    const txt=d.content?.map(i=>i.text||'').join('')||'Tap a question above to get started.';
     removeLastChat();addChat('ai',txt);
-  }catch(e){removeLastChat();addChat('ai','Tap a question above to start chatting with your coach.');}
+  }catch(e){removeLastChat();addChat('ai','Could not connect to coach. Check your internet connection and try again.');}
 }
+
 
 async function sendChat(){const input=document.getElementById('chatIn');const msg=input.value.trim();if(!msg)return;input.value='';askCoach(msg);}
 
 async function askCoach(q){
   addChat('user',q);
-  const d=ud();const rr=realR();const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
+  const d=ud();const rr=realR();
+  const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
   const allShD=ah.flatMap(h=>h.shots||[]).filter(s=>s.dir);
-  const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
-  const avg=rr.length?Math.round(rr.reduce((s,r)=>s+r.total,0)/rr.length):0;
+  const avg=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
   const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
-  const mc={};allShD.forEach(s=>{mc[s.dir]=(mc[s.dir]||0)+1;});const topMiss=Object.entries(mc).sort((a,b)=>b[1]-a[1])[0];
-  const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>`${c}:${d.clubStats[c].avg}y`).join(', ');
-  const ctx=`Stats: avg ${avg}${gir!=null?', GIR '+gir+'%':''}${drives.length?', avg drive '+Math.round(drives.reduce((a,b)=>a+b,0)/drives.length)+'y':''}${topMiss?', most common miss '+topMiss[0]:''}${clubSumm?', clubs: '+clubSumm:''}.`;
+  const mc={};allShD.forEach(s=>{mc[s.dir]=(mc[s.dir]||0)+1;});
+  const topMiss=Object.entries(mc).sort((a,b)=>b[1]-a[1])[0];
+  const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>c+':'+d.clubStats[c].avg+'y').join(', ');
+  const ctx=buildStatsContext(avg,null,null,null,drives,topMiss,clubSumm);
+  const prompt=COACH_KB+'\n\n'+ctx+'\n\nCoach Foxy style: direct, NZ, specific. Question: '+q;
   addChat('ai','...');
   try{
-    const msgs=[...chatHist.slice(-8).filter(m=>m.c!=='...').map(m=>({role:m.r==='u'?'user':'assistant',content:m.c})),{role:'user',content:`${COACH_KB}\n\n${ctx}\n\nQ: ${q}`}];
-    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_tokens:350,messages:msgs})});
-    const d2=await res.json();const txt=d2.content?.map(i=>i.text||'').join('')||'Try again.';
+    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({max_tokens:350,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok)throw new Error(res.status);
+    const data=await res.json();
+    const txt=data.content?.map(i=>i.text||'').join('')||getLocalMotiv(false,0);
     removeLastChat();addChat('ai',txt);
-  }catch(e){removeLastChat();addChat('ai','Could not reach coach. Check connection.');}
+  }catch(e){
+    removeLastChat();
+    addChat('ai',getLocalMotiv(false,0));
+  }
 }
+
 
 function addChat(role,content){chatHist.push({r:role==='ai'?'ai':'u',c:content});const w=document.getElementById('chatWrap');if(w){const div=document.createElement('div');div.className=`chat-msg ${role==='user'?'chat-user':'chat-ai'}`;div.textContent=content;w.appendChild(div);w.scrollTop=w.scrollHeight;}}
 function removeLastChat(){chatHist.pop();const w=document.getElementById('chatWrap');if(w&&w.lastChild)w.removeChild(w.lastChild);}
@@ -2504,6 +2637,17 @@ function init(){
 }
 
 window.addEventListener('load',init);
+
+// Pre-warm GPS on first user interaction to get faster lock during rounds
+document.addEventListener('click',function warmGPS(){
+  if(!gpsW&&navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      gpsPos={lat:pos.coords.latitude,lng:pos.coords.longitude,t:Date.now(),acc:pos.coords.accuracy};
+      gpsAccuracy=pos.coords.accuracy;
+    },{},{enableHighAccuracy:true,timeout:10000});
+  }
+  document.removeEventListener('click',warmGPS);
+},{once:true});
 </script>
 </body>
 </html>
