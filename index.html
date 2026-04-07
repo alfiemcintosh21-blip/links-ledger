@@ -2158,23 +2158,48 @@ function rMap(){
   const played=[...new Set(rr.map(r=>r.courseId))];
   const pg=document.getElementById('pg-map');
 
+  // Tally stats
+  const totalHolesPlayed=rr.reduce((s,r)=>s+(r.totalHoles||9),0);
+  const totalRounds=rr.length;
+  const totalCourses=played.length;
+
+  // Get all users for multi-user map
+  const allUsers=Object.values(GU()).filter(u=>u.role!=='admin'&&!u.disabled);
+  const userColors=['#a855f7','#ef4444','#3b82f6','#f97316','#06b6d4','#ec4899','#84cc16','#f59e0b'];
+
   pg.innerHTML=`
-<div class="sg3">
-  <div class="sc"><div class="sv">${played.length}</div><div class="sl">Courses</div></div>
-  <div class="sc"><div class="sv">${rr.length}</div><div class="sl">Rounds</div></div>
-  <div class="sc"><div class="sv">${[...new Set(played.map(id=>{const c=gc(id);return c?.loc;}))].filter(Boolean).length}</div><div class="sl">Locations</div></div>
+<!-- Tally strip -->
+<div class="sg3" style="margin-bottom:12px">
+  <div class="sc"><div class="sv">${totalRounds}</div><div class="sl">Rounds</div></div>
+  <div class="sc"><div class="sv">${totalCourses}</div><div class="sl">Courses</div></div>
+  <div class="sc"><div class="sv">${totalHolesPlayed}</div><div class="sl">Holes played</div></div>
 </div>
 
-${played.length?`<div class="sec" style="margin-top:0">Golf map</div>
-<div style="background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:14px">
-  <canvas id="golfMapCanvas" style="width:100%;border-radius:10px;display:block"></canvas>
-  <div style="font-size:11px;color:var(--txt3);margin-top:8px;text-align:center">● Courses you've played · — Order played</div>
-</div>`:''}
+<!-- Map toggle -->
+<div style="display:flex;gap:8px;margin-bottom:10px">
+  <button class="bsm${true?' bsmg':''}" id="mapMyBtn" onclick="setMapMode('me')" style="flex:1;padding:10px">My map</button>
+  <button class="bsm" id="mapAllBtn" onclick="setMapMode('all')" style="flex:1;padding:10px">All members</button>
+</div>
 
-<div class="sec">Courses played</div>
+<!-- User color legend (shown in all-members mode) -->
+<div id="mapLegend" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+  ${allUsers.map((u,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700">
+    <div style="width:14px;height:14px;border-radius:50%;background:${userColors[i%userColors.length]};flex-shrink:0"></div>
+    ${u.name.split(' ')[0]}${u.uid===CU.uid?' (you)':''}
+  </div>`).join('')}
+</div>
+
+<!-- Map container - OSM tile background + canvas overlay -->
+<div style="position:relative;border-radius:14px;overflow:hidden;margin-bottom:14px;border:1px solid var(--bdr)" id="mapWrap">
+  <div id="osmMap" style="width:100%;height:320px;background:#e8f0e8"></div>
+  <canvas id="golfMapCanvas" style="position:absolute;top:0;left:0;width:100%;height:320px;pointer-events:none"></canvas>
+  <div style="position:absolute;bottom:6px;right:8px;font-size:9px;color:rgba(0,0,0,0.5)">© OpenStreetMap contributors</div>
+</div>
+
+<div class="sec"><span>My courses</span></div>
 ${played.map(id=>{const c=gc(id);if(!c)return'';const rs=rr.filter(r=>r.courseId===id);const best=Math.min(...rs.map(r=>Math.round(to18(r.toPar,r.totalHoles||9))));return`<div class="cardsm fxb">
-  <div><div style="font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--txt3)">${c.loc} · ${rs.length} round${rs.length>1?'s':''}</div></div>
-  <div style="text-align:right"><div style="font-weight:800;color:var(--g)">${best>=0?'+'+best:best}</div><div style="font-size:11px;color:var(--txt3)">best (18H adj)</div></div>
+  <div><div style="font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--txt3)">${c.loc} · ${rs.length} round${rs.length>1?'s':''} · ${rs.reduce((s,r)=>s+(r.totalHoles||9),0)} holes</div></div>
+  <div style="text-align:right"><div style="font-weight:800;color:var(--g)">${best>=0?'+'+best:best}</div><div style="font-size:11px;color:var(--txt3)">best (18H)</div></div>
 </div>`;}).join('')}
 
 <div class="sec">All courses</div>
@@ -2186,72 +2211,175 @@ ${Object.entries(CDB).map(([id,c])=>{const rs=rr.filter(r=>r.courseId===id);retu
   </div>
 </div>`;}).join('')}`;
 
-  if(played.length)setTimeout(()=>drawGolfMap(played,rr),100);
+  // Init map
+  window._mapMode='me';
+  window._mapColors=userColors;
+  window._mapAllUsers=allUsers;
+  setTimeout(()=>initOSMMap(played,rr),150);
 }
 
-function drawGolfMap(played, rr){
+function setMapMode(mode){
+  window._mapMode=mode;
+  document.getElementById('mapMyBtn').classList.toggle('bsmg',mode==='me');
+  document.getElementById('mapAllBtn').classList.toggle('bsmg',mode==='all');
+  document.getElementById('mapLegend').style.display=mode==='all'?'flex':'none';
+  const rr=realR();
+  const played=[...new Set(rr.map(r=>r.courseId))];
+  drawGolfMapCanvas(played,rr);
+}
+
+function initOSMMap(played,rr){
+  // Use OpenStreetMap static tile as background image
+  const wrap=document.getElementById('osmMap');
+  if(!wrap)return;
+
+  // Calculate centre and zoom from played courses
+  const courses=played.map(id=>gc(id)).filter(Boolean);
+  if(!courses.length){wrap.style.background='#e8f0e8';drawGolfMapCanvas(played,rr);return;}
+
+  const lats=courses.map(c=>c.lat);
+  const lngs=courses.map(c=>c.lng);
+  const cLat=(Math.min(...lats)+Math.max(...lats))/2;
+  const cLng=(Math.min(...lngs)+Math.max(...lngs))/2;
+
+  // Use OSM embed iframe as background
+  const latSpan=Math.max(...lats)-Math.min(...lats);
+  const lngSpan=Math.max(...lngs)-Math.min(...lngs);
+  const bbox=`${(cLng-lngSpan*0.7).toFixed(4)},${(cLat-latSpan*0.7).toFixed(4)},${(cLng+lngSpan*0.7).toFixed(4)},${(cLat+latSpan*0.7).toFixed(4)}`;
+
+  wrap.innerHTML=`<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik" style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>`;
+
+  // Draw canvas overlay after map loads
+  setTimeout(()=>drawGolfMapCanvas(played,rr),800);
+}
+
+
+function drawGolfMapCanvas(played, rr){
   const canvas=document.getElementById('golfMapCanvas');
-  if(!canvas)return;
-  const W=canvas.offsetWidth||320;
-  const H=Math.round(W*0.65);
+  const osmMap=document.getElementById('osmMap');
+  if(!canvas||!osmMap)return;
+
+  const W=osmMap.offsetWidth||320;
+  const H=320;
   canvas.width=W*2;canvas.height=H*2;
-  canvas.style.height=H+'px';
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
   ctx.scale(2,2);
-  ctx.fillStyle='#0f1a12';
-  ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);
 
   const playedCourses=played.map(id=>gc(id)).filter(Boolean);
   if(!playedCourses.length)return;
 
   const lats=playedCourses.map(p=>p.lat);
   const lngs=playedCourses.map(p=>p.lng);
-  const minLat=Math.min(...lats)-0.08,maxLat=Math.max(...lats)+0.08;
-  const minLng=Math.min(...lngs)-0.12,maxLng=Math.max(...lngs)+0.12;
-  const pad=32;
-  const toX=lng=>pad+(lng-minLng)/(maxLng-minLng||1)*(W-pad*2);
-  const toY=lat=>pad+(maxLat-lat)/(maxLat-minLat||1)*(H-pad*2);
+  const latSpan=Math.max(...lats)-Math.min(...lats);
+  const lngSpan=Math.max(...lngs)-Math.min(...lngs);
+  const cLat=(Math.min(...lats)+Math.max(...lats))/2;
+  const cLng=(Math.min(...lngs)+Math.max(...lngs))/2;
 
-  // Lines in chronological visit order
-  const sortedRounds=[...rr].sort((a,b)=>(a.started||0)-(b.started||0));
-  const visitOrder=[];
-  sortedRounds.forEach(r=>{if(played.includes(r.courseId)&&!visitOrder.includes(r.courseId))visitOrder.push(r.courseId);});
-  const lineOrder=visitOrder.length===played.length?visitOrder:[...played];
+  // Match coordinate system to OSM bbox
+  const bboxLat=latSpan*0.7,bboxLng=lngSpan*0.7;
+  const minLat=cLat-bboxLat,maxLat=cLat+bboxLat;
+  const minLng=cLng-bboxLng,maxLng=cLng+bboxLng;
+  const toX=lng=>((lng-minLng)/(maxLng-minLng||1))*W;
+  const toY=lat=>((maxLat-lat)/(maxLat-minLat||1))*H;
 
-  if(lineOrder.length>1){
-    ctx.setLineDash([5,4]);
-    ctx.strokeStyle='rgba(201,168,76,0.6)';
-    ctx.lineWidth=1.5;
-    ctx.beginPath();
-    let started=false;
-    lineOrder.forEach(id=>{const c=gc(id);if(!c)return;if(!started){ctx.moveTo(toX(c.lng),toY(c.lat));started=true;}else ctx.lineTo(toX(c.lng),toY(c.lat));});
-    ctx.stroke();
-    ctx.setLineDash([]);
+  const mode=window._mapMode||'me';
+  const userColors=window._mapColors||['#a855f7'];
+  const allUsers=window._mapAllUsers||[];
+
+  function drawUserMap(userRr, color, isMe){
+    const userPlayed=[...new Set(userRr.map(r=>r.courseId))];
+    const sortedRounds=[...userRr].sort((a,b)=>(a.started||0)-(b.started||0));
+    const visitOrder=[];
+    sortedRounds.forEach(r=>{if(userPlayed.includes(r.courseId)&&!visitOrder.includes(r.courseId))visitOrder.push(r.courseId);});
+
+    // Lines
+    if(visitOrder.length>1){
+      ctx.setLineDash([6,4]);
+      ctx.strokeStyle=color.replace(')',',0.6)').replace('rgb','rgba').replace('#','')||color+'99';
+      ctx.strokeStyle=color;
+      ctx.globalAlpha=0.55;
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      let started=false;
+      visitOrder.forEach(id=>{
+        const c=gc(id);if(!c)return;
+        if(!started){ctx.moveTo(toX(c.lng),toY(c.lat));started=true;}
+        else ctx.lineTo(toX(c.lng),toY(c.lat));
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha=1;
+    }
+
+    // Dots
+    userPlayed.forEach(id=>{
+      const c=gc(id);if(!c)return;
+      const x=toX(c.lng),y=toY(c.lat);
+      const rounds=userRr.filter(r=>r.courseId===id).length;
+
+      // Glow
+      ctx.globalAlpha=0.25;
+      const grd=ctx.createRadialGradient(x,y,0,x,y,14);
+      grd.addColorStop(0,color);grd.addColorStop(1,'transparent');
+      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+
+      // Dot
+      ctx.fillStyle=color;
+      ctx.beginPath();ctx.arc(x,y,isMe?9:7,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+
+      // Initial
+      ctx.fillStyle='#fff';
+      ctx.font=`bold ${isMe?8:7}px DM Sans,system-ui`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(c.name.charAt(0),x,y);
+
+      // Name label (only for current user)
+      if(isMe){
+        const sn=c.name.replace(/ Golf Club| GC| Golf Course| Golf Centre/g,'').trim();
+        ctx.fillStyle='rgba(0,0,0,0.75)';
+        ctx.font='bold 7px DM Sans,system-ui';
+        const tw=ctx.measureText(sn.length>12?sn.slice(0,10)+'…':sn).width;
+        ctx.fillRect(x-tw/2-3,y+11,tw+6,12);
+        ctx.fillStyle='#fff';
+        ctx.textBaseline='top';
+        ctx.fillText(sn.length>12?sn.slice(0,10)+'…':sn,x,y+12);
+      }
+
+      // Rounds badge
+      if(rounds>1){
+        ctx.fillStyle=color;
+        ctx.beginPath();ctx.arc(x+9,y-9,7,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+        ctx.fillStyle='#fff';
+        ctx.font='bold 7px DM Sans,system-ui';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('×'+rounds,x+9,y-9);
+      }
+    });
   }
 
-  // Dot for every played course
-  played.forEach(id=>{
-    const c=gc(id);if(!c)return;
-    const x=toX(c.lng),y=toY(c.lat);
-    const rounds=rr.filter(r=>r.courseId===id).length;
-    const grd=ctx.createRadialGradient(x,y,0,x,y,16);
-    grd.addColorStop(0,'rgba(201,168,76,0.25)');grd.addColorStop(1,'rgba(201,168,76,0)');
-    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,16,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#c9a84c';ctx.beginPath();ctx.arc(x,y,8,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle='#fff';ctx.font='bold 8px DM Sans,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(c.name.charAt(0),x,y);
-    const sn=c.name.replace(/ Golf Club| GC| Golf Course| Golf Centre/g,'').trim();
-    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='bold 7.5px DM Sans,system-ui';ctx.textBaseline='top';
-    ctx.fillText(sn.length>14?sn.slice(0,12)+'…':sn,x,y+11);
-    if(rounds>1){
-      ctx.fillStyle='#2d5a3d';ctx.beginPath();ctx.arc(x+8,y-8,7,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#c9a84c';ctx.lineWidth=1;ctx.stroke();
-      ctx.fillStyle='#c9a84c';ctx.font='bold 7px DM Sans,system-ui';ctx.textBaseline='middle';
-      ctx.fillText('×'+rounds,x+8,y-8);
-    }
-  });
+  if(mode==='all'){
+    // Draw all users' maps with different colors
+    allUsers.forEach((u,i)=>{
+      const color=userColors[i%userColors.length];
+      const isMe=u.uid===CU.uid;
+      const userRounds=GUD(u.uid).rounds.filter(r=>!r.testMode);
+      if(userRounds.length)drawUserMap(userRounds,color,isMe);
+    });
+  } else {
+    // Just current user in purple
+    drawUserMap(rr,'#a855f7',true);
+  }
 }
+
+// Keep old name as alias for compatibility
+function drawGolfMap(played,rr){drawGolfMapCanvas(played,rr);}
+
+
 function buildGMapsUrl(played){
   if(!played.length)return'https://maps.google.com';
   const c=gc(played[0]);
