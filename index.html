@@ -27,7 +27,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 /* SPLASH */
 #splash{position:fixed;inset:0;background:var(--gd);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity 0.6s}
 #splash.out{opacity:0;pointer-events:none}
-#splash img{width:130px;height:130px;object-fit:contain;border-radius:24px;margin-bottom:20px;box-shadow:0 8px 40px rgba(0,0,0,0.35)}
+#splash img{width:120px;height:120px;object-fit:contain;border-radius:20px;margin-bottom:20px;box-shadow:0 8px 40px rgba(0,0,0,0.35);background:transparent}
 #splash h1{color:#fff;font-size:32px;letter-spacing:-0.5px}
 #splash p{color:rgba(255,255,255,0.55);font-size:14px;margin-top:6px}
 
@@ -339,7 +339,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 <div id="app" class="gone">
   <div id="testBanner" class="test-banner" style="display:none">🧪 TEST MODE — data not saved to real stats<button class="bsm" style="padding:5px 11px;font-size:11px" onclick="simRound()">Simulate round</button></div>
   <div class="app-hdr">
-    <h1 id="pgTitle" style="font-family:'Playfair Display',serif;font-style:italic;letter-spacing:-0.5px">Links Ledger</h1>
+    <div style="display:flex;align-items:center;gap:8px"><img id="hdLogo" src="" style="width:28px;height:28px;border-radius:6px;object-fit:contain" alt=""><h1 id="pgTitle" style="font-family:'Playfair Display',serif;font-style:italic;letter-spacing:-0.5px">Links Ledger</h1></div>
     <div class="hdr-acts">
       <button class="hbtn" onclick="SP('profile')">👤</button>
     </div>
@@ -2541,7 +2541,7 @@ async function loadPostRoundMotiv(round,statsCtx){
     if(el)el.textContent='"'+txt.replace(/^"|"$/g,'')+'"';
   }catch(e){
     const el=document.getElementById('motivText');
-    if(el)el.textContent='"'+getLocalMotiv(true,diff)+'"';
+    if(el)el.textContent='Coach connection failed — check api/coach.js is deployed and API key is set in Vercel.';
   }
 }
 
@@ -2559,10 +2559,33 @@ async function loadPreRoundMotiv(statsCtx,roundCount){
     if(el)el.textContent='"'+txt.replace(/^"|"$/g,'')+'"';
   }catch(e){
     const el=document.getElementById('motivText');
-    if(el)el.textContent='"'+getLocalMotiv(false,0)+'"';
+    if(el)el.textContent='Coach connection failed — check api/coach.js is deployed and API key is set in Vercel.';
   }
 }
 
+
+// Build message history for multi-turn coach conversation
+function buildMsgHistory(newUserMsg){
+  // Include last 6 messages for context (3 exchanges)
+  const history=chatHist.slice(-6).map(m=>({
+    role:m.r==='u'?'user':'assistant',
+    content:m.c==='...'?'[thinking...]':m.c
+  })).filter(m=>m.content&&m.content!=='[thinking...]');
+  // Add new message
+  history.push({role:'user',content:newUserMsg});
+  return history;
+}
+
+// Check if /api/coach is reachable
+async function checkCoachAPI(){
+  try{
+    const r=await fetch('/api/coach',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({max_tokens:10,messages:[{role:'user',content:'ping'}]})
+    });
+    return r.ok;
+  }catch(e){return false;}
+}
 
 function getLocalMotiv(postRound,diff){
   if(postRound){
@@ -2582,12 +2605,16 @@ async function genAnalysis(avg,gir,pt,fw,drives,topMiss,clubSumm){
   const prompt=COACH_KB+'\n\n'+ctx+'\n\nGive a sharp opening analysis following STRICT RULES above. Lead with the biggest weakness + its specific number. Technical cause. Named drill. Direct NZ coach. Max 80 words. ONLY golf content.';
   try{
     const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({max_tokens:500,messages:[{role:'user',content:prompt}]})});
-    if(!res.ok)throw new Error(res.status);
+      body:JSON.stringify({
+        max_tokens:500,
+        system:COACH_KB+'\n\n'+ctx,
+        messages:[{role:'user',content:'Analyse my game and give me your opening assessment. Be specific, cite my stats, identify the biggest weakness and prescribe one drill. Max 80 words.'}]
+      })});
+    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(res.status+' '+(err.error||''));}
     const d=await res.json();
-    const txt=d.content?.map(i=>i.text||'').join('')||'Tap a question above to get started.';
+    const txt=d.content?.map(i=>i.text||'').join('').trim()||'Tap a question above to get started.';
     removeLastChat();addChat('ai',txt);
-  }catch(e){removeLastChat();addChat('ai','Could not connect to coach. Check your internet connection and try again.');}
+  }catch(e){removeLastChat();addChat('ai','⚠️ Cannot connect to Coach Foxy ('+e.message+'). Check: 1) api/coach.js is in GitHub repo 2) ANTHROPIC_API_KEY is set in Vercel environment variables.');}
 }
 
 
@@ -2595,38 +2622,52 @@ async function sendChat(){const input=document.getElementById('chatIn');const ms
 
 async function askCoach(q){
   addChat('user',q);
-  const d=ud();const rr=realR();
+  addChat('ai','...');
+
+  // Build rich stats context
+  const rr=realR();
   const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
   const allShD=ah.flatMap(h=>h.shots||[]).filter(s=>s.dir);
-  const avg=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
-  const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
   const mc={};allShD.forEach(s=>{mc[s.dir]=(mc[s.dir]||0)+1;});
   const topMiss=Object.entries(mc).sort((a,b)=>b[1]-a[1])[0];
-  const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>c+':'+d.clubStats[c].avg+'y').join(', ');
-  const ctx=buildStatsContext(avg,null,null,null,drives,topMiss,clubSumm);
-  const d2=ud();
-  const clubSumm2=ALL_CLUBS.filter(c=>d2.clubStats?.[c]).map(c=>c+':'+d2.clubStats[c].avg+'y').join(', ');
-  const rr2=realR();
-  const ah2=rr2.flatMap(r=>r.holes||[]).filter(Boolean);
-  const allShD2=ah2.flatMap(h=>h.shots||[]).filter(s=>s.dir);
-  const mc2={};allShD2.forEach(s=>{mc2[s.dir]=(mc2[s.dir]||0)+1;});
-  const topMiss2=Object.entries(mc2).sort((a,b)=>b[1]-a[1])[0];
-  const fwH2=knownFW(ah2);const fw2=fwH2.length?Math.round(fwH2.filter(h=>h.fairway).length/fwH2.length*100):null;
-  const girH2=knownGIR(ah2);const gir2=girH2.length?Math.round(girH2.filter(h=>h.gir).length/girH2.length*100):null;
-  const drives2=rr2.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
-  const fullCtx=buildStatsContext(avg,gir2,null,fw2,drives2,topMiss2,clubSumm2);
-  const prompt=COACH_KB+'\n\n'+fullCtx+'\n\nPLAYER QUESTION: '+q+'\n\nIMPORTANT RULES FOR YOUR RESPONSE:\n- You MUST cite at least one specific number from the stats above\n- You MUST give a technical explanation, not a mental tip\n- If asked about drills, name a specific drill from the drill library\n- Max 120 words\n- If stats are limited, say so and give advice based on what you have\n- NEVER give generic mental tips like "one shot at a time" unless specifically asked about mental game';
-  addChat('ai','...');
+  const fwH=knownFW(ah);const fw=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
+  const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
+  const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
+  const d=ud();const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>c+':'+d.clubStats[c].avg+'y').join(', ');
+  const avg=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
+  const statsCtx=buildStatsContext(avg,gir,null,fw,drives,topMiss,clubSumm);
+
+  // System prompt tells Claude who it is and gives it the stats
+  const systemPrompt=COACH_KB+'\n\n'+statsCtx;
+
+  // Build conversation history (last 6 messages for context)
+  const history=chatHist.slice(0,-1).slice(-6).map(m=>({
+    role:m.r==='u'?'user':'assistant',
+    content:m.c==='...'?'(thinking)':m.c
+  })).filter(m=>m.content&&m.content!=='(thinking)');
+  history.push({role:'user',content:q});
+
   try{
-    const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({max_tokens:350,messages:[{role:'user',content:prompt}]})});
-    if(!res.ok)throw new Error(res.status);
+    const res=await fetch('/api/coach',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        max_tokens:400,
+        system:systemPrompt,
+        messages:history
+      })
+    });
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      throw new Error(res.status+' '+(err.error||''));
+    }
     const data=await res.json();
-    const txt=data.content?.map(i=>i.text||'').join('')||getLocalMotiv(false,0);
-    removeLastChat();addChat('ai',txt);
+    const txt=data.content?.map(i=>i.text||'').join('').trim();
+    removeLastChat();
+    addChat('ai',txt||'No response received');
   }catch(e){
     removeLastChat();
-    addChat('ai',getLocalMotiv(false,0));
+    addChat('ai','⚠️ Cannot reach Coach Foxy: '+e.message+'. Make sure api/coach.js is in your GitHub repo and ANTHROPIC_API_KEY is set in Vercel → Settings → Environment Variables.');
   }
 }
 
@@ -3032,6 +3073,7 @@ function adminExportAll(){
 function init(){
   document.getElementById('slogo').src=LOGO;
   document.getElementById('alogo').src=LOGO;
+  const hdL=document.getElementById('hdLogo');if(hdL)hdL.src=LOGO;
   seedData();
   const sess=LD('ll_sess',null);
   if(sess){
