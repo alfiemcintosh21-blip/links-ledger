@@ -356,7 +356,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
   </div>
   <nav class="bnav">
     <button class="ni active" id="n-home" onclick="SP('home')"><span class="ni-i"><img src="https://pngimg.com/d/golf_PNG42.png" style="width:22px;height:22px;object-fit:contain" onerror="this.outerHTML='⛳'"></span>Home</button>
-    <button class="ni" id="n-stats" onclick="SP('stats')"><span class="ni-i"><img src="https://www.thewisegroup.co.uk/wp-content/uploads/2019/07/2019-07-Stats-icon-rendered.jpg" style="width:22px;height:22px;object-fit:cover;border-radius:4px" onerror="this.outerHTML='📊'"></span>Stats</button>
+    <button class="ni" id="n-stats" onclick="SP('stats')"><span class="ni-i"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="19" x2="19" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>Stats</button>
     <button class="ni" id="n-leagues" onclick="SP('leagues')"><span class="ni-i"><img src="https://p.turbosquid.com/ts-thumb/qM/TjLgV8/R5/claret_jug_british_open_360/jpg/1682539341/1920x1080/turn_fit_q99/fa3fac5adc45b24c0fba52f822ac77099ee7d7ac/claret_jug_british_open_360-1.jpg" style="width:22px;height:22px;object-fit:cover;border-radius:50%" onerror="this.outerHTML='🏆'"></span>Leagues</button>
     <button class="ni" id="n-coach" onclick="SP('coach')"><span class="ni-i" style="width:24px;height:24px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center"><img src="https://a.espncdn.com/combiner/i?img=/i/headshots/golf/players/full/4251.png&w=350&h=254" style="width:24px;height:24px;object-fit:cover;border-radius:50%" onerror="this.outerHTML='🇳🇿'"></span>Foxy</button>
     <button class="ni" id="n-map" onclick="SP('map')"><span class="ni-i">🌍</span>Map</button>
@@ -370,7 +370,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 <div id="shotMod">
   <div class="si">
     <div style="width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 13px"></div>
-    <div style="font-size:16px;font-weight:800;text-align:center;margin-bottom:13px" id="shotModTitle">How was that shot?</div>
+    <div style="font-size:16px;font-weight:800;text-align:center;margin-bottom:13px" id="shotModalTitle">How was that shot?</div>
     <!-- Step guide inside modal -->
     <div style="background:var(--gl);border:1.5px solid var(--gll);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--gd)">
       📌 <strong>Step 2:</strong> You just hit — tell us about the shot. Tap <strong>Save shot</strong> then walk to your ball.
@@ -495,64 +495,44 @@ const LIE_SVG = {
   Putting:`<svg viewBox="0 0 40 40" width="34" height="34"><rect x="2" y="2" width="36" height="36" rx="6" fill="#22a83a"/><ellipse cx="20" cy="28" rx="12" ry="6" fill="#1a6b22"/><circle cx="20" cy="28" r="4" fill="#111"/><line x1="20" y1="6" x2="20" y2="22" stroke="#888" stroke-width="1.5"/><polygon points="20,6 26,10 20,14" fill="#e74c3c"/></svg>`,
 };
 const LIE_IC = {Fairway:'🟩','Intermediate rough':'🌱',Rough:'🌿',Sand:'🏖️',Trouble:'⚠️',Chipping:'🎯',Putting:'🕳️'};
-const COACH_KB = `You are Coach Foxy — Ryan Fox's alter-ego as a golf coach. Direct, technical, passionate New Zealand golf coach. You give specific, actionable advice based on the player's actual stats. Never generic. Always cite specific numbers from their data. Always prescribe specific drills.
+const COACH_KB = `IDENTITY: You are Coach Foxy — named after NZ pro golfer Ryan Fox. You are a highly technical golf coach. You ONLY give golf-specific advice. You NEVER give generic life/mental advice unless specifically asked about the mental game.
 
-COACHING PHILOSOPHY:
-- Strokes gained framework: identify which area costs most strokes vs par
-- GIR% is the biggest scoring lever above 18hcp. Below 18hcp, putting and short game matter more
-- Driving accuracy matters more than distance for high handicappers
-- 60% of shots happen within 100 yards — short game is underrated
-- Ball flight laws: face angle controls 75-85% of initial direction, path controls curve
-- Hook = face closed to path. Slice = face open to path. Pull = steep in-to-out
-- Fat = weight back at impact or steep angle of attack. Thin = early extension or scooping
+STRICT RULES:
+1. ALWAYS reference at least one specific stat number from the player data provided
+2. ALWAYS give a technical golf explanation (mechanics, physics, technique)
+3. ALWAYS name a specific drill when relevant
+4. NEVER say things like "one shot at a time", "trust yourself", "believe in yourself" unless asked about confidence/mental game
+5. If data is limited, say "With limited data I'd focus on X" and still give technical advice
+6. Keep responses under 100 words
+7. Speak like a direct NZ coach - no fluff, no waffle
 
-TECHNICAL DRILLS LIBRARY:
+BALL FLIGHT LAWS:
+- Face angle at impact = 75-85% of initial direction. Path = curve.
+- Hook: face closed to path. Slice: face open to path.
+- Pull: path too far left (right-handed). Push: path too far right.
+- Fat: low point too far back, weight not transferred. Thin: early extension, scooping.
+- Heel: hands too close at impact. Toe: arms too extended.
 
-DRIVING / BALL STRIKING:
-- Gate drill: place 2 tees 1cm wider than clubhead, swing through without hitting them — fixes path
-- Alignment stick drill: stick in ground at ball position 45° to target, feel club go under it — shallows angle of attack
-- Towel under arms drill: tuck towel under both armpits, hit shots keeping it there — syncs body rotation
-- Impact bag drill: hit a bag/pillow, feel shaft lean forward at impact — fixes flipping
-- Tee peg on shaft drill: tee peg pointing at belly at address, should point at belt buckle at impact — stops early extension
-- Half swing to half swing: focus on low point control, brush the grass in front of ball
-- Swing direction drill: 2 alignment sticks making a corridor — hit 20 balls staying in the corridor
+SCORING FRAMEWORK:
+- GIR% is the #1 scoring stat above 18hcp. Every 10% GIR improvement = ~2 shots/round saved.
+- Putting: 2-putt average = good. >2.1 putts/hole = lag putting problem, not short putting.
+- Driving: accuracy matters more than distance below scratch.
+- Up&down%: below 30% = short game needs urgent work. 40%+ = solid.
+- Strokes gained: approach game differentiates handicap bands most.
 
-IRON PLAY:
-- Ball position check: irons = 1 ball back of left heel. Fat shots = too far forward
-- Divot direction drill: check divots point slightly left of target — confirms inside-out path
-- 9-to-3 drill: half shots with 7-iron focusing on shaft lean at impact, 3 sets of 10
-- Step drill: step forward with lead foot as you swing — forces weight transfer
-- Feet together drill: 50 shots with feet together — improves balance and centring
+DRILLS - USE THESE BY NAME:
+Driving: Gate drill (2 tees 1cm wider than clubhead, swing through), Towel drill (towel under armpits for rotation), Impact bag drill (feel shaft lean), Alignment stick shallowing drill
+Irons: 9-to-3 drill (half swings focusing low point), Divot drill (check divot points slightly left), Feet together drill (50 balls, improves centring), Step drill (step into shot for weight transfer)
+Chipping: Ladder drill (targets at 10/20/30/40/50 yards), One-hand chipping (trail hand only), 10-ball challenge (10 from same spot, count inside 6 feet)
+Putting: Gate drill (2 tees 1mm wider than putter), 3-6-9 drill (make 3 from each distance), Distance control drill (lag to tee peg at 30/40/50 feet), Coin drill (20 in a row from 1 foot)
+Course management: Always miss to your preferred miss side, par 5 strategy = two shots to 100y, aim at fat of green not flag on par 3s
 
-CHIPPING AND SHORT GAME:
-- Ladder drill: set 5 targets at 10, 20, 30, 40, 50 yards — hit 2 to each, score points for landing zones
-- One-hand chipping: chip with trail hand only — feels correct low point and release
-- Fringe drill: chip from just off green, land ball on green within 3 feet — 10 in a row target
-- Bump and run: use 8-iron from tight lies, chip and run to hole — lower flight, more consistent
-- 10-ball challenge: chip 10 balls from same spot, count how many within 6 feet — track weekly
+EXAMPLE GOOD RESPONSES:
+Q: "What should I work on?"
+A: "Your GIR is 22% — that's the problem. At your handicap you need to be hitting at least 4-5 greens per round. Your irons are probably offline. Do the 9-to-3 drill: 20 half-swing 7-irons focusing purely on hitting the ground in front of the ball. Do this before every range session for 2 weeks."
 
-PUTTING:
-- Gate drill: 2 tees 1mm wider than putter face at impact — train square face
-- Coin drill: place coin 1 foot from hole, make 20 in a row — builds confidence
-- Distance control: lag putt to a tee peg 30, 40, 50 feet away — never more than 3 feet past
-- Metronome putting: even tempo back and through, count 1-2, same length both ways
-- Eyes closed putting: feel the stroke, not the mechanics — for yips or over-thinking
-- 3-6-9 drill: make 3 putts from 3 feet, then 3 from 6, then 3 from 9 — pressure practice
-- Read from low side: always read putts from the low side of the hole — see true break
-
-COURSE MANAGEMENT:
-- Miss to your preferred miss side always — know your shape and use it
-- Par 5 strategy: two shots to 100 yards beats hero shots into trouble
-- Par 3 strategy: aim at the fat part of the green, not the flag
-- Bogey avoidance: never make double from a good position — chip out from trouble
-- Pre-shot routine: same every time — pick intermediate target 3 feet ahead, align to that
-
-MENTAL GAME:
-- Commit or re-tee: if you're not 100% committed to a shot, step off and re-commit
-- One shot at a time: only think about the shot in hand, not the hole total
-- Post-shot routine: 5 seconds of reaction (good or bad), then move on — never carry shots
-- Pressure routine: breathe out slowly before starting routine — activates parasympathetic
-- Visualise the ball flight before every shot — see it, then feel it, then do it
+Q: "My driving is costing me"  
+A: "With 6 rounds tracked and no driving data yet, I'd focus on direction over distance. If you're missing right consistently, your face is open to path at impact. Do the Gate drill: set 2 tees just wider than your clubhead and swing through without hitting them. 50 balls. This grooves a square face."
 `;
 
 // ── STORAGE ──
@@ -1113,6 +1093,7 @@ function startWF(isTest=false){
 }
 
 function renderWF(){
+  SP('round'); // always ensure round page is visible when workflow is active
   const pg=document.getElementById('pg-round');
   const steps={course:stepCourse,mode:stepMode,bag:stepBag,play:stepPlay,score:stepScore,lie:stepLie,preshot:stepPreshot,summary:stepSummary,scan:stepScan};
   if(steps[WF.step])steps[WF.step](pg);
@@ -1286,7 +1267,9 @@ async function beginRound(){
   cHole=0;walkDist=0;roundStart=Date.now();gpsPos=null;shotStart=null;
   wxData=null;
   fetchWx(c.lat,c.lng).then(w=>{wxData=w;if(WF.step==='play')renderWF();});
-  WF.step='play';renderWF();
+  WF.step='play';
+  SP('round');   // make pg-round visible BEFORE rendering
+  renderWF();
   startGPS();
 }
 
@@ -1363,6 +1346,7 @@ ${cHole>0?`<button class="btn bo" onclick="prevHole()">← Previous hole</button
 
   // Draw diagram - use real image if available, else procedural SVG
   diagramHole=cHole;
+  diagOffset=cHole; // sync diagram offset with current hole
   renderHoleDiagram(hole, cHole);
 }
 
@@ -1377,17 +1361,18 @@ function renderHoleDiagram(hole, holeIdx){
   const imgWrap=document.getElementById('holeDiagImgWrap');
 
   if(imgs){
-    // hole.h is the actual hole number (1-18)
-    // For 9-hole image sets, holes 10-18 mirror holes 1-9
-    let imgHole=hole.h;
+    // hole.h = actual hole number. Images keyed 1-9.
+    // For back 9 on a 9-hole course: hole 10 uses image 1, hole 11 uses 2, etc.
     const imgKeys=Object.keys(imgs).map(Number).sort((a,b)=>a-b);
-    const maxImgHole=Math.max(...imgKeys);
+    const maxImgHole=imgKeys[imgKeys.length-1]||9;
+    // Map hole number to image key
+    let imgHole=hole.h;
     if(imgHole>maxImgHole){
-      // Mirror: hole 10→1, 11→2, etc
       imgHole=((imgHole-1)%maxImgHole)+1;
     }
+    // Ensure imgHole is a valid key
+    if(!imgKeys.includes(imgHole))imgHole=imgKeys[0];
     const imgUrl=imgs[imgHole];
-    console.log('Hole diagram: hole',hole.h,'→ image',imgHole,'url',imgUrl);
     if(imgUrl&&imgEl&&imgWrap&&svgEl){
       imgEl.src=imgUrl;
       imgWrap.style.display='block';
@@ -1407,14 +1392,20 @@ let diagOffset=0;
 function diagNext(){
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   diagOffset=(diagOffset+1)%holes.length;
-  const svgEl=document.getElementById('holeDiagSvg');
-  if(svgEl){const h=holes[diagOffset];drawHoleDiagram(svgEl,h);document.querySelector('.hnum2').textContent=`Hole ${h.h}`;document.querySelector('.hpar').textContent=`Par ${h.par} · ${h.y} yds · S.I. ${h.si}`;}
+  const h=holes[diagOffset];
+  renderHoleDiagram(h,diagOffset);
+  const hn=document.querySelector('.hnum2');const hp=document.querySelector('.hpar');
+  if(hn)hn.textContent='Hole '+h.h;
+  if(hp)hp.textContent='Par '+h.par+' · '+h.y+' yds · S.I. '+h.si;
 }
 function diagPrev(){
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   diagOffset=(diagOffset-1+holes.length)%holes.length;
-  const svgEl=document.getElementById('holeDiagSvg');
-  if(svgEl){const h=holes[diagOffset];drawHoleDiagram(svgEl,h);document.querySelector('.hnum2').textContent=`Hole ${h.h}`;document.querySelector('.hpar').textContent=`Par ${h.par} · ${h.y} yds · S.I. ${h.si}`;}
+  const h=holes[diagOffset];
+  renderHoleDiagram(h,diagOffset);
+  const hn=document.querySelector('.hnum2');const hp=document.querySelector('.hpar');
+  if(hn)hn.textContent='Hole '+h.h;
+  if(hp)hp.textContent='Par '+h.par+' · '+h.y+' yds · S.I. '+h.si;
 }
 
 function initHD(hole){return{score:hole.par,putts:2,gir:null,fairway:null,updown:null,shots:[],shotMode:AR.mode==='shot',selectedClub:null,selectedLie:null};}
@@ -2226,6 +2217,7 @@ function rStats(){
   <div class="sc"><div class="sv">${best18!=null?(best18>=0?'+'+best18:best18):'—'}</div><div class="sl">Best to par</div></div>
   <div class="sc"><div class="sv">${gir!=null?gir+'%':'—'}</div><div class="sl">GIR${gir===null?'<br>'+na:''}</div></div>
   <div class="sc"><div class="sv">${pt||'—'}</div><div class="sl">Putts/hole</div></div>
+  <div class="sc"><div class="sv">${rr.length?(rr.reduce((s,r)=>s+to18((r.holes||[]).reduce((a,h)=>a+(h?.putts||0),0),r.totalHoles||9),0)/rr.length).toFixed(1):'—'}</div><div class="sl">Putts/round<br><span style="font-size:9px;font-weight:500;opacity:0.7">(18H adj)</span></div></div>
   <div class="sc"><div class="sv">${fw!=null?fw+'%':'—'}</div><div class="sl">Fairways${fw===null?'<br>'+na:''}</div></div>
   <div class="sc"><div class="sv">${udP!=null?udP+'%':'—'}</div><div class="sl">Up & down${udP===null?'<br>'+na:''}</div></div>
 </div>
@@ -2473,9 +2465,9 @@ ${justFinished?`
 
 ${rr.length?`
 <div class="qq">
-  <button class="q" onclick="askCoach('Based on my exact stats, what is the single biggest area costing me strokes and what specific drill should I do this week?')">Biggest weakness + drill</button>
-  <button class="q" onclick="askCoach('Analyse my shot direction and contact data and tell me exactly what is wrong with my ball striking technically')">Diagnose my ball striking</button>
-  <button class="q" onclick="askCoach('Build me a 30-minute practice plan for this week based on my stats')">Weekly practice plan</button>
+  <button class="q" onclick="askCoach('Look at my exact stats. What is the single biggest weakness costing me strokes right now? Give me the number, the technical cause, and one specific named drill.')">Biggest weakness + drill</button>
+  <button class="q" onclick="askCoach('Analyse my shot direction and contact percentages. Tell me exactly what is wrong mechanically with my ball striking and give me the most important drill to fix it.')">Diagnose my ball striking</button>
+  <button class="q" onclick="askCoach('Build me a specific 30-minute practice plan for this week based on my actual stats. Include named drills with rep counts. Prioritise the areas costing me the most shots.')">Weekly practice plan</button>
   <button class="q" onclick="askCoach('My GIR percentage — what does it mean technically and what is the fastest way to improve it?')">Improve my GIR</button>
   <button class="q" onclick="askCoach('What does my putting data tell you and what specific putting drill should I do?')">Fix my putting</button>
   <button class="q" onclick="askCoach('Give me a specific pre-round warm-up routine and one mental key for today based on my tendencies')">Pre-round routine</button>
@@ -2587,7 +2579,7 @@ function getLocalMotiv(postRound,diff){
 async function genAnalysis(avg,gir,pt,fw,drives,topMiss,clubSumm){
   const ctx=buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm);
   addChat('ai','Analysing your game...');
-  const prompt=COACH_KB+'\n\n'+ctx+'\n\nBased on these exact stats, give a sharp 3-part response:\n1. One sentence identifying the biggest scoring weakness with the specific stat number\n2. One specific technical reason why this is likely happening\n3. One concrete drill from the drill library above to fix it this week\nBe direct like a NZ coach. Use the actual numbers. Max 80 words total.';
+  const prompt=COACH_KB+'\n\n'+ctx+'\n\nGive a sharp opening analysis following STRICT RULES above. Lead with the biggest weakness + its specific number. Technical cause. Named drill. Direct NZ coach. Max 80 words. ONLY golf content.';
   try{
     const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({max_tokens:500,messages:[{role:'user',content:prompt}]})});
@@ -2838,6 +2830,7 @@ function buildGMapsUrl(played){
 function rProfile(){
   const d=ud();const rr=realR();
   document.getElementById('pg-profile').innerHTML=`
+${CU.role==='admin'?`<button class="btn" onclick="SP('admin')" style="width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px">⚙️ Admin Panel</button>`:''}
 <div class="pav">${CU.name.charAt(0)}</div>
 <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;text-align:center;margin-bottom:2px">${CU.name}</div>
 <div style="text-align:center;font-size:14px;color:var(--txt3);margin-bottom:15px">${CU.email} · Member since ${new Date(CU.created).toLocaleDateString('en-NZ')}</div>
@@ -2851,8 +2844,6 @@ function rProfile(){
   <div class="tr"><div><div class="tl">Private rounds by default</div><div class="ts">Stats hidden from leaderboard</div></div>
   <button class="tog ${d.settings?.privateRounds?'on':''}" id="psTog" onclick="togPrivSetting()"></button></div>
 </div>
-<div class="sec"></div>
-${CU.role==='admin'?`<button class="btn bo" onclick="SP('admin')" style="border-color:var(--gold);color:var(--gold3);margin-bottom:8px">⚙ Admin panel</button>`:''}
 <button class="btn bo" style="color:var(--red);border-color:var(--red)" onclick="delTestData()">🗑 Delete all test data</button>
 <button class="btn bo" onclick="logout()" style="margin-top:4px">Sign out</button>`;
 }
