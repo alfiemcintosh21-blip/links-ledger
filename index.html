@@ -2471,19 +2471,8 @@ function rCoach(){
   </div>
 </div>
 
-${justFinished?`
-<!-- Post-round motivational message -->
-<div id="motivMsg" style="background:linear-gradient(135deg,var(--g),var(--g3));border-radius:14px;padding:16px;margin-bottom:16px;color:#fff;position:relative;overflow:hidden">
-  <div style="position:absolute;top:-10px;right:-10px;font-size:60px;opacity:0.15">🏆</div>
-  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.75;margin-bottom:6px">Just finished · ${lastRound.courseName}</div>
-  <div id="motivText" style="font-size:16px;font-weight:700;line-height:1.5;font-style:italic">"Loading Foxy's take..."</div>
-</div>`:`
-<!-- Pre-round / general motivational message -->
-<div id="motivMsg" style="background:linear-gradient(135deg,var(--g),var(--g3));border-radius:14px;padding:16px;margin-bottom:16px;color:#fff;position:relative;overflow:hidden">
-  <div style="position:absolute;top:-10px;right:-10px;font-size:60px;opacity:0.15">⛳</div>
-  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.75;margin-bottom:6px">${rr.length?'Pre-round advice':'Welcome to Links Ledger'}</div>
-  <div id="motivText" style="font-size:16px;font-weight:700;line-height:1.5;font-style:italic">"Loading Foxy's advice..."</div>
-</div>`}
+
+}
 
 ${rr.length?`
 <div class="qq">
@@ -2513,12 +2502,7 @@ setTimeout(function(){
 },50);
 
   // Load motivational message
-  const statsCtx=buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm);
-  if(justFinished){
-    loadPostRoundMotiv(lastRound,statsCtx);
-  } else {
-    loadPreRoundMotiv(statsCtx,rr.length);
-  }
+  // No auto-loading - Foxy waits for user to initiate
 
   // Foxy waits for the user to speak first
   // But if brand new user (no rounds ever), start onboarding
@@ -2740,6 +2724,8 @@ async function askCoach(q){
   history.push({role:'user',content:q});
 
   try{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),25000); // 25 second timeout
     const res=await fetch('/api/coach',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -2747,8 +2733,10 @@ async function askCoach(q){
         max_tokens:400,
         system:systemPrompt,
         messages:history
-      })
+      }),
+      signal:controller.signal
     });
+    clearTimeout(timeout);
     if(!res.ok){
       const err=await res.json().catch(()=>({}));
       throw new Error(res.status+' '+(err.error||''));
@@ -2759,7 +2747,11 @@ async function askCoach(q){
     addChat('ai',txt||'No response received');
   }catch(e){
     removeLastChat();
-    addChat('ai','⚠️ Cannot reach Coach Foxy: '+e.message+'. Make sure api/coach.js is in your GitHub repo and ANTHROPIC_API_KEY is set in Vercel → Settings → Environment Variables.');
+    if(e.name==='AbortError'){
+      addChat('ai','Foxy took too long to respond — give it another go mate.');
+    } else {
+      addChat('ai','⚠️ '+e.message);
+    }
   }
 }
 
