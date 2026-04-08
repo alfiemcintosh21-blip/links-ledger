@@ -2454,69 +2454,37 @@ function buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm){
   const rr=realR();
   const hcp=calcWHSHandicap(rr);
   const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
-
-  // Score breakdown
   let eagles=0,birdies=0,pars=0,bogeys=0,doubles=0,worse=0;
   rr.forEach(r=>{const hs=getH(r.courseId,r.type==='custom'?'18':r.type);(r.holes||[]).forEach((h,i)=>{if(!h||!hs[i])return;const d=h.score-hs[i].par;if(d<=-2)eagles++;else if(d===-1)birdies++;else if(d===0)pars++;else if(d===1)bogeys++;else if(d===2)doubles++;else worse++;});});
   const totalHoles=eagles+birdies+pars+bogeys+doubles+worse;
-
-  // Putt breakdown
   const udH=ah.filter(h=>h.gir===false);
   const ud=udH.length?Math.round(udH.filter(h=>h.updown).length/udH.length*100):null;
-
-  // Shot direction breakdown
   const allShots=ah.flatMap(h=>h.shots||[]).filter(Boolean);
   const dirCounts={};allShots.filter(s=>s.dir).forEach(s=>{dirCounts[s.dir]=(dirCounts[s.dir]||0)+1;});
   const conCounts={};allShots.filter(s=>s.con&&s.con!=='Unknown').forEach(s=>{conCounts[s.con]=(conCounts[s.con]||0)+1;});
   const totalDirShots=Object.values(dirCounts).reduce((a,b)=>a+b,0);
-
-  // Recent trend (last 3 vs previous 3)
   const recent=rr.slice(0,3);const prev=rr.slice(3,6);
   const recentAvg=recent.length?Math.round(recent.reduce((s,r)=>s+to18(r.toPar,r.totalHoles||9),0)/recent.length):null;
   const prevAvg=prev.length?Math.round(prev.reduce((s,r)=>s+to18(r.toPar,r.totalHoles||9),0)/prev.length):null;
-  const trend=recentAvg!==null&&prevAvg!==null?recentAvg<prevAvg?'improving ('+Math.abs(recentAvg-prevAvg)+' strokes better recently)':recentAvg>prevAvg?'trending worse ('+Math.abs(recentAvg-prevAvg)+' strokes higher recently)':'stable':null;
-
-  let ctx='PLAYER STATS SUMMARY:
-';
-  ctx+='Rounds tracked: '+rr.length+'
-';
-  if(hcp!==null)ctx+='WHS Handicap: '+hcp+'
-';
-  ctx+='Average score (18H adjusted): '+avg+' ('+((avg||0)-72>0?'+'+(avg-72):avg-72)+' to par)
-';
-  if(gir!==null)ctx+='GIR%: '+gir+'% (tour average 65%, 18hcp average ~35%)
-';
-  if(fw!==null)ctx+='Fairways hit%: '+fw+'% (tour average 60%)
-';
-  if(pt)ctx+='Putts per hole: '+pt+'
-';
-  if(ud!==null)ctx+='Up & down%: '+ud+'%
-';
-  if(drives.length){
-    const avgDrive=Math.round(drives.reduce((a,b)=>a+b,0)/drives.length);
-    ctx+='Avg drive: '+avgDrive+'y (max '+Math.max(...drives)+'y)
-';
-  }
-  if(totalHoles>0)ctx+='Score breakdown: '+eagles+' eagles, '+birdies+' birdies, '+pars+' pars, '+bogeys+' bogeys, '+doubles+' doubles, '+worse+' triple+
-';
-  if(topMiss)ctx+='Most common shot miss: '+topMiss[0]+' ('+topMiss[1]+' shots)
-';
-  if(totalDirShots>0){
-    const dirPcts=Object.entries(dirCounts).map(([d,n])=>d+' '+Math.round(n/totalDirShots*100)+'%').join(', ');
-    ctx+='Shot direction breakdown: '+dirPcts+'
-';
-  }
-  if(Object.keys(conCounts).length){
-    const totalCon=Object.values(conCounts).reduce((a,b)=>a+b,0);
-    const conPcts=Object.entries(conCounts).sort((a,b)=>b[1]-a[1]).map(([c,n])=>c+' '+Math.round(n/totalCon*100)+'%').join(', ');
-    ctx+='Contact quality: '+conPcts+'
-';
-  }
-  if(clubSumm)ctx+='Club distances: '+clubSumm+'
-';
-  if(trend)ctx+='Recent trend: '+trend+'
-';
-  return ctx;
+  const trend=recentAvg!==null&&prevAvg!==null?(recentAvg<prevAvg?'improving ('+Math.abs(recentAvg-prevAvg)+' strokes better recently)':recentAvg>prevAvg?'trending worse ('+Math.abs(recentAvg-prevAvg)+' strokes higher recently)':'stable'):null;
+  const lines=[
+    'PLAYER STATS SUMMARY:',
+    'Rounds tracked: '+rr.length,
+    hcp!==null?'WHS Handicap: '+hcp:null,
+    'Average score (18H adjusted): '+avg+' ('+(((avg||0)-72)>0?'+'+(avg-72):(avg-72))+' to par)',
+    gir!==null?'GIR%: '+gir+'% (tour avg 65%, 18hcp avg ~35%)':null,
+    fw!==null?'Fairways hit%: '+fw+'% (tour avg 60%)':null,
+    pt?'Putts per hole: '+pt:null,
+    ud!==null?'Up & down%: '+ud+'%':null,
+    drives.length?'Avg drive: '+Math.round(drives.reduce((a,b)=>a+b,0)/drives.length)+'y (max '+Math.max(...drives)+'y)':null,
+    totalHoles>0?'Score breakdown: '+eagles+' eagles, '+birdies+' birdies, '+pars+' pars, '+bogeys+' bogeys, '+doubles+' doubles, '+worse+' triple+':null,
+    topMiss?'Most common miss: '+topMiss[0]+' ('+topMiss[1]+' shots)':null,
+    totalDirShots>0?'Shot direction: '+Object.entries(dirCounts).map(function(e){return e[0]+' '+Math.round(e[1]/totalDirShots*100)+'%';}).join(', '):null,
+    Object.keys(conCounts).length?'Contact: '+Object.entries(conCounts).sort(function(a,b){return b[1]-a[1];}).map(function(e){var t=Object.values(conCounts).reduce(function(a,b){return a+b;},0);return e[0]+' '+Math.round(e[1]/t*100)+'%';}).join(', '):null,
+    clubSumm?'Club distances: '+clubSumm:null,
+    trend?'Recent trend: '+trend:null,
+  ];
+  return lines.filter(Boolean).join('\n');
 }
 
 async function loadPostRoundMotiv(round,statsCtx){
@@ -2949,4 +2917,3 @@ document.addEventListener('click',function warmGPS(){
 </script>
 </body>
 </html>
-
