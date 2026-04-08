@@ -297,6 +297,8 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .green{color:var(--g)}
 .red{color:var(--red)}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -493,7 +495,65 @@ const LIE_SVG = {
   Putting:`<svg viewBox="0 0 40 40" width="34" height="34"><rect x="2" y="2" width="36" height="36" rx="6" fill="#22a83a"/><ellipse cx="20" cy="28" rx="12" ry="6" fill="#1a6b22"/><circle cx="20" cy="28" r="4" fill="#111"/><line x1="20" y1="6" x2="20" y2="22" stroke="#888" stroke-width="1.5"/><polygon points="20,6 26,10 20,14" fill="#e74c3c"/></svg>`,
 };
 const LIE_IC = {Fairway:'🟩','Intermediate rough':'🌱',Rough:'🌿',Sand:'🏖️',Trouble:'⚠️',Chipping:'🎯',Putting:'🕳️'};
-const COACH_KB = `Ball flight laws: face angle at impact controls 75-85% of initial direction; club path relative to face controls curve. Hook=face closed to path. Slice=face open to path. Fat=weight back/steep angle. Thin=scooping/early extension. 3-putting=poor speed control. GIR is the biggest single scoring driver. 72% of all golf shots happen inside 100 yards. Strokes gained approach most differentiates handicap bands. Butch Harmon: simplify swing thoughts, manage your miss. Pete Cowen: ground up, sequence is everything. Bob Rotella: process over results, commit to every shot. Short game: open stance, ball back, hands forward for bunkers. Chipping: one lever, shoulders. Putting: eyes over ball, pendulum. Pressure: breathe out before backswing, look at target not ball for short putts.`;
+const COACH_KB = `You are Coach Foxy — Ryan Fox's alter-ego as a golf coach. Direct, technical, passionate New Zealand golf coach. You give specific, actionable advice based on the player's actual stats. Never generic. Always cite specific numbers from their data. Always prescribe specific drills.
+
+COACHING PHILOSOPHY:
+- Strokes gained framework: identify which area costs most strokes vs par
+- GIR% is the biggest scoring lever above 18hcp. Below 18hcp, putting and short game matter more
+- Driving accuracy matters more than distance for high handicappers
+- 60% of shots happen within 100 yards — short game is underrated
+- Ball flight laws: face angle controls 75-85% of initial direction, path controls curve
+- Hook = face closed to path. Slice = face open to path. Pull = steep in-to-out
+- Fat = weight back at impact or steep angle of attack. Thin = early extension or scooping
+
+TECHNICAL DRILLS LIBRARY:
+
+DRIVING / BALL STRIKING:
+- Gate drill: place 2 tees 1cm wider than clubhead, swing through without hitting them — fixes path
+- Alignment stick drill: stick in ground at ball position 45° to target, feel club go under it — shallows angle of attack
+- Towel under arms drill: tuck towel under both armpits, hit shots keeping it there — syncs body rotation
+- Impact bag drill: hit a bag/pillow, feel shaft lean forward at impact — fixes flipping
+- Tee peg on shaft drill: tee peg pointing at belly at address, should point at belt buckle at impact — stops early extension
+- Half swing to half swing: focus on low point control, brush the grass in front of ball
+- Swing direction drill: 2 alignment sticks making a corridor — hit 20 balls staying in the corridor
+
+IRON PLAY:
+- Ball position check: irons = 1 ball back of left heel. Fat shots = too far forward
+- Divot direction drill: check divots point slightly left of target — confirms inside-out path
+- 9-to-3 drill: half shots with 7-iron focusing on shaft lean at impact, 3 sets of 10
+- Step drill: step forward with lead foot as you swing — forces weight transfer
+- Feet together drill: 50 shots with feet together — improves balance and centring
+
+CHIPPING AND SHORT GAME:
+- Ladder drill: set 5 targets at 10, 20, 30, 40, 50 yards — hit 2 to each, score points for landing zones
+- One-hand chipping: chip with trail hand only — feels correct low point and release
+- Fringe drill: chip from just off green, land ball on green within 3 feet — 10 in a row target
+- Bump and run: use 8-iron from tight lies, chip and run to hole — lower flight, more consistent
+- 10-ball challenge: chip 10 balls from same spot, count how many within 6 feet — track weekly
+
+PUTTING:
+- Gate drill: 2 tees 1mm wider than putter face at impact — train square face
+- Coin drill: place coin 1 foot from hole, make 20 in a row — builds confidence
+- Distance control: lag putt to a tee peg 30, 40, 50 feet away — never more than 3 feet past
+- Metronome putting: even tempo back and through, count 1-2, same length both ways
+- Eyes closed putting: feel the stroke, not the mechanics — for yips or over-thinking
+- 3-6-9 drill: make 3 putts from 3 feet, then 3 from 6, then 3 from 9 — pressure practice
+- Read from low side: always read putts from the low side of the hole — see true break
+
+COURSE MANAGEMENT:
+- Miss to your preferred miss side always — know your shape and use it
+- Par 5 strategy: two shots to 100 yards beats hero shots into trouble
+- Par 3 strategy: aim at the fat part of the green, not the flag
+- Bogey avoidance: never make double from a good position — chip out from trouble
+- Pre-shot routine: same every time — pick intermediate target 3 feet ahead, align to that
+
+MENTAL GAME:
+- Commit or re-tee: if you're not 100% committed to a shot, step off and re-commit
+- One shot at a time: only think about the shot in hand, not the hole total
+- Post-shot routine: 5 seconds of reaction (good or bad), then move on — never carry shots
+- Pressure routine: breathe out slowly before starting routine — activates parasympathetic
+- Visualise the ball flight before every shot — see it, then feel it, then do it
+`;
 
 // ── STORAGE ──
 const LD=(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d}catch(e){return d}};
@@ -515,32 +575,52 @@ const SG=g=>SV('ll_global',g);
 // Alfie's historical rounds stored with ONLY the data we actually have:
 // score, course, putts total per round, score breakdown (birdies/pars/bogeys/doubles).
 // These do NOT pollute stats averages like GIR%, fairway%, up&down% since those are null.
+const SEED_VERSION=4; // increment to force re-seed of round data
+
 function seedData(){
   const users=GU();
   if(!users['admin@linksled.ger']){
     users['admin@linksled.ger']={uid:'admin',name:'Admin',email:'admin@linksled.ger',pass:'admin123',phone:'',role:'admin',created:Date.now(),lastLogin:null,disabled:false};
     SUs(users);
   }
+  // Create Alfie's account if it doesn't exist
   if(!users['alfie@linksled.ger']){
     const uid='alfie';
-    users['alfie@linksled.ger']={uid,name:'Alfie McIntosh',email:'alfie@linksled.ger',pass:'golf123',phone:'',role:'user',created:Date.now()-86400000*30,lastLogin:null,disabled:false};
+    users['alfie@linksled.ger']={uid,name:'Alfie McIntosh',email:'alfie@linksled.ger',pass:'golf123',phone:'',role:'user',created:Date.now()-86400000*30,lastLogin:null,disabled:false,seedV:0};
     SUs(users);
+  }
+  // Always re-seed rounds if seed version is outdated
+  const alfieUser=users['alfie@linksled.ger'];
+  if(!alfieUser.seedV||alfieUser.seedV<SEED_VERSION){
+    const uid='alfie';
     const data=GUD(uid);
-    data.bag=['Dr','3W','5W','Hy','6i','7i','8i','9i','PW','GW','SW','Pu'];
+    // Only reset seed rounds, preserve any real rounds the user has added
+    const userRounds=(data.rounds||[]).filter(r=>!r.seedRound);
+    data.bag=data.bag||['Dr','3W','5W','Hy','6i','7i','8i','9i','PW','GW','SW','Pu'];
 
-    // ── Alfie's real rounds — ONLY what we know from the spreadsheet ──
-    // Each hole has: score only. GIR/fairway/updown = null (unknown = excluded from averages).
-    // Putts are distributed logically from the 2-putt/3-putt totals on the scorecard.
-    // Score breakdown (birdies/pars/bogeys etc) stored at round level for display.
-    data.rounds = [
-      mkSeedRound(uid,'r1','stclair',  'St Clair GC',  '12/03/2026','9f', 48,35,13, 0,2,3,2,2, 0,0, null,null,null,[]),
-      mkSeedRound(uid,'r2','belleknowes','Belleknowes GC','13/03/2026','9f',51,30,21, 0,0,3,2,4, 4,5, 0,null,0,[]),
-      mkSeedRound(uid,'r3','belleknowes','Belleknowes GC','15/03/2026','9f',57,30,27, 0,0,2,4,3, 2,6, 1,null,1,[]),
-      mkSeedRound(uid,'r4','belleknowes','Belleknowes GC','23/03/2026','9f',46,30,16, 1,0,2,3,3, 6,9, 1,null,0,[]),
-      mkSeedRound(uid,'r5','stclair',  'St Clair GC',  '31/03/2026','9f', 51,35,16, 0,0,4,3,2, 2,7, 1,null,0,[]),
-      mkSeedRound(uid,'r6','twelveoaks','Twelve Oaks',  '06/04/2026','9f', 50,35,15, 0,1,5,1,2, 7,1, 0,null,1,[]),
+    // ── Alfie's real rounds from spreadsheet ──
+    // GIR/fairway/updown = null means NOT TRACKED for that round → excluded from averages
+    // Only include stats we actually recorded
+    const seedRounds=[
+      // St Clair 12/03: no GIR/fairway/updown data recorded
+      mkSeedRound(uid,'r1','stclair','St Clair GC','12/03/2026','9f',48,35,13,0,2,3,2,2,0,0,null,null,null,[]),
+      // Belleknowes 13/03: GIR=0 holes, updown=0
+      mkSeedRound(uid,'r2','belleknowes','Belleknowes GC','13/03/2026','9f',51,30,21,0,0,3,2,4,4,5,0,null,0,[]),
+      // Belleknowes 15/03: GIR=1 hole, updown=1
+      mkSeedRound(uid,'r3','belleknowes','Belleknowes GC','15/03/2026','9f',57,30,27,0,0,2,4,3,2,6,1,null,1,[]),
+      // Belleknowes 23/03: GIR=1 hole, updown=0
+      mkSeedRound(uid,'r4','belleknowes','Belleknowes GC','23/03/2026','9f',46,30,16,1,0,2,3,3,6,9,1,null,0,[]),
+      // St Clair 31/03: GIR=1 hole, updown=0
+      mkSeedRound(uid,'r5','stclair','St Clair GC','31/03/2026','9f',51,35,16,0,0,4,3,2,2,7,1,null,0,[]),
+      // Twelve Oaks 6/04: GIR=0 holes, updown=1
+      mkSeedRound(uid,'r6','twelveoaks','Twelve Oaks','06/04/2026','9f',50,35,15,0,1,5,1,2,7,1,0,null,1,[]),
     ];
+    // Merge: seed rounds first, then any real rounds on top
+    data.rounds=[...seedRounds,...userRounds];
     SUD(uid,data);
+    // Mark seed version
+    alfieUser.seedV=SEED_VERSION;
+    SUs(users);
   }
 }
 
@@ -1020,7 +1100,7 @@ function startWF(isTest=false){
 
 function renderWF(){
   const pg=document.getElementById('pg-round');
-  const steps={course:stepCourse,mode:stepMode,bag:stepBag,play:stepPlay,score:stepScore,lie:stepLie,preshot:stepPreshot,summary:stepSummary};
+  const steps={course:stepCourse,mode:stepMode,bag:stepBag,play:stepPlay,score:stepScore,lie:stepLie,preshot:stepPreshot,summary:stepSummary,scan:stepScan};
   if(steps[WF.step])steps[WF.step](pg);
 }
 
@@ -1106,7 +1186,7 @@ function stepMode(pg){
 }
 
 function selMode(m){
-  if(m==='scan'){toast('Use the scorecard scanner after your round');return;}
+  if(m==='scan'){WF.mode='scan';WF.step='scan';renderWF();return;}
   WF.mode=m;WF.step='bag';renderWF();
 }
 
@@ -1286,18 +1366,25 @@ ${cHole>0?`<button class="btn bo" onclick="prevHole()">← Previous hole</button
 // Render hole diagram - real image or procedural SVG
 // For 9-hole courses, holes 10-18 mirror holes 1-9
 function renderHoleDiagram(hole, holeIdx){
-  const c=gc(AR?.courseId||WF?.courseId||'');
+  const courseId=AR?.courseId||WF?.courseId||'';
+  const c=gc(courseId);
   const imgs=c?.holeImages;
   const svgEl=document.getElementById('holeDiagSvg');
   const imgEl=document.getElementById('holeDiagImg');
   const imgWrap=document.getElementById('holeDiagImgWrap');
 
   if(imgs){
-    // For 9-hole courses playing 18, mirror back 9 to front 9 images
+    // hole.h is the actual hole number (1-18)
+    // For 9-hole image sets, holes 10-18 mirror holes 1-9
     let imgHole=hole.h;
-    const maxImgHole=Math.max(...Object.keys(imgs).map(Number));
-    if(imgHole>maxImgHole)imgHole=imgHole-maxImgHole;
+    const imgKeys=Object.keys(imgs).map(Number).sort((a,b)=>a-b);
+    const maxImgHole=Math.max(...imgKeys);
+    if(imgHole>maxImgHole){
+      // Mirror: hole 10→1, 11→2, etc
+      imgHole=((imgHole-1)%maxImgHole)+1;
+    }
     const imgUrl=imgs[imgHole];
+    console.log('Hole diagram: hole',hole.h,'→ image',imgHole,'url',imgUrl);
     if(imgUrl&&imgEl&&imgWrap&&svgEl){
       imgEl.src=imgUrl;
       imgWrap.style.display='block';
@@ -1404,8 +1491,8 @@ ${shots.length?`<div style="font-size:11px;font-weight:700;text-transform:upperc
 function selClubPS(c){if(window._hd)window._hd.selectedClub=c;stepPreshot();}
 
 function openShotMod(){
-  // Always works - GPS colour is advisory only, never blocks play
-  if(!window._hd?.selectedClub){toast('Select a club first');return;}
+  // Always works regardless of club selection or GPS colour
+  if(!window._hd)window._hd=AR?.holes[cHole]||{shots:[],selectedClub:null,selectedLie:null};
   // Record GPS position at moment of tap (best available, even if yellow/red)
   if(gpsPos)shotStart={...gpsPos};
   const trk=getTrackingPrefs();
@@ -1764,6 +1851,183 @@ function finishRound(){
 }
 
 // STEP: Summary
+// ── SCORECARD SCANNER ──
+function stepScan(pg){
+  if(!pg)pg=document.getElementById('pg-round');
+  pg.innerHTML=`
+<h2 style="margin-bottom:6px;font-size:21px">📸 Scan scorecard</h2>
+<p style="color:var(--txt3);font-size:14px;margin-bottom:14px">Take a photo of your printed scorecard. Coach Foxy will read the scores and fill in your round automatically.</p>
+
+<div style="background:var(--gl);border:1.5px solid var(--gll);border-radius:12px;padding:13px;margin-bottom:14px;font-size:13px;color:var(--gd)">
+  📌 <strong>Tips for best results:</strong> Good lighting, card flat, all holes visible. Highlighted scores will need your confirmation.
+</div>
+
+<div id="scanPreview" style="display:none;margin-bottom:12px">
+  <img id="scanImg" style="width:100%;border-radius:10px;max-height:260px;object-fit:contain" alt="Scorecard">
+</div>
+
+<div id="scanStatus" style="display:none;text-align:center;padding:16px;font-size:14px;color:var(--txt3)">
+  🔍 Analysing scorecard...
+</div>
+
+<div id="scanResults" style="display:none"></div>
+
+<label style="display:block;width:100%;padding:18px;background:var(--g);color:#fff;border-radius:14px;font-size:17px;font-weight:800;text-align:center;cursor:pointer;margin-bottom:8px;font-family:inherit">
+  📷 Take photo / Choose image
+  <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleScanUpload(this)">
+</label>
+<button class="btn bo" onclick="WF.step='mode';renderWF()">← Back</button>`;
+}
+
+function handleScanUpload(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    const base64=e.target.result.split(',')[1];
+    const imgEl=document.getElementById('scanImg');
+    const preview=document.getElementById('scanPreview');
+    const status=document.getElementById('scanStatus');
+    if(imgEl)imgEl.src=e.target.result;
+    if(preview)preview.style.display='block';
+    if(status)status.style.display='block';
+    await analyseScorecard(base64);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyseScorecard(base64){
+  const status=document.getElementById('scanStatus');
+  const resultsEl=document.getElementById('scanResults');
+  const holes=getH(WF.courseId||AR?.courseId,WF.holeType||AR?.type||'18');
+  const courseInfo=holes.map((h,i)=>'H'+h.h+' par'+h.par).join(', ');
+
+  const prompt='You are reading a golf scorecard photo. The course has these holes: '+courseInfo+'. Extract each hole score from the image. Return ONLY valid JSON: {"holes":[{"hole":1,"score":4,"confidence":"high"},{"hole":2,"score":5,"confidence":"low"},...]} where confidence is "high" if clearly readable or "low" if uncertain. Include ALL holes visible. No other text.';
+
+  try{
+    const res=await fetch('/api/coach',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        max_tokens:600,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:base64}},
+            {type:'text',text:prompt}
+          ]
+        }]
+      })
+    });
+
+    if(!res.ok)throw new Error('API error '+res.status);
+    const data=await res.json();
+    const txt=data.content?.map(i=>i.text||'').join('')||'';
+
+    // Parse JSON from response
+    let parsed;
+    try{
+      const clean=txt.replace(/```json|```/g,'').trim();
+      parsed=JSON.parse(clean);
+    }catch(e){
+      if(status)status.textContent='❌ Could not read the scorecard clearly. Try a clearer photo.';
+      return;
+    }
+
+    if(status)status.style.display='none';
+    showScanResults(parsed.holes,holes);
+
+  }catch(e){
+    if(status)status.textContent='❌ Could not connect to scanner. Check your internet connection.';
+    console.error('Scan error:',e);
+  }
+}
+
+function showScanResults(scannedHoles,courseHoles){
+  const resultsEl=document.getElementById('scanResults');
+  if(!resultsEl)return;
+
+  const lowConf=scannedHoles.filter(h=>h.confidence==='low');
+
+  resultsEl.style.display='block';
+  resultsEl.innerHTML=`
+<div style="font-size:14px;font-weight:700;margin-bottom:8px">
+  ${lowConf.length?'⚠️ '+lowConf.length+' score'+(lowConf.length>1?'s need':'needs')+' confirmation (highlighted in yellow)':'✅ All scores read clearly'}
+</div>
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:12px">
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+<thead><tr style="background:var(--g);color:#fff">
+  <th style="padding:8px;text-align:left">Hole</th>
+  <th style="padding:8px;text-align:center">Par</th>
+  <th style="padding:8px;text-align:center">Score</th>
+  <th style="padding:8px;text-align:center">+/-</th>
+</tr></thead>
+<tbody>
+${scannedHoles.map((h,i)=>{
+  const ch=courseHoles.find(c=>c.h===h.hole)||courseHoles[i];
+  const par=ch?.par||4;
+  const diff=h.score-par;
+  const diffStr=diff>0?'+'+diff:diff===0?'E':''+diff;
+  const diffCol=diff<0?'#22c55e':diff===0?'var(--txt)':'var(--red)';
+  const isLow=h.confidence==='low';
+  return`<tr style="border-top:1px solid var(--bdr);background:${isLow?'rgba(251,191,36,0.15)':''}">
+    <td style="padding:8px;font-weight:700">H${h.hole}${isLow?' ⚠️':''}</td>
+    <td style="padding:8px;text-align:center;color:var(--txt3)">${par}</td>
+    <td style="padding:8px;text-align:center">
+      ${isLow?`<input type="number" value="${h.score}" min="1" max="15"
+        style="width:48px;text-align:center;font-size:15px;font-weight:800;border:2px solid #fbbf24;border-radius:6px;background:#fef3c7;padding:4px"
+        onchange="scannedHoles[${i}].score=parseInt(this.value)||${h.score}">`:
+        `<span style="font-size:16px;font-weight:800">${h.score}</span>`}
+    </td>
+    <td style="padding:8px;text-align:center;font-weight:700;color:${diffCol}">${diffStr}</td>
+  </tr>`;
+}).join('')}
+<tr style="border-top:2px solid var(--bdr);background:var(--bg3)">
+  <td colspan="2" style="padding:8px;font-weight:800">Total</td>
+  <td style="padding:8px;text-align:center;font-size:18px;font-weight:900">${scannedHoles.reduce((s,h)=>s+h.score,0)}</td>
+  <td style="padding:8px;text-align:center;font-weight:700;color:var(--txt3)">${(()=>{const t=scannedHoles.reduce((s,h,i)=>{const ch=courseHoles[i];return s+(h.score-(ch?.par||4));},0);return t>0?'+'+t:t===0?'E':''+t;})()}</td>
+</tr>
+</tbody></table></div>
+<button class="btn bg" onclick="confirmScanResults(${JSON.stringify(scannedHoles).replace(/"/g,"'")})">✓ Save this round</button>
+<button class="btn bo" onclick="stepScan(document.getElementById('pg-round'))">📷 Retake photo</button>`;
+
+  // Store for editing
+  window._scannedHoles=scannedHoles;
+}
+
+function confirmScanResults(holes){
+  const h=window._scannedHoles||holes;
+  const courseHoles=getH(WF.courseId,WF.holeType==='custom'?'18':WF.holeType);
+  const c=gc(WF.courseId);
+
+  // Build AR from scanned data
+  AR={
+    id:'r_'+Date.now(),
+    courseId:WF.courseId,
+    courseName:c.name,
+    player:WF.playerName||CU.name,
+    date:new Date().toLocaleDateString('en-NZ'),
+    type:WF.holeType,
+    holes:h.map((sh,i)=>{
+      const ch=courseHoles[i]||courseHoles[0];
+      return {score:sh.score,putts:2,gir:null,fairway:null,updown:null,shots:[],seedRound:false};
+    }),
+    totalHoles:h.length,
+    total:h.reduce((s,sh)=>s+sh.score,0),
+    par:courseHoles.slice(0,h.length).reduce((s,ch)=>s+ch.par,0),
+    toPar:h.reduce((s,sh,i)=>s+sh.score-(courseHoles[i]?.par||4),0),
+    started:Date.now(),walkDist:0,duration:0,
+    mode:'scan',testMode:false,privateRound:false
+  };
+
+  const d=ud();
+  d.rounds.unshift(AR);
+  sud(d);
+  toast('Round saved ✓');
+  SP('home');
+  rHome();
+}
+
 function stepSummary(pg){
   if(!pg)pg=document.getElementById('pg-round');
   const r=AR;const ph=r.holes.filter(Boolean);
@@ -2160,12 +2424,12 @@ ${justFinished?`
 
 ${rr.length?`
 <div class="qq">
-  <button class="q" onclick="askCoach('What should I work on most right now?')">What to work on?</button>
-  <button class="q" onclick="askCoach('Why am I missing shots and what can I do about it?')">Fix my misses</button>
-  <button class="q" onclick="askCoach('Give me 3 specific practice drills for this week')">This week\'s drills</button>
-  <button class="q" onclick="askCoach('How do I improve my GIR?')">Improve GIR</button>
-  <button class="q" onclick="askCoach('How do I fix my putting?')">Fix putting</button>
-  <button class="q" onclick="askCoach('Give me advice before my round today')">Pre-round advice</button>
+  <button class="q" onclick="askCoach('Based on my exact stats, what is the single biggest area costing me strokes and what specific drill should I do this week?')">Biggest weakness + drill</button>
+  <button class="q" onclick="askCoach('Analyse my shot direction and contact data and tell me exactly what is wrong with my ball striking technically')">Diagnose my ball striking</button>
+  <button class="q" onclick="askCoach('Build me a 30-minute practice plan for this week based on my stats')">Weekly practice plan</button>
+  <button class="q" onclick="askCoach('My GIR percentage — what does it mean technically and what is the fastest way to improve it?')">Improve my GIR</button>
+  <button class="q" onclick="askCoach('What does my putting data tell you and what specific putting drill should I do?')">Fix my putting</button>
+  <button class="q" onclick="askCoach('Give me a specific pre-round warm-up routine and one mental key for today based on my tendencies')">Pre-round routine</button>
 </div>`:''}
 
 <div class="chat-wrap" id="chatWrap">${chatHist.map(m=>`<div class="chat-msg ${m.r==='u'?'chat-user':'chat-ai'}">${m.c}</div>`).join('')}</div>
@@ -2187,7 +2451,72 @@ ${rr.length?`
 }
 
 function buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm){
-  return 'Player stats: avg score '+avg+(gir!=null?', GIR '+gir+'%':'')+(pt?', putts/hole '+pt:'')+(fw!=null?', fairways '+fw+'%':'')+(drives.length?', avg drive '+Math.round(drives.reduce((a,b)=>a+b,0)/drives.length)+'y':'')+(topMiss?', most common miss: '+topMiss[0]:'')+(clubSumm?', clubs: '+clubSumm:'');
+  const rr=realR();
+  const hcp=calcWHSHandicap(rr);
+  const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
+
+  // Score breakdown
+  let eagles=0,birdies=0,pars=0,bogeys=0,doubles=0,worse=0;
+  rr.forEach(r=>{const hs=getH(r.courseId,r.type==='custom'?'18':r.type);(r.holes||[]).forEach((h,i)=>{if(!h||!hs[i])return;const d=h.score-hs[i].par;if(d<=-2)eagles++;else if(d===-1)birdies++;else if(d===0)pars++;else if(d===1)bogeys++;else if(d===2)doubles++;else worse++;});});
+  const totalHoles=eagles+birdies+pars+bogeys+doubles+worse;
+
+  // Putt breakdown
+  const udH=ah.filter(h=>h.gir===false);
+  const ud=udH.length?Math.round(udH.filter(h=>h.updown).length/udH.length*100):null;
+
+  // Shot direction breakdown
+  const allShots=ah.flatMap(h=>h.shots||[]).filter(Boolean);
+  const dirCounts={};allShots.filter(s=>s.dir).forEach(s=>{dirCounts[s.dir]=(dirCounts[s.dir]||0)+1;});
+  const conCounts={};allShots.filter(s=>s.con&&s.con!=='Unknown').forEach(s=>{conCounts[s.con]=(conCounts[s.con]||0)+1;});
+  const totalDirShots=Object.values(dirCounts).reduce((a,b)=>a+b,0);
+
+  // Recent trend (last 3 vs previous 3)
+  const recent=rr.slice(0,3);const prev=rr.slice(3,6);
+  const recentAvg=recent.length?Math.round(recent.reduce((s,r)=>s+to18(r.toPar,r.totalHoles||9),0)/recent.length):null;
+  const prevAvg=prev.length?Math.round(prev.reduce((s,r)=>s+to18(r.toPar,r.totalHoles||9),0)/prev.length):null;
+  const trend=recentAvg!==null&&prevAvg!==null?recentAvg<prevAvg?'improving ('+Math.abs(recentAvg-prevAvg)+' strokes better recently)':recentAvg>prevAvg?'trending worse ('+Math.abs(recentAvg-prevAvg)+' strokes higher recently)':'stable':null;
+
+  let ctx='PLAYER STATS SUMMARY:
+';
+  ctx+='Rounds tracked: '+rr.length+'
+';
+  if(hcp!==null)ctx+='WHS Handicap: '+hcp+'
+';
+  ctx+='Average score (18H adjusted): '+avg+' ('+((avg||0)-72>0?'+'+(avg-72):avg-72)+' to par)
+';
+  if(gir!==null)ctx+='GIR%: '+gir+'% (tour average 65%, 18hcp average ~35%)
+';
+  if(fw!==null)ctx+='Fairways hit%: '+fw+'% (tour average 60%)
+';
+  if(pt)ctx+='Putts per hole: '+pt+'
+';
+  if(ud!==null)ctx+='Up & down%: '+ud+'%
+';
+  if(drives.length){
+    const avgDrive=Math.round(drives.reduce((a,b)=>a+b,0)/drives.length);
+    ctx+='Avg drive: '+avgDrive+'y (max '+Math.max(...drives)+'y)
+';
+  }
+  if(totalHoles>0)ctx+='Score breakdown: '+eagles+' eagles, '+birdies+' birdies, '+pars+' pars, '+bogeys+' bogeys, '+doubles+' doubles, '+worse+' triple+
+';
+  if(topMiss)ctx+='Most common shot miss: '+topMiss[0]+' ('+topMiss[1]+' shots)
+';
+  if(totalDirShots>0){
+    const dirPcts=Object.entries(dirCounts).map(([d,n])=>d+' '+Math.round(n/totalDirShots*100)+'%').join(', ');
+    ctx+='Shot direction breakdown: '+dirPcts+'
+';
+  }
+  if(Object.keys(conCounts).length){
+    const totalCon=Object.values(conCounts).reduce((a,b)=>a+b,0);
+    const conPcts=Object.entries(conCounts).sort((a,b)=>b[1]-a[1]).map(([c,n])=>c+' '+Math.round(n/totalCon*100)+'%').join(', ');
+    ctx+='Contact quality: '+conPcts+'
+';
+  }
+  if(clubSumm)ctx+='Club distances: '+clubSumm+'
+';
+  if(trend)ctx+='Recent trend: '+trend+'
+';
+  return ctx;
 }
 
 async function loadPostRoundMotiv(round,statsCtx){
@@ -2241,7 +2570,7 @@ function getLocalMotiv(postRound,diff){
 async function genAnalysis(avg,gir,pt,fw,drives,topMiss,clubSumm){
   const ctx=buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm);
   addChat('ai','Analysing your game...');
-  const prompt=COACH_KB+'\n\n'+ctx+'\n\nYou are Coach Foxy, a direct NZ golf coach. Give a 2-sentence analysis citing specific stats. Name top 2-3 priority areas. Be specific, direct, no fluff. If limited data, say so honestly.';
+  const prompt=COACH_KB+'\n\n'+ctx+'\n\nBased on these exact stats, give a sharp 3-part response:\n1. One sentence identifying the biggest scoring weakness with the specific stat number\n2. One specific technical reason why this is likely happening\n3. One concrete drill from the drill library above to fix it this week\nBe direct like a NZ coach. Use the actual numbers. Max 80 words total.';
   try{
     const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({max_tokens:500,messages:[{role:'user',content:prompt}]})});
@@ -2266,7 +2595,18 @@ async function askCoach(q){
   const topMiss=Object.entries(mc).sort((a,b)=>b[1]-a[1])[0];
   const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>c+':'+d.clubStats[c].avg+'y').join(', ');
   const ctx=buildStatsContext(avg,null,null,null,drives,topMiss,clubSumm);
-  const prompt=COACH_KB+'\n\n'+ctx+'\n\nCoach Foxy style: direct, NZ, specific. Question: '+q;
+  const d2=ud();
+  const clubSumm2=ALL_CLUBS.filter(c=>d2.clubStats?.[c]).map(c=>c+':'+d2.clubStats[c].avg+'y').join(', ');
+  const rr2=realR();
+  const ah2=rr2.flatMap(r=>r.holes||[]).filter(Boolean);
+  const allShD2=ah2.flatMap(h=>h.shots||[]).filter(s=>s.dir);
+  const mc2={};allShD2.forEach(s=>{mc2[s.dir]=(mc2[s.dir]||0)+1;});
+  const topMiss2=Object.entries(mc2).sort((a,b)=>b[1]-a[1])[0];
+  const fwH2=knownFW(ah2);const fw2=fwH2.length?Math.round(fwH2.filter(h=>h.fairway).length/fwH2.length*100):null;
+  const girH2=knownGIR(ah2);const gir2=girH2.length?Math.round(girH2.filter(h=>h.gir).length/girH2.length*100):null;
+  const drives2=rr2.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
+  const fullCtx=buildStatsContext(avg,gir2,null,fw2,drives2,topMiss2,clubSumm2);
+  const prompt=COACH_KB+'\n\n'+fullCtx+'\n\nQuestion from player: '+q+'\n\nAnswer as Coach Foxy: cite specific stats from above where relevant, give technical explanation, prescribe a specific named drill if appropriate. Direct, NZ tone. Max 120 words.';
   addChat('ai','...');
   try{
     const res=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -2289,228 +2629,186 @@ function removeLastChat(){chatHist.pop();const w=document.getElementById('chatWr
 function rMap(){
   const rr=realR();
   const played=[...new Set(rr.map(r=>r.courseId))];
-  const pg=document.getElementById('pg-map');
-
-  // Tally stats
-  const totalHolesPlayed=rr.reduce((s,r)=>s+(r.totalHoles||9),0);
-  const totalRounds=rr.length;
-  const totalCourses=played.length;
-
-  // Get all users for multi-user map
+  const totalHoles=rr.reduce((s,r)=>s+(r.totalHoles||9),0);
   const allUsers=Object.values(GU()).filter(u=>u.role!=='admin'&&!u.disabled);
   const userColors=['#a855f7','#ef4444','#3b82f6','#f97316','#06b6d4','#ec4899','#84cc16','#f59e0b'];
+  const pg=document.getElementById('pg-map');
 
   pg.innerHTML=`
-<!-- Tally strip -->
 <div class="sg3" style="margin-bottom:12px">
-  <div class="sc"><div class="sv">${totalRounds}</div><div class="sl">Rounds</div></div>
-  <div class="sc"><div class="sv">${totalCourses}</div><div class="sl">Courses</div></div>
-  <div class="sc"><div class="sv">${totalHolesPlayed}</div><div class="sl">Holes played</div></div>
+  <div class="sc"><div class="sv">${rr.length}</div><div class="sl">Rounds</div></div>
+  <div class="sc"><div class="sv">${played.length}</div><div class="sl">Courses</div></div>
+  <div class="sc"><div class="sv">${totalHoles}</div><div class="sl">Holes played</div></div>
 </div>
-
-<!-- Map toggle -->
 <div style="display:flex;gap:8px;margin-bottom:10px">
-  <button class="bsm${true?' bsmg':''}" id="mapMyBtn" onclick="setMapMode('me')" style="flex:1;padding:10px">My map</button>
-  <button class="bsm" id="mapAllBtn" onclick="setMapMode('all')" style="flex:1;padding:10px">All members</button>
+  <button class="bsm bsmg" id="mapMyBtn" onclick="setLeafletMode('me')" style="flex:1;padding:10px">My map</button>
+  <button class="bsm" id="mapAllBtn" onclick="setLeafletMode('all')" style="flex:1;padding:10px">All members</button>
 </div>
-
-<!-- User color legend (shown in all-members mode) -->
 <div id="mapLegend" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:10px">
   ${allUsers.map((u,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700">
-    <div style="width:14px;height:14px;border-radius:50%;background:${userColors[i%userColors.length]};flex-shrink:0"></div>
+    <div style="width:12px;height:12px;border-radius:50%;background:${userColors[i%userColors.length]}"></div>
     ${u.name.split(' ')[0]}${u.uid===CU.uid?' (you)':''}
   </div>`).join('')}
 </div>
+<div id="leafletMap" style="width:100%;height:340px;border-radius:14px;overflow:hidden;border:1px solid var(--bdr);margin-bottom:14px;z-index:0"></div>
 
-<!-- Map container - OSM tile background + canvas overlay -->
-<div style="position:relative;border-radius:14px;overflow:hidden;margin-bottom:14px;border:1px solid var(--bdr)" id="mapWrap">
-  <div id="osmMap" style="width:100%;height:320px;background:#e8f0e8"></div>
-  <canvas id="golfMapCanvas" style="position:absolute;top:0;left:0;width:100%;height:320px;pointer-events:none"></canvas>
-  <div style="position:absolute;bottom:6px;right:8px;font-size:9px;color:rgba(0,0,0,0.5)">© OpenStreetMap contributors</div>
-</div>
-
-<div class="sec"><span>My courses</span></div>
-${played.map(id=>{const c=gc(id);if(!c)return'';const rs=rr.filter(r=>r.courseId===id);const best=Math.min(...rs.map(r=>Math.round(to18(r.toPar,r.totalHoles||9))));return`<div class="cardsm fxb">
-  <div><div style="font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--txt3)">${c.loc} · ${rs.length} round${rs.length>1?'s':''} · ${rs.reduce((s,r)=>s+(r.totalHoles||9),0)} holes</div></div>
-  <div style="text-align:right"><div style="font-weight:800;color:var(--g)">${best>=0?'+'+best:best}</div><div style="font-size:11px;color:var(--txt3)">best (18H)</div></div>
-</div>`;}).join('')}
+<div class="sec">My courses</div>
+${played.map(id=>{
+  const c=gc(id);if(!c)return'';
+  const rs=rr.filter(r=>r.courseId===id);
+  const best=Math.min(...rs.map(r=>Math.round(to18(r.toPar,r.totalHoles||9))));
+  return`<div class="cardsm fxb">
+    <div><div style="font-weight:700">${c.name}</div>
+    <div style="font-size:12px;color:var(--txt3)">${c.loc} · ${rs.length} round${rs.length>1?'s':''} · ${rs.reduce((s,r)=>s+(r.totalHoles||9),0)} holes</div></div>
+    <div style="text-align:right"><div style="font-weight:800;color:var(--g)">${best>=0?'+'+best:best}</div>
+    <div style="font-size:11px;color:var(--txt3)">best (18H)</div></div>
+  </div>`;}).join('')}
 
 <div class="sec">All courses</div>
-${Object.entries(CDB).map(([id,c])=>{const rs=rr.filter(r=>r.courseId===id);return`<div class="cardsm fxb">
-  <div><div style="font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--txt3)">${c.loc}</div></div>
-  <div style="text-align:right">
-    ${rs.length?`<div style="font-size:13px;font-weight:700;color:var(--g)">${rs.length} round${rs.length>1?'s':''}</div>`:`<div style="font-size:12px;color:var(--txt3)">Not played</div>`}
-    <a href="https://maps.google.com/maps?q=${c.lat},${c.lng}&z=16" target="_blank" style="font-size:11px;color:var(--g);font-weight:700">View ↗</a>
-  </div>
-</div>`;}).join('')}`;
+${Object.entries(CDB).map(([id,c])=>{
+  const rs=rr.filter(r=>r.courseId===id);
+  return`<div class="cardsm fxb">
+    <div><div style="font-weight:700">${c.name}</div>
+    <div style="font-size:12px;color:var(--txt3)">${c.loc}</div></div>
+    <div style="text-align:right">
+      ${rs.length?`<div style="font-size:13px;font-weight:700;color:var(--g)">${rs.length} round${rs.length>1?'s':''}</div>`:'<div style="font-size:12px;color:var(--txt3)">Not played</div>'}
+      <a href="https://maps.google.com/maps?q=${c.lat},${c.lng}&z=16" target="_blank" style="font-size:11px;color:var(--g);font-weight:700">View ↗</a>
+    </div>
+  </div>`;}).join('')}`;
 
-  // Init map
   window._mapMode='me';
   window._mapColors=userColors;
   window._mapAllUsers=allUsers;
-  setTimeout(()=>initOSMMap(played,rr),150);
+  setTimeout(()=>initLeafletMap(played,rr),100);
 }
 
-function setMapMode(mode){
+let _leafletMap=null;
+let _leafletLayers=[];
+
+function initLeafletMap(played,rr){
+  // Destroy existing map if any
+  if(_leafletMap){_leafletMap.remove();_leafletMap=null;}
+  _leafletLayers=[];
+
+  const mapEl=document.getElementById('leafletMap');
+  if(!mapEl||typeof L==='undefined')return;
+
+  // Default center: Dunedin NZ
+  const courses=played.map(id=>gc(id)).filter(Boolean);
+  const center=courses.length?
+    [courses.reduce((s,c)=>s+c.lat,0)/courses.length, courses.reduce((s,c)=>s+c.lng,0)/courses.length]:
+    [-45.8788, 170.5028];
+
+  _leafletMap=L.map('leafletMap',{
+    center,zoom:11,
+    zoomControl:true,
+    attributionControl:false
+  });
+
+  // OSM tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:18,
+    attribution:'© OpenStreetMap'
+  }).addTo(_leafletMap);
+
+  L.control.attribution({position:'bottomright',prefix:false})
+    .addAttribution('© <a href="https://www.openstreetmap.org/copyright">OSM</a>')
+    .addTo(_leafletMap);
+
+  drawLeafletUserMap(played,rr,'#a855f7',true);
+
+  // Fit map to played courses
+  if(courses.length>1){
+    const bounds=L.latLngBounds(courses.map(c=>[c.lat,c.lng]));
+    _leafletMap.fitBounds(bounds,{padding:[30,30]});
+  }
+}
+
+function clearLeafletLayers(){
+  _leafletLayers.forEach(l=>{if(_leafletMap)_leafletMap.removeLayer(l);});
+  _leafletLayers=[];
+}
+
+function drawLeafletUserMap(played,rr,color,showLabels){
+  if(!_leafletMap)return;
+
+  // Sort rounds chronologically for line order
+  const sortedRounds=[...rr].sort((a,b)=>(a.started||0)-(b.started||0));
+  const visitOrder=[];
+  sortedRounds.forEach(r=>{
+    if(played.includes(r.courseId)&&!visitOrder.includes(r.courseId))visitOrder.push(r.courseId);
+  });
+
+  // Draw polyline connecting courses in visit order
+  if(visitOrder.length>1){
+    const linePoints=visitOrder.map(id=>gc(id)).filter(Boolean).map(c=>[c.lat,c.lng]);
+    const line=L.polyline(linePoints,{
+      color,weight:2.5,opacity:0.7,dashArray:'8,5'
+    }).addTo(_leafletMap);
+    _leafletLayers.push(line);
+  }
+
+  // Draw marker for each played course
+  played.forEach(id=>{
+    const c=gc(id);if(!c)return;
+    const rounds=rr.filter(r=>r.courseId===id).length;
+    const shortName=c.name.replace(/ Golf Club| GC| Golf Course| Golf Centre/g,'').trim();
+
+    // Custom circle marker
+    const marker=L.circleMarker([c.lat,c.lng],{
+      radius:10,
+      fillColor:color,
+      color:'#fff',
+      weight:2.5,
+      opacity:1,
+      fillOpacity:0.95
+    }).addTo(_leafletMap);
+
+    // Popup
+    marker.bindPopup(`<strong>${c.name}</strong><br>${rounds} round${rounds>1?'s':''}`);
+
+    if(showLabels){
+      // Label below marker
+      const label=L.marker([c.lat,c.lng],{
+        icon:L.divIcon({
+          className:'',
+          html:`<div style="background:rgba(0,0,0,0.7);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;white-space:nowrap;margin-top:14px;text-align:center">${shortName}${rounds>1?' ×'+rounds:''}</div>`,
+          iconAnchor:[0,0]
+        })
+      }).addTo(_leafletMap);
+      _leafletLayers.push(label);
+    }
+
+    _leafletLayers.push(marker);
+  });
+}
+
+function setLeafletMode(mode){
   window._mapMode=mode;
   document.getElementById('mapMyBtn').classList.toggle('bsmg',mode==='me');
   document.getElementById('mapAllBtn').classList.toggle('bsmg',mode==='all');
   document.getElementById('mapLegend').style.display=mode==='all'?'flex':'none';
+
+  clearLeafletLayers();
   const rr=realR();
   const played=[...new Set(rr.map(r=>r.courseId))];
-  drawGolfMapCanvas(played,rr);
-}
-
-function initOSMMap(played,rr){
-  // Use OpenStreetMap static tile as background image
-  const wrap=document.getElementById('osmMap');
-  if(!wrap)return;
-
-  // Calculate centre and zoom from played courses
-  const courses=played.map(id=>gc(id)).filter(Boolean);
-  if(!courses.length){wrap.style.background='#e8f0e8';drawGolfMapCanvas(played,rr);return;}
-
-  const lats=courses.map(c=>c.lat);
-  const lngs=courses.map(c=>c.lng);
-  const cLat=(Math.min(...lats)+Math.max(...lats))/2;
-  const cLng=(Math.min(...lngs)+Math.max(...lngs))/2;
-
-  // Use OSM embed iframe as background
-  const latSpan=Math.max(...lats)-Math.min(...lats);
-  const lngSpan=Math.max(...lngs)-Math.min(...lngs);
-  const bbox=`${(cLng-lngSpan*0.7).toFixed(4)},${(cLat-latSpan*0.7).toFixed(4)},${(cLng+lngSpan*0.7).toFixed(4)},${(cLat+latSpan*0.7).toFixed(4)}`;
-
-  wrap.innerHTML=`<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik" style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>`;
-
-  // Draw canvas overlay after map loads
-  setTimeout(()=>drawGolfMapCanvas(played,rr),800);
-}
-
-
-function drawGolfMapCanvas(played, rr){
-  const canvas=document.getElementById('golfMapCanvas');
-  const osmMap=document.getElementById('osmMap');
-  if(!canvas||!osmMap)return;
-
-  const W=osmMap.offsetWidth||320;
-  const H=320;
-  canvas.width=W*2;canvas.height=H*2;
-  canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,W,H);
-
-  const playedCourses=played.map(id=>gc(id)).filter(Boolean);
-  if(!playedCourses.length)return;
-
-  const lats=playedCourses.map(p=>p.lat);
-  const lngs=playedCourses.map(p=>p.lng);
-  const latSpan=Math.max(...lats)-Math.min(...lats);
-  const lngSpan=Math.max(...lngs)-Math.min(...lngs);
-  const cLat=(Math.min(...lats)+Math.max(...lats))/2;
-  const cLng=(Math.min(...lngs)+Math.max(...lngs))/2;
-
-  // Match coordinate system to OSM bbox
-  const bboxLat=latSpan*0.7,bboxLng=lngSpan*0.7;
-  const minLat=cLat-bboxLat,maxLat=cLat+bboxLat;
-  const minLng=cLng-bboxLng,maxLng=cLng+bboxLng;
-  const toX=lng=>((lng-minLng)/(maxLng-minLng||1))*W;
-  const toY=lat=>((maxLat-lat)/(maxLat-minLat||1))*H;
-
-  const mode=window._mapMode||'me';
-  const userColors=window._mapColors||['#a855f7'];
-  const allUsers=window._mapAllUsers||[];
-
-  function drawUserMap(userRr, color, isMe){
-    const userPlayed=[...new Set(userRr.map(r=>r.courseId))];
-    const sortedRounds=[...userRr].sort((a,b)=>(a.started||0)-(b.started||0));
-    const visitOrder=[];
-    sortedRounds.forEach(r=>{if(userPlayed.includes(r.courseId)&&!visitOrder.includes(r.courseId))visitOrder.push(r.courseId);});
-
-    // Lines
-    if(visitOrder.length>1){
-      ctx.setLineDash([6,4]);
-      ctx.strokeStyle=color.replace(')',',0.6)').replace('rgb','rgba').replace('#','')||color+'99';
-      ctx.strokeStyle=color;
-      ctx.globalAlpha=0.55;
-      ctx.lineWidth=2;
-      ctx.beginPath();
-      let started=false;
-      visitOrder.forEach(id=>{
-        const c=gc(id);if(!c)return;
-        if(!started){ctx.moveTo(toX(c.lng),toY(c.lat));started=true;}
-        else ctx.lineTo(toX(c.lng),toY(c.lat));
-      });
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha=1;
-    }
-
-    // Dots
-    userPlayed.forEach(id=>{
-      const c=gc(id);if(!c)return;
-      const x=toX(c.lng),y=toY(c.lat);
-      const rounds=userRr.filter(r=>r.courseId===id).length;
-
-      // Glow
-      ctx.globalAlpha=0.25;
-      const grd=ctx.createRadialGradient(x,y,0,x,y,14);
-      grd.addColorStop(0,color);grd.addColorStop(1,'transparent');
-      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
-
-      // Dot
-      ctx.fillStyle=color;
-      ctx.beginPath();ctx.arc(x,y,isMe?9:7,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-
-      // Initial
-      ctx.fillStyle='#fff';
-      ctx.font=`bold ${isMe?8:7}px DM Sans,system-ui`;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(c.name.charAt(0),x,y);
-
-      // Name label (only for current user)
-      if(isMe){
-        const sn=c.name.replace(/ Golf Club| GC| Golf Course| Golf Centre/g,'').trim();
-        ctx.fillStyle='rgba(0,0,0,0.75)';
-        ctx.font='bold 7px DM Sans,system-ui';
-        const tw=ctx.measureText(sn.length>12?sn.slice(0,10)+'…':sn).width;
-        ctx.fillRect(x-tw/2-3,y+11,tw+6,12);
-        ctx.fillStyle='#fff';
-        ctx.textBaseline='top';
-        ctx.fillText(sn.length>12?sn.slice(0,10)+'…':sn,x,y+12);
-      }
-
-      // Rounds badge
-      if(rounds>1){
-        ctx.fillStyle=color;
-        ctx.beginPath();ctx.arc(x+9,y-9,7,0,Math.PI*2);ctx.fill();
-        ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
-        ctx.fillStyle='#fff';
-        ctx.font='bold 7px DM Sans,system-ui';
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText('×'+rounds,x+9,y-9);
-      }
-    });
-  }
 
   if(mode==='all'){
-    // Draw all users' maps with different colors
-    allUsers.forEach((u,i)=>{
-      const color=userColors[i%userColors.length];
+    (window._mapAllUsers||[]).forEach((u,i)=>{
+      const color=(window._mapColors||[])[i%8]||'#888';
       const isMe=u.uid===CU.uid;
-      const userRounds=GUD(u.uid).rounds.filter(r=>!r.testMode);
-      if(userRounds.length)drawUserMap(userRounds,color,isMe);
+      const uRounds=(GUD(u.uid).rounds||[]).filter(r=>!r.testMode);
+      const uPlayed=[...new Set(uRounds.map(r=>r.courseId))];
+      if(uRounds.length)drawLeafletUserMap(uPlayed,uRounds,color,isMe);
     });
   } else {
-    // Just current user in purple
-    drawUserMap(rr,'#a855f7',true);
+    drawLeafletUserMap(played,rr,'#a855f7',true);
   }
 }
 
-// Keep old name as alias for compatibility
-function drawGolfMap(played,rr){drawGolfMapCanvas(played,rr);}
+// Legacy compat
+function drawGolfMap(played,rr){initLeafletMap(played,rr);}
+function drawGolfMapCanvas(){}
 
 
 function buildGMapsUrl(played){
@@ -2651,3 +2949,4 @@ document.addEventListener('click',function warmGPS(){
 </script>
 </body>
 </html>
+
