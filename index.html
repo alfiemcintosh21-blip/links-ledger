@@ -460,6 +460,16 @@ const CDB = {
     9:'https://i.imgur.com/zRf6L7q.jpg'},       loc:'Dunedin',   lat:-45.8167,lng:170.6333,approx:true,h:[{h:1,par:4,y:320,si:4},{h:2,par:5,y:490,si:2},{h:3,par:3,y:140,si:8},{h:4,par:4,y:380,si:3},{h:5,par:4,y:350,si:5},{h:6,par:4,y:330,si:6},{h:7,par:4,y:310,si:7},{h:8,par:3,y:150,si:9},{h:9,par:4,y:360,si:1}]},
   masterton:   {name:'Masterton GC (Lansdowne)',rating:70.4,slope:124,loc:'Masterton', lat:-40.9344,lng:175.6788,h:[{h:1,par:5,y:457,si:14},{h:2,par:5,y:485,si:12},{h:3,par:3,y:216,si:6},{h:4,par:4,y:279,si:16},{h:5,par:4,y:370,si:8},{h:6,par:4,y:399,si:10},{h:7,par:4,y:450,si:2},{h:8,par:3,y:129,si:18},{h:9,par:4,y:411,si:4},{h:10,par:4,y:433,si:1},{h:11,par:3,y:191,si:11},{h:12,par:4,y:330,si:7},{h:13,par:3,y:144,si:9},{h:14,par:4,y:369,si:5},{h:15,par:4,y:371,si:3},{h:16,par:4,y:369,si:15},{h:17,par:4,y:371,si:13},{h:18,par:5,y:505,si:17}]},
   mahunga:     {name:'Mahunga GC',rating:69.2,slope:119,             loc:'Masterton', lat:-40.9329,lng:175.6603,h:[{h:1,par:4,y:306,si:9},{h:2,par:4,y:390,si:1},{h:3,par:3,y:127,si:8},{h:4,par:4,y:345,si:10},{h:5,par:4,y:366,si:4},{h:6,par:3,y:127,si:17},{h:7,par:4,y:295,si:18},{h:8,par:5,y:495,si:15},{h:9,par:4,y:393,si:6},{h:10,par:3,y:197,si:7},{h:11,par:5,y:484,si:12},{h:12,par:4,y:371,si:5},{h:13,par:4,y:388,si:3},{h:14,par:5,y:426,si:13},{h:15,par:4,y:406,si:2},{h:16,par:4,y:354,si:14},{h:17,par:3,y:153,si:16},{h:18,par:5,y:536,si:11}]},
+  islandpark: {name:'Island Park Golf Club',loc:'Dunedin',lat:-45.8976,lng:170.4821,rating:69.5,slope:119,h:[
+    {h:1,par:4,y:358,si:7,orientation:'N'},{h:2,par:4,y:342,si:11,orientation:'E'},
+    {h:3,par:3,y:168,si:15,orientation:'S'},{h:4,par:5,y:476,si:3,orientation:'W'},
+    {h:5,par:4,y:389,si:1,orientation:'N'},{h:6,par:3,y:155,si:17,orientation:'NE'},
+    {h:7,par:4,y:371,si:5,orientation:'SE'},{h:8,par:5,y:498,si:9,orientation:'SW'},
+    {h:9,par:4,y:334,si:13,orientation:'N'},{h:10,par:4,y:361,si:8,orientation:'S'},
+    {h:11,par:3,y:172,si:16,orientation:'E'},{h:12,par:4,y:378,si:4,orientation:'W'},
+    {h:13,par:5,y:512,si:2,orientation:'N'},{h:14,par:4,y:345,si:12,orientation:'SE'},
+    {h:15,par:3,y:161,si:18,orientation:'SW'},{h:16,par:4,y:393,si:6,orientation:'NE'},
+    {h:17,par:5,y:487,si:10,orientation:'N'},{h:18,par:4,y:367,si:14,orientation:'S'}]},
   taierilakes: {name:'Taieri Lakes Golf Club',rating:69.5,slope:120,loc:'Mosgiel',lat:-45.9201,lng:170.2875,h:[
     {h:1,par:4,y:387,si:7,orientation:'N'},{h:2,par:4,y:362,si:11,orientation:'E'},
     {h:3,par:5,y:498,si:3,orientation:'S'},{h:4,par:3,y:182,si:15,orientation:'W'},
@@ -2470,9 +2480,6 @@ function rCoach(){
     <div style="font-size:13px;color:var(--txt3);margin-top:2px">Powered by your stats</div>
   </div>
 </div>
-
-
-}
 
 ${rr.length?`
 <div class="qq">
