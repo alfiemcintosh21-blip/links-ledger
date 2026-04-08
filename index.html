@@ -474,16 +474,16 @@ const CDB = {
 };
 
 const ALL_CLUBS = ['Dr','3W','5W','7W','Hy','2i','3i','4i','5i','6i','7i','8i','9i','PW','GW','SW','LW','Pu'];
-const LIES = ['Fairway','Intermediate rough','Rough','Sand','Trouble','Chipping','Putting'];
+const LIES = ['Fairway','Intermediate rough','Rough','Sand','Trouble','Chipping','Green'];
 // Lie icons — use provided image URLs, fall back to SVG
 const LIE_IMGS = {
-  Fairway: 'https://www.golfmonthly.com/wp-content/uploads/2021/07/fairway.jpg',
+  Fairway: 'https://t4.ftcdn.net/jpg/02/16/27/49/360_F_216274912_GyI0SwIKvhuxxrLpOv5QYxqmaoaLZkQg.jpg',
   'Intermediate rough': 'https://res.cloudinary.com/usga/image/upload/v1492442860/usga/images/course-care/water-resource-center/case-studies/2017/dcp-1284-1540x866.jpg',
-  Rough: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Golf_rough.jpg/320px-Golf_rough.jpg',
-  Sand: 'https://shorelineaggregate.com/wp-content/uploads/2021/09/golf-course-sand-bunker.jpg',
+  Rough: 'https://www.advancedturf.com/wp-content/uploads/2024/01/golfcourserough.jpg',
+  Sand: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUXLW1sgqvywWPtfhgcOnW_tCLg53KwCPgog&s',
   Trouble: 'https://preview.redd.it/x4cxkl59w30e1.jpeg?width=640&crop=smart&auto=webp&s=56ba8e1a2740c7fe874948aca36714836d6cf19b',
-  Chipping: 'https://back2basics.golf/cdn/shop/articles/chipping.jpg',
-  Putting: 'https://playtimberstone.com/wp-content/uploads/2021/04/grass-golf-course.jpg',
+  Chipping: 'https://back2basics.golf/cdn/shop/articles/good-chipping-and-the-art-of-getting-up-and-down-315454_1400x.png?v=1619461552',
+  Green: 'https://cdn.mos.cms.futurecdn.net/v2/t:0,l:312,cw:1876,ch:1407,q:80,w:1876/MAnQQjgyhExSNLTXFc3oNW.jpg',
 };
 // Lie icons — clean SVG-based, no emoji
 const LIE_SVG = {
@@ -494,9 +494,9 @@ const LIE_SVG = {
   Sand:`<svg viewBox="0 0 40 40" width="34" height="34"><rect x="2" y="2" width="36" height="36" rx="6" fill="#f2e4a0"/><ellipse cx="20" cy="28" rx="14" ry="6" fill="#c8b86a"/><circle cx="12" cy="18" r="2" fill="#c8b86a" opacity="0.6"/><circle cx="20" cy="15" r="1.5" fill="#c8b86a" opacity="0.6"/><circle cx="28" cy="18" r="2" fill="#c8b86a" opacity="0.6"/></svg>`,
   Trouble:`<svg viewBox="0 0 40 40" width="34" height="34"><rect x="2" y="2" width="36" height="36" rx="6" fill="#7f1d1d"/><text x="20" y="26" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">✕</text></svg>`,
   Chipping:`<svg viewBox="0 0 40 40" width="34" height="34"><rect x="2" y="2" width="36" height="36" rx="6" fill="#1a8c2e"/><ellipse cx="20" cy="28" rx="12" ry="5" fill="#22a83a" stroke="#1a6b22" stroke-width="1"/><line x1="8" y1="22" x2="24" y2="28" stroke="#c8a84b" stroke-width="2.5" stroke-linecap="round"/></svg>`,
-  Putting:`<svg viewBox="0 0 40 40" width="34" height="34"><rect x="2" y="2" width="36" height="36" rx="6" fill="#22a83a"/><ellipse cx="20" cy="28" rx="12" ry="6" fill="#1a6b22"/><circle cx="20" cy="28" r="4" fill="#111"/><line x1="20" y1="6" x2="20" y2="22" stroke="#888" stroke-width="1.5"/><polygon points="20,6 26,10 20,14" fill="#e74c3c"/></svg>`,
+  Green:`<svg viewBox="0 0 40 40" width="34" height="34"><rect x="2" y="2" width="36" height="36" rx="6" fill="#22a83a"/><ellipse cx="20" cy="28" rx="12" ry="6" fill="#1a6b22"/><circle cx="20" cy="28" r="4" fill="#111"/><line x1="20" y1="6" x2="20" y2="22" stroke="#888" stroke-width="1.5"/><polygon points="20,6 26,10 20,14" fill="#e74c3c"/></svg>`,
 };
-const LIE_IC = {Fairway:'🟩','Intermediate rough':'🌱',Rough:'🌿',Sand:'🏖️',Trouble:'⚠️',Chipping:'🎯',Putting:'🕳️'};
+const LIE_IC = {Fairway:'🟩','Intermediate rough':'🌱',Rough:'🌿',Sand:'🏖️',Trouble:'⚠️',Chipping:'🎯',Green:'🕳️'};
 const COACH_KB = `IDENTITY: You are Coach Foxy — named after NZ pro golfer Ryan Fox. You are a highly technical golf coach. You ONLY give golf-specific advice. You NEVER give generic life/mental advice unless specifically asked about the mental game.
 
 PERSONALITY:
@@ -1028,7 +1028,9 @@ function rHome(){
   const girH=knownGIR(ah);
   const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
   const ptH=ah.filter(h=>h.putts>0);
-  const putts18=rr.length?(rr.reduce((s,r)=>s+to18((r.holes||[]).reduce((a,h)=>a+(h?.putts||0),0),r.totalHoles||9),0)/rr.length).toFixed(1):null;
+  // Putts per hole = total putts across all holes / total holes played
+  const totalPutts=ptH.reduce((s,h)=>s+h.putts,0);
+  const putts18=ptH.length?(totalPutts/ptH.length).toFixed(1):null;
   const fwH=knownFW(ah);
   const fwPct=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
   const udH=knownUD(ah.filter(h=>h.gir===false));
@@ -1704,7 +1706,7 @@ ${LIE_IMGS[l]?`<img src="${LIE_IMGS[l]}" style="width:48px;height:38px;object-fi
 <div class="lie-lbl">${l}</div></button>`).join('')}
 </div>
 
-${hd.selectedLie==='Putting'?`<button class="btn bg" onclick="WF.step='score';renderWF()">✓ Go to score entry →</button>`:
+${hd.selectedLie==='Green'?`<button class="btn bg" onclick="WF.step='score';renderWF()">✓ Go to score entry →</button>`:
 `<button class="btn bg" onclick="contFromLie()">✓ Select club for next shot →</button>`}
 <button class="btn bo" onclick="WF.step='preshot';renderWF()">← Back</button>`;
 }
@@ -1718,7 +1720,7 @@ function selLie(l){
 function contFromLie(){
   const trk=getTrackingPrefs();
   if(trk.lie&&!window._hd.selectedLie){toast('Select a lie first');return;}
-  if(!trk.lie||window._hd.selectedLie==='Putting'){WF.step='score';renderWF();return;}
+  if(!trk.lie||window._hd.selectedLie==='Green'){WF.step='score';renderWF();return;}
   WF.step='preshot';renderWF();
 }
 
@@ -1731,14 +1733,14 @@ function stepScore(pg){
   // Auto-calc from shots (shot mode)
   if(AR.mode==='shot'&&hd.shots?.length){
     const ss=hd.shots;
-    const puttingShots=ss.filter(s=>s.lie==='Putting');
+    const puttingShots=ss.filter(s=>s.lie==='Green');
     if(puttingShots.length)hd.putts=puttingShots.length;
     hd.score=ss.length;
     if(hole.par>=4&&ss.length>0){
       const teeShot=ss[0];
       hd.fairway=teeShot.lie==='Fairway'?true:(teeShot.lie&&teeShot.lie!=='Tee'?false:null);
     } else { hd.fairway=null; }
-    const nonPutt=ss.filter(s=>s.lie!=='Putting'&&s.lie!=='Chipping').length;
+    const nonPutt=ss.filter(s=>s.lie!=='Green'&&s.lie!=='Chipping').length;
     hd.gir=nonPutt<=(hole.par-2)&&nonPutt>0;
     hd.updown=!hd.gir&&hd.score<=hole.par;
   }
@@ -1758,7 +1760,7 @@ function stepScore(pg){
   }
 
   const shotsToGreen=AR.mode==='shot'?
-    (hd.shots||[]).filter(s=>s.lie!=='Putting').length:
+    (hd.shots||[]).filter(s=>s.lie!=='Green').length:
     Math.max(0,hd.score-hd.putts);
 
   pg.innerHTML=`
@@ -1836,7 +1838,7 @@ function aV(k,d){
       // Score is entered separately; GIR is derived
     } else {
       // In shot mode, score = shots to green + putts
-      const s2g=(h.shots||[]).filter(s=>s.lie!=='Putting').length||Math.max(0,h.score-h.putts);
+      const s2g=(h.shots||[]).filter(s=>s.lie!=='Green').length||Math.max(0,h.score-h.putts);
       h.score=Math.max(1,s2g+h.putts);
     }
     const pvEl=document.getElementById('pvEl');
@@ -2482,12 +2484,22 @@ ${rr.length?`
   <button class="q" onclick="askCoach('Give me a specific pre-round warm-up routine and one mental key for today based on my tendencies')">Pre-round routine</button>
 </div>`:''}
 
-<div class="chat-wrap" id="chatWrap" onscroll="checkScrollBtn()">${chatHist.map(m=>`<div class="chat-msg ${m.r==='u'?'chat-user':'chat-ai'}">${m.c}</div>`).join('')}</div>
-<button id="scrollDownBtn" onclick="scrollChatDown()" style="display:none;position:sticky;top:8px;left:50%;transform:translateX(-50%);z-index:10;background:var(--g);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2)">↓ Latest message</button>
-<div class="chat-ir">
-  <input class="chat-in" type="text" id="chatIn" placeholder="Ask Coach Foxy anything..." onkeydown="if(event.key==='Enter')sendChat()">
-  <button class="chat-send" onclick="sendChat()">↑</button>
+<div style="position:relative">
+  <button id="scrollDownBtn" onclick="scrollChatDown()" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:10;background:var(--g);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap">↓ Latest</button>
+  <div class="chat-wrap" id="chatWrap" onscroll="checkScrollBtn()">${chatHist.map(m=>`<div class="chat-msg ${m.r==='u'?'chat-user':'chat-ai'}">${m.c}</div>`).join('')}</div>
 </div>`;
+
+// Render chat input OUTSIDE the scrolling innerHTML - append after setting innerHTML
+setTimeout(function(){
+  var pg2=document.getElementById('pg-coach');
+  if(!pg2)return;
+  var chatIr=document.createElement('div');
+  chatIr.className='chat-ir';
+  chatIr.style.cssText='position:sticky;bottom:0;background:var(--bg);padding:8px 0 12px;border-top:1px solid var(--bdr);margin-top:4px;display:flex;gap:7px;z-index:5';
+  chatIr.innerHTML='<input class="chat-in" type="text" id="chatIn" placeholder="Ask Coach Foxy anything..." onkeydown="if(event.key===\'Enter\')sendChat()" style="flex:1;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:22px;font-size:15px;font-family:inherit;outline:none;background:#fff"><button class="chat-send" onclick="sendChat()" style="width:44px;height:44px;border-radius:50%;background:var(--g);color:#fff;border:none;font-size:20px;cursor:pointer;flex-shrink:0">↑</button>';
+  pg2.appendChild(chatIr);
+  scrollChatDown();
+},50);
 
   // Load motivational message
   const statsCtx=buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm);
@@ -2873,7 +2885,7 @@ function drawLeafletUserMap(played,rr,color,showLabels){
       const label=L.marker([c.lat,c.lng],{
         icon:L.divIcon({
           className:'',
-          html:`<div style="background:rgba(0,0,0,0.88);color:#fff;font-size:15px;font-weight:800;padding:5px 11px;border-radius:8px;white-space:nowrap;margin-top:16px;text-align:center;border:1.5px solid rgba(255,255,255,0.25);box-shadow:0 2px 8px rgba(0,0,0,0.5)">${shortName}${rounds>1?' ×'+rounds:''}</div>`,
+          html:`<div style="background:#1a1a1a;color:#fff;font-size:15px;font-weight:800;padding:5px 12px;border-radius:8px;white-space:nowrap;margin-top:16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.7);letter-spacing:0.01em">${shortName}${rounds>1?' ×'+rounds:''}</div>`,
           iconAnchor:[0,0]
         })
       }).addTo(_leafletMap);
