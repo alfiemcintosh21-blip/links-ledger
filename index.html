@@ -731,7 +731,18 @@ const NAV=['home','stats','leagues','coach','map'];
 function SP(p){
   Object.keys(PM).forEach(k=>document.getElementById(PM[k]).classList.toggle('gone',k!==p));
   NAV.forEach(k=>document.getElementById('n-'+k)?.classList.toggle('active',k===p));
-  document.getElementById('pgTitle').textContent=PT[p]||'Links Ledger';
+  const titleEl=document.getElementById('pgTitle');
+  if(titleEl){
+    if(p==='home'){
+            titleEl.style.fontFamily="'Playfair Display',serif";
+      titleEl.style.fontStyle='italic';
+      titleEl.textContent='Links Ledger';
+    } else {
+      titleEl.style.fontStyle='normal';
+      titleEl.style.fontFamily='DM Sans,system-ui,sans-serif';
+      titleEl.textContent=PT[p]||'Links Ledger';
+    }
+  }
   const rnd={home:rHome,stats:rStats,leagues:rLeagues,coach:rCoach,map:rMap,profile:rProfile,admin:rAdmin};
   if(rnd[p])rnd[p]();
 }
@@ -2509,24 +2520,18 @@ setTimeout(function(){
     loadPreRoundMotiv(statsCtx,rr.length);
   }
 
-  // Check API connectivity and auto-analyse
-  if(rr.length&&chatHist.length===0){
-    setTimeout(async()=>{
-      // Quick connectivity test first
-      try{
-        const test=await fetch('/api/coach',{method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({max_tokens:5,messages:[{role:'user',content:'hi'}]})
-        });
-        if(!test.ok&&test.status===404){
-          addChat('ai','⚠️ Coach not connected: The api/coach.js file is missing from your GitHub repo. Go to github.com/alfiemcintosh21-blip/links-ledger, click Add file → Create new file, name it api/coach.js, paste the coach.js file contents and commit. Then redeploy on Vercel.');
-          return;
-        }
-        genAnalysis(avg,gir,pt,fw,drives,topMiss,clubSumm);
-      }catch(e){
-        addChat('ai','⚠️ Coach offline: '+e.message+'. If you just deployed, wait 60 seconds and refresh. Otherwise check api/coach.js is in your GitHub repo under the api/ folder.');
-      }
-    },800);
+  // Foxy waits for the user to speak first
+  // But if brand new user (no rounds ever), start onboarding
+  if(chatHist.length===0){
+    const profile=ud().coachProfile||null;
+    if(!rr.length&&!profile){
+      // New user - start onboarding
+      setTimeout(()=>{
+        addChat('ai','Kia ora! Coach Foxy here 🇳🇿 I\'m your personal golf coach. Before we get into it, I need to know a bit about your game. What\'s your current handicap — or if you don\'t have one, roughly how many shots over par do you play?');
+        window._coachOnboarding='handicap';
+      },400);
+    }
+    // Existing users just see the quick-question buttons — no auto chat
   }
 }
 
@@ -2564,6 +2569,15 @@ function buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm){
     clubSumm?'Club distances: '+clubSumm:null,
     trend?'Recent trend: '+trend:null,
   ];
+  // Include stored coach profile memory
+  const profile=ud().coachProfile;
+  if(profile&&profile.completedAt){
+    lines.push('PLAYER PROFILE (from onboarding):');
+    if(profile.handicap)lines.push('Self-reported handicap/level: '+profile.handicap);
+    if(profile.strength)lines.push('Self-reported strength: '+profile.strength);
+    if(profile.weakness)lines.push('Self-reported weakness: '+profile.weakness);
+    if(profile.goal)lines.push('Goal: '+profile.goal);
+  }
   return lines.filter(Boolean).join('\n');
 }
 
@@ -2661,6 +2675,45 @@ async function sendChat(){const input=document.getElementById('chatIn');const ms
 
 async function askCoach(q){
   addChat('user',q);
+
+  // Handle onboarding flow - store answers to memory
+  if(window._coachOnboarding){
+    const stage=window._coachOnboarding;
+    const d=ud();
+    if(!d.coachProfile)d.coachProfile={};
+
+    if(stage==='handicap'){
+      d.coachProfile.handicap=q;
+      sud(d);
+      window._coachOnboarding='strengths';
+      addChat('ai','Good to know, mate. What would you say is the strongest part of your game right now — driver, irons, short game, or putting?');
+      return;
+    }
+    if(stage==='strengths'){
+      d.coachProfile.strength=q;
+      sud(d);
+      window._coachOnboarding='weaknesses';
+      addChat('ai','Choice. And what\'s costing you the most shots? Where does it usually fall apart?');
+      return;
+    }
+    if(stage==='weaknesses'){
+      d.coachProfile.weakness=q;
+      sud(d);
+      window._coachOnboarding='goals';
+      addChat('ai','Last one — what\'s your main goal? Break a score barrier, get your handicap down, or just enjoy the game more consistently?');
+      return;
+    }
+    if(stage==='goals'){
+      d.coachProfile.goal=q;
+      d.coachProfile.completedAt=Date.now();
+      sud(d);
+      window._coachOnboarding=false;
+      addChat('ai','Sweet as. I\'ve got you. I\'ll remember all of that and factor it into every bit of advice I give you. Now — what do you want to work on first?');
+      return;
+    }
+    window._coachOnboarding=false;
+  }
+
   addChat('ai','...');
 
   // Build rich stats context
@@ -2885,7 +2938,7 @@ function drawLeafletUserMap(played,rr,color,showLabels){
       const label=L.marker([c.lat,c.lng],{
         icon:L.divIcon({
           className:'',
-          html:`<div style="background:#1a1a1a;color:#fff;font-size:15px;font-weight:800;padding:5px 12px;border-radius:8px;white-space:nowrap;margin-top:16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.7);letter-spacing:0.01em">${shortName}${rounds>1?' ×'+rounds:''}</div>`,
+          html:`<div style="background:#2d5a3d;color:#fff;font-size:15px;font-weight:800;padding:6px 13px;border-radius:20px;white-space:nowrap;margin-top:16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.5);border:2px solid #c9a84c;letter-spacing:0.01em">${shortName}${rounds>1?' ×'+rounds:''}</div>`,
           iconAnchor:[0,0]
         })
       }).addTo(_leafletMap);
