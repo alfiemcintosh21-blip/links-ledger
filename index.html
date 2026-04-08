@@ -2713,7 +2713,17 @@ async function askCoach(q){
     window._coachOnboarding=false;
   }
 
-  addChat('ai','...');
+  // Add loading bubble with unique ID
+  chatHist.push({r:'ai',c:'...'});
+  const w=document.getElementById('chatWrap');
+  if(w){
+    const d=document.createElement('div');
+    d.className='chat-msg chat-ai';
+    d.id='loadingBubble';
+    d.textContent='...';
+    w.appendChild(d);
+    scrollChatDown();
+  }
 
   // Build rich stats context
   const rr=realR();
@@ -2821,7 +2831,15 @@ function checkScrollBtn(){
   if(!w||!btn)return;
   btn.style.display=(w.scrollHeight-w.scrollTop-w.clientHeight>60)?'block':'none';
 }
-function removeLastChat(){chatHist.pop();const w=document.getElementById('chatWrap');if(w&&w.lastChild)w.removeChild(w.lastChild);}
+function removeLastChat(){
+  // Remove from chatHist
+  if(chatHist.length&&chatHist[chatHist.length-1].c==='...')chatHist.pop();
+  // Remove loading bubble by ID first, fall back to lastChild
+  const lb=document.getElementById('loadingBubble');
+  if(lb){lb.remove();return;}
+  const w=document.getElementById('chatWrap');
+  if(w&&w.lastChild)w.removeChild(w.lastChild);
+}
 
 // ── MAP ──
 function rMap(){
