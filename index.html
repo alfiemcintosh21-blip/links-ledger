@@ -575,7 +575,7 @@ const SG=g=>SV('ll_global',g);
 // Alfie's historical rounds stored with ONLY the data we actually have:
 // score, course, putts total per round, score breakdown (birdies/pars/bogeys/doubles).
 // These do NOT pollute stats averages like GIR%, fairway%, up&down% since those are null.
-const SEED_VERSION=4; // increment to force re-seed of round data
+const SEED_VERSION=5; // increment to force re-seed of round data
 
 function seedData(){
   const users=GU();
@@ -618,10 +618,12 @@ function seedData(){
     // Merge: seed rounds first, then any real rounds on top
     data.rounds=[...seedRounds,...userRounds];
     SUD(uid,data);
-    // Remove any incomplete Otago GC test rounds (1 hole only, not seed)
+    // Remove ALL non-seed Otago GC rounds for Alfie (test data cleanup)
+    const beforeCount=data.rounds.length;
     data.rounds=data.rounds.filter(function(r){
-      return !(r.courseId==='otago'&&!r.seedRound&&(r.holes||[]).filter(function(h){return h&&h.score;}).length<=1);
+      return !(r.courseId==='otago'&&!r.seedRound);
     });
+    if(data.rounds.length!==beforeCount)console.log('Removed '+(beforeCount-data.rounds.length)+' Otago test round(s)');
     SUD(uid,data);
     // Mark seed version
     alfieUser.seedV=SEED_VERSION;
@@ -722,6 +724,13 @@ function launch(){
   document.getElementById('auth').style.display='none';
   document.getElementById('app').classList.remove('gone');
   document.getElementById('rptBtn').style.display='flex';
+  // Cleanup: remove any non-seed Otago rounds for Alfie every login
+  if(CU&&CU.uid==='alfie'){
+    const d=GUD('alfie');
+    const before=(d.rounds||[]).length;
+    d.rounds=(d.rounds||[]).filter(r=>!(r.courseId==='otago'&&!r.seedRound));
+    if(d.rounds.length!==before){SUD('alfie',d);console.log('Removed Otago test round');}
+  }
   SP('home');
 }
 
