@@ -1,9 +1,7 @@
 // api/coach.js — Vercel serverless function
-// Proxies requests to Anthropic API so the browser doesn't need to call it directly
-// Set ANTHROPIC_API_KEY in Vercel environment variables
+// Handles both text chat AND image analysis (scorecard scanner)
 
 export default async function handler(req, res) {
-  // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
