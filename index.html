@@ -2470,6 +2470,14 @@ function rCoach(){
   const ryanFoxUrl='https://a.espncdn.com/combiner/i?img=/i/headshots/golf/players/full/4251.png&w=350&h=254';
 
   pg.innerHTML=`
+<!-- Debug test button -->
+<div id="coachDebug" style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;display:none">
+  <div id="debugMsg">Testing...</div>
+</div>
+<button onclick="testCoachAPI()" style="width:100%;padding:10px;background:#e8f5ee;border:1px solid var(--g);border-radius:8px;font-size:13px;font-weight:700;color:var(--g);cursor:pointer;margin-bottom:12px">
+  🔧 Test Coach Connection
+</button>
+
 <!-- Coach header -->
 <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
   <img src="${ryanFoxUrl}" alt="Coach Foxy"
@@ -2772,6 +2780,31 @@ function addChat(role,content){
     div.textContent=content;
     w.appendChild(div);
     scrollChatDown();
+  }
+}
+
+async function testCoachAPI(){
+  const dbg=document.getElementById('coachDebug');
+  const msg=document.getElementById('debugMsg');
+  if(!dbg||!msg)return;
+  dbg.style.display='block';
+  msg.textContent='Testing /api/coach...';
+  try{
+    msg.textContent='Sending request to /api/coach...';
+    const res=await fetch('/api/coach',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({max_tokens:20,messages:[{role:'user',content:'say hi'}]})
+    });
+    msg.textContent='Got response: HTTP '+res.status+' '+res.statusText;
+    const txt=await res.text();
+    msg.textContent+=' | Body: '+txt.slice(0,200);
+    dbg.style.background=res.ok?'#d4edda':'#f8d7da';
+    dbg.style.borderColor=res.ok?'#28a745':'#dc3545';
+  }catch(e){
+    msg.textContent='FETCH FAILED: '+e.name+': '+e.message;
+    dbg.style.background='#f8d7da';
+    dbg.style.borderColor='#dc3545';
   }
 }
 
