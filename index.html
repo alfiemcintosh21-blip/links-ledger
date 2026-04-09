@@ -444,7 +444,12 @@ try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e) { console.wa
 
 // ── COURSES ──
 const CDB = {
-  otago:       {name:'Otago GC (Balmacewen)',rating:71.2,slope:128, loc:'Dunedin',   lat:-45.8522,lng:170.4919,h:[{h:1,par:5,y:582,si:6},{h:2,par:4,y:322,si:12},{h:3,par:4,y:311,si:16},{h:4,par:4,y:391,si:4},{h:5,par:4,y:405,si:8},{h:6,par:4,y:379,si:2},{h:7,par:3,y:169,si:14},{h:8,par:4,y:305,si:18},{h:9,par:4,y:404,si:10},{h:10,par:4,y:393,si:5},{h:11,par:4,y:391,si:9},{h:12,par:3,y:169,si:15},{h:13,par:5,y:593,si:7},{h:14,par:4,y:442,si:1},{h:15,par:3,y:203,si:13},{h:16,par:4,y:286,si:17},{h:17,par:4,y:357,si:11},{h:18,par:4,y:418,si:3}]},
+  otago:       {name:'Otago GC (Balmacewen)',rating:71.2,slope:128,
+    holeImages:{1:'https://i.imgur.com/GYeEFz0.png',2:'https://i.imgur.com/yEd71we.png',
+    3:'https://i.imgur.com/CMHLSQm.png',4:'https://i.imgur.com/lN27APc.png',
+    5:'https://i.imgur.com/0VZ84rW.png',6:'https://i.imgur.com/SoSjkyS.png',
+    7:'https://i.imgur.com/2eurRTB.png',8:'https://i.imgur.com/DVMieOe.png',
+    9:'https://i.imgur.com/uUO1SZA.png'}, loc:'Dunedin',   lat:-45.8522,lng:170.4919,h:[{h:1,par:5,y:582,si:6},{h:2,par:4,y:322,si:12},{h:3,par:4,y:311,si:16},{h:4,par:4,y:391,si:4},{h:5,par:4,y:405,si:8},{h:6,par:4,y:379,si:2},{h:7,par:3,y:169,si:14},{h:8,par:4,y:305,si:18},{h:9,par:4,y:404,si:10},{h:10,par:4,y:393,si:5},{h:11,par:4,y:391,si:9},{h:12,par:3,y:169,si:15},{h:13,par:5,y:593,si:7},{h:14,par:4,y:442,si:1},{h:15,par:3,y:203,si:13},{h:16,par:4,y:286,si:17},{h:17,par:4,y:357,si:11},{h:18,par:4,y:418,si:3}]},
   chisholm:    {name:'Chisholm Links',rating:70.1,slope:123,front12:true,         loc:'Dunedin',   lat:-45.9123,lng:170.5015,h:[{h:1,par:4,y:384,si:5},{h:2,par:4,y:329,si:13},{h:3,par:4,y:306,si:15},{h:4,par:3,y:179,si:17},{h:5,par:4,y:384,si:7},{h:6,par:4,y:420,si:3},{h:7,par:3,y:218,si:9},{h:8,par:5,y:534,si:11},{h:9,par:4,y:457,si:1},{h:10,par:3,y:161,si:16},{h:11,par:5,y:536,si:2},{h:12,par:4,y:453,si:6},{h:13,par:4,y:305,si:10},{h:14,par:3,y:200,si:14},{h:15,par:5,y:609,si:4},{h:16,par:4,y:326,si:12},{h:17,par:4,y:373,si:8},{h:18,par:4,y:289,si:18}]},
   stclair:     {name:'St Clair GC',rating:69.8,slope:121,            loc:'Dunedin',   lat:-45.9108,lng:170.4751,h:[{h:1,par:4,y:346,si:4},{h:2,par:4,y:329,si:6},{h:3,par:4,y:423,si:2},{h:4,par:3,y:165,si:12},{h:5,par:4,y:314,si:8},{h:6,par:4,y:335,si:18},{h:7,par:3,y:150,si:10},{h:8,par:4,y:312,si:14},{h:9,par:5,y:463,si:16},{h:10,par:5,y:467,si:11},{h:11,par:4,y:419,si:1},{h:12,par:4,y:392,si:3},{h:13,par:3,y:160,si:13},{h:14,par:5,y:461,si:7},{h:15,par:4,y:362,si:9},{h:16,par:3,y:177,si:15},{h:17,par:4,y:331,si:17},{h:18,par:4,y:356,si:5}]},
   otakou:      {name:'Otakou GC',rating:68.9,slope:118,              loc:'Dunedin',   lat:-45.8057,lng:170.6967,h:[{h:1,par:5,y:486,si:14},{h:2,par:3,y:183,si:12},{h:3,par:4,y:410,si:6},{h:4,par:4,y:363,si:2},{h:5,par:5,y:530,si:8},{h:6,par:3,y:154,si:16},{h:7,par:4,y:399,si:4},{h:8,par:4,y:312,si:10},{h:9,par:4,y:247,si:18},{h:10,par:4,y:404,si:5},{h:11,par:3,y:135,si:15},{h:12,par:5,y:493,si:9},{h:13,par:4,y:388,si:1},{h:14,par:5,y:530,si:7},{h:15,par:3,y:172,si:13},{h:16,par:4,y:430,si:3},{h:17,par:4,y:318,si:11},{h:18,par:4,y:270,si:17}]},
@@ -2734,7 +2739,7 @@ async function askCoach(q){
   const fwH=knownFW(ah);const fw=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
   const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
   const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
-  const d=ud();const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>c+':'+d.clubStats[c].avg+'y').join(', ');
+  const ud2=ud();const clubSumm=ALL_CLUBS.filter(c=>ud2.clubStats?.[c]).map(c=>c+':'+ud2.clubStats[c].avg+'y').join(', ');
   const avg=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
   const statsCtx=buildStatsContext(avg,gir,null,fw,drives,topMiss,clubSumm);
 
