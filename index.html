@@ -2680,108 +2680,80 @@ async function sendChat(){const input=document.getElementById('chatIn');const ms
 async function askCoach(q){
   addChat('user',q);
 
-  // Handle onboarding flow - store answers to memory
+  // Onboarding flow
   if(window._coachOnboarding){
     const stage=window._coachOnboarding;
-    const d=ud();
-    if(!d.coachProfile)d.coachProfile={};
-
-    if(stage==='handicap'){
-      d.coachProfile.handicap=q;
-      sud(d);
-      window._coachOnboarding='strengths';
-      addChat('ai','Good to know, mate. What would you say is the strongest part of your game right now — driver, irons, short game, or putting?');
-      return;
-    }
-    if(stage==='strengths'){
-      d.coachProfile.strength=q;
-      sud(d);
-      window._coachOnboarding='weaknesses';
-      addChat('ai','Choice. And what\'s costing you the most shots? Where does it usually fall apart?');
-      return;
-    }
-    if(stage==='weaknesses'){
-      d.coachProfile.weakness=q;
-      sud(d);
-      window._coachOnboarding='goals';
-      addChat('ai','Last one — what\'s your main goal? Break a score barrier, get your handicap down, or just enjoy the game more consistently?');
-      return;
-    }
-    if(stage==='goals'){
-      d.coachProfile.goal=q;
-      d.coachProfile.completedAt=Date.now();
-      sud(d);
-      window._coachOnboarding=false;
-      addChat('ai','Sweet as. I\'ve got you. I\'ll remember all of that and factor it into every bit of advice I give you. Now — what do you want to work on first?');
-      return;
-    }
+    const prof=ud();
+    if(!prof.coachProfile)prof.coachProfile={};
+    if(stage==='handicap'){prof.coachProfile.handicap=q;sud(prof);window._coachOnboarding='strengths';addChat('ai','Good to know mate. What is the strongest part of your game — driver, irons, short game or putting?');return;}
+    if(stage==='strengths'){prof.coachProfile.strength=q;sud(prof);window._coachOnboarding='weaknesses';addChat('ai','Choice. And what costs you the most shots?');return;}
+    if(stage==='weaknesses'){prof.coachProfile.weakness=q;sud(prof);window._coachOnboarding='goals';addChat('ai','Last one — what is your main goal this season?');return;}
+    if(stage==='goals'){prof.coachProfile.goal=q;prof.coachProfile.completedAt=Date.now();sud(prof);window._coachOnboarding=false;addChat('ai','Sweet as. Now what do you want to work on first?');return;}
     window._coachOnboarding=false;
   }
 
-  // Add loading bubble with unique ID
+  // Show loading bubble
+  const lb=document.createElement('div');
+  lb.className='chat-msg chat-ai';
+  lb.id='loadingBubble';
+  lb.textContent='...';
+  const cw=document.getElementById('chatWrap');
+  if(cw){cw.appendChild(lb);scrollChatDown();}
   chatHist.push({r:'ai',c:'...'});
-  const w=document.getElementById('chatWrap');
-  if(w){
-    const d=document.createElement('div');
-    d.className='chat-msg chat-ai';
-    d.id='loadingBubble';
-    d.textContent='...';
-    w.appendChild(d);
-    scrollChatDown();
+
+  function replaceBubble(text){
+    const existing=document.getElementById('loadingBubble');
+    if(existing)existing.remove();
+    if(chatHist.length&&chatHist[chatHist.length-1].c==='...')chatHist.pop();
+    addChat('ai',text);
   }
 
-  // Build rich stats context
-  const rr=realR();
-  const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
-  const allShD=ah.flatMap(h=>h.shots||[]).filter(s=>s.dir);
-  const mc={};allShD.forEach(s=>{mc[s.dir]=(mc[s.dir]||0)+1;});
-  const topMiss=Object.entries(mc).sort((a,b)=>b[1]-a[1])[0];
-  const fwH=knownFW(ah);const fw=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
-  const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
-  const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
-  const ud2=ud();const clubSumm=ALL_CLUBS.filter(c=>ud2.clubStats?.[c]).map(c=>c+':'+ud2.clubStats[c].avg+'y').join(', ');
-  const avg=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
-  const statsCtx=buildStatsContext(avg,gir,null,fw,drives,topMiss,clubSumm);
-
-  // System prompt tells Claude who it is and gives it the stats
-  const systemPrompt=COACH_KB+'\n\n'+statsCtx;
-
-  // Build conversation history (last 6 messages for context)
-  const history=chatHist.slice(0,-1).slice(-6).map(m=>({
-    role:m.r==='u'?'user':'assistant',
-    content:m.c==='...'?'(thinking)':m.c
-  })).filter(m=>m.content&&m.content!=='(thinking)');
-  history.push({role:'user',content:q});
-
   try{
+    // Build stats
+    const rr=realR();
+    const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
+    const allShD=ah.flatMap(function(h){return h.shots||[];}).filter(function(s){return s.dir;});
+    const mc={};allShD.forEach(function(s){mc[s.dir]=(mc[s.dir]||0)+1;});
+    const topMiss=Object.entries(mc).sort(function(a,b){return b[1]-a[1];})[0];
+    const fwH=knownFW(ah);
+    const fw=fwH.length?Math.round(fwH.filter(function(h){return h.fairway;}).length/fwH.length*100):null;
+    const girH=knownGIR(ah);
+    const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
+    const drives=rr.flatMap(function(r){return(r.holes||[]).flatMap(function(h){return(h.shots||[]).filter(function(s,i){return i===0&&s.club==='Dr'&&s.dist;});});}).map(function(s){return s.dist;});
+    const userData=ud();
+    const clubSumm=ALL_CLUBS.filter(function(c){return userData.clubStats&&userData.clubStats[c];}).map(function(c){return c+':'+userData.clubStats[c].avg+'y';}).join(', ');
+    const avg=rr.length?Math.round(rr.reduce(function(s,r){return s+to18(r.total,r.totalHoles||9);},0)/rr.length):0;
+    const statsCtx=buildStatsContext(avg,gir,null,fw,drives,topMiss,clubSumm);
+    const systemPrompt=COACH_KB+'\n\n'+statsCtx;
+
+    // Build history - only real messages, no loading bubbles
+    const cleanHist=chatHist.slice(0,-1).filter(function(m){return m.c!=='...';}).slice(-6);
+    const history=cleanHist.map(function(m){return{role:m.r==='u'?'user':'assistant',content:m.c};});
+    history.push({role:'user',content:q});
+
     const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),25000); // 25 second timeout
+    const timer=setTimeout(function(){controller.abort();},30000);
+
     const res=await fetch('/api/coach',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        max_tokens:400,
-        system:systemPrompt,
-        messages:history
-      }),
+      body:JSON.stringify({max_tokens:400,system:systemPrompt,messages:history}),
       signal:controller.signal
     });
-    clearTimeout(timeout);
+    clearTimeout(timer);
+
     if(!res.ok){
-      const err=await res.json().catch(()=>({}));
-      throw new Error(res.status+' '+(err.error||''));
+      const errData=await res.json().catch(function(){return {};});
+      replaceBubble('Error '+res.status+': '+(errData.error||res.statusText));
+      return;
     }
+
     const data=await res.json();
-    const txt=data.content?.map(i=>i.text||'').join('').trim();
-    removeLastChat();
-    addChat('ai',txt||'No response received');
+    const txt=(data.content||[]).map(function(i){return i.text||'';}).join('').trim();
+    replaceBubble(txt||'No text in response');
+
   }catch(e){
-    removeLastChat();
-    if(e.name==='AbortError'){
-      addChat('ai','Foxy took too long to respond — give it another go mate.');
-    } else {
-      addChat('ai','⚠️ '+e.message);
-    }
+    replaceBubble(e.name==='AbortError'?'Timed out — try again mate':'Error: '+e.message);
   }
 }
 
