@@ -1920,11 +1920,29 @@ function finishRound(){
   const par=holes.slice(0,ph.length).reduce((s,h)=>s+h.par,0);
   AR.total=total;AR.par=par;AR.toPar=total-par;
   AR.duration=Date.now()-roundStart;AR.walkDist=walkDist;AR.totalHoles=ph.length;
-  const d=ud();d.rounds.unshift(AR);
-  // Remove from in-progress now it's complete
-  if(d.roundsInProgress)delete d.roundsInProgress[AR.id];
-  sud(d);
-  checkAch();WF.step='summary';renderWF();
+  try{
+    const d=ud();
+    if(!d.rounds)d.rounds=[];
+    d.rounds.unshift(AR);
+    if(d.roundsInProgress)delete d.roundsInProgress[AR.id];
+    sud(d);
+    toast('Round saved ✓');
+  }catch(e){
+    console.error('Save failed:',e);
+    // Emergency: save directly to localStorage
+    try{
+      const key='ll_d_'+CU.uid;
+      const raw=localStorage.getItem(key);
+      const data=raw?JSON.parse(raw):{rounds:[]};
+      if(!data.rounds)data.rounds=[];
+      data.rounds.unshift(AR);
+      localStorage.setItem(key,JSON.stringify(data));
+      toast('Round saved (emergency backup) ✓');
+    }catch(e2){
+      toast('Warning: round may not have saved. Screenshot your score!');
+    }
+  }
+  WF.step='summary';renderWF();
 }
 
 // STEP: Summary
