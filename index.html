@@ -297,6 +297,8 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .gold{color:var(--gold)}
 .green{color:var(--g)}
 .red{color:var(--red)}
+.map-lbl{background:transparent!important;border:none!important;overflow:visible!important}
+.map-lbl>div{margin-top:12px}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -456,7 +458,7 @@ const CDB = {
   twelveoaks:  {name:'Twelve Oaks',rating:67.4,slope:115,            loc:'Mosgiel',   lat:-45.8662,lng:170.3255,h:[{h:1,par:4,y:371,si:4},{h:2,par:4,y:286,si:15},{h:3,par:5,y:431,si:12},{h:4,par:4,y:380,si:2},{h:5,par:3,y:102,si:17},{h:6,par:4,y:361,si:6},{h:7,par:3,y:161,si:13},{h:8,par:4,y:328,si:11},{h:9,par:4,y:333,si:9},{h:10,par:4,y:371,si:5},{h:11,par:4,y:286,si:16},{h:12,par:4,y:363,si:1},{h:13,par:4,y:380,si:3},{h:14,par:3,y:96,si:18},{h:15,par:4,y:353,si:7},{h:16,par:3,y:161,si:14},{h:17,par:4,y:343,si:10},{h:18,par:4,y:333,si:8}]},
   belleknowes: {name:'Belleknowes GC',rating:58.2,slope:96,         loc:'Dunedin',   lat:-45.8721,lng:170.4912,h:[{h:1,par:3,y:85,si:9},{h:2,par:3,y:249,si:3},{h:3,par:3,y:185,si:1},{h:4,par:3,y:180,si:8},{h:5,par:3,y:158,si:6},{h:6,par:4,y:310,si:4},{h:7,par:3,y:149,si:7},{h:8,par:4,y:237,si:5},{h:9,par:4,y:215,si:2}]},
   gladfield:   {name:'Gladfield Country GC',rating:65.1,slope:108,   loc:'Dunedin',   lat:-45.9012,lng:170.3812,h:[{h:1,par:4,y:351,si:9},{h:2,par:5,y:489,si:1},{h:3,par:4,y:292,si:3},{h:4,par:3,y:142,si:15},{h:5,par:3,y:131,si:17},{h:6,par:4,y:318,si:5},{h:7,par:4,y:279,si:13},{h:8,par:4,y:318,si:11},{h:9,par:4,y:284,si:7}]},
-  jtees:       {name:"J.Tees Golf Centre",rating:63.5,slope:102,     loc:'Mosgiel',   lat:-45.8814,lng:170.3467,approx:true,h:[{h:1,par:4,y:340,si:5},{h:2,par:3,y:155,si:9},{h:3,par:4,y:360,si:1},{h:4,par:4,y:280,si:7},{h:5,par:5,y:460,si:3},{h:6,par:3,y:140,si:8},{h:7,par:4,y:310,si:4},{h:8,par:4,y:295,si:6},{h:9,par:4,y:325,si:2}]},
+  jtees:       {name:"J.Tees Golf Centre",rating:60.2,slope:98,      loc:'Mosgiel',   lat:-45.8814,lng:170.3467,h:[{h:1,par:3,y:93,si:7},{h:2,par:3,y:105,si:9},{h:3,par:4,y:280,si:1},{h:4,par:3,y:134,si:5},{h:5,par:3,y:106,si:8},{h:6,par:3,y:172,si:3},{h:7,par:3,y:143,si:6},{h:8,par:3,y:144,si:4},{h:9,par:4,y:254,si:2}]},
   portchalmers:{name:'Port Chalmers GC',rating:64.8,slope:105,
     holeImages:{1:'https://i.imgur.com/nAXFMrl.jpg',2:'https://i.imgur.com/kteZzzb.jpg',
     3:'https://i.imgur.com/NnNgBw4.jpg',4:'https://i.imgur.com/j20UyI4.jpg',
@@ -1340,7 +1342,7 @@ ${testMode?`<div style="display:flex;gap:7px;margin-bottom:10px"><button class="
   </div>
   <div class="hboxes">
     <div class="hbox"><div class="l">Par</div><div class="v">${hole.par}</div></div>
-    <div class="hbox"><div class="l">Yards</div><div class="v">${hole.y}</div></div>
+    <div class="hbox"><div class="l">Metres</div><div class="v">${hole.y}</div></div>
     <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
   </div>
 </div>
@@ -1474,14 +1476,14 @@ function stepPreshot(pg){
 </div>
 
 <div style="font-weight:800;font-size:18px;margin-bottom:4px">Hole ${hole.h} · Shot ${shots.length+1}</div>
-<div style="color:var(--txt3);font-size:14px;margin-bottom:13px">${isFirst?'Tee shot — par '+hole.par+', '+hole.y+' yds':'Next shot from '+((hd.selectedLie||'the fairway').toLowerCase())}</div>
+<div style="color:var(--txt3);font-size:14px;margin-bottom:13px">${isFirst?'Tee shot — par '+hole.par+', '+hole.y+' m':'Next shot from '+((hd.selectedLie||'the fairway').toLowerCase())}</div>
 
 ${trk.gps?`<div class="gps-card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div>
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;opacity:0.8;margin-bottom:2px">GPS distance from last shot</div>
       <div style="font-size:46px;font-weight:900;line-height:1" id="sDist">—</div>
-      <div style="font-size:12px;opacity:0.7;margin-top:2px" id="sAcc">yds · acquiring GPS...</div>
+      <div style="font-size:12px;opacity:0.7;margin-top:2px" id="sAcc">m · acquiring GPS...</div>
     </div>
     <div style="text-align:right;padding-top:4px">
       <div style="font-size:12px;opacity:0.8">🚶 ${fmtD(walkDist)}</div>
@@ -1754,139 +1756,166 @@ function contFromLie(){
 function stepScore(pg){
   if(!pg)pg=document.getElementById('pg-round');
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
-  const hole=holes[cHole];const hd=window._hd;
+  const hole=holes[cHole];
+  const hd=window._hd;
+  const shots=hd.shots||[];
 
-  // Auto-calc from shots (shot mode)
-  if(AR.mode==='shot'&&hd.shots?.length){
-    const ss=hd.shots;
-    const puttingShots=ss.filter(s=>s.lie==='Green');
-    if(puttingShots.length)hd.putts=puttingShots.length;
-    hd.score=ss.length;
-    if(hole.par>=4&&ss.length>0){
-      const teeShot=ss[0];
-      hd.fairway=teeShot.lie==='Fairway'?true:(teeShot.lie&&teeShot.lie!=='Tee'?false:null);
-    } else { hd.fairway=null; }
-    const nonPutt=ss.filter(s=>s.lie!=='Green'&&s.lie!=='Chipping').length;
-    hd.gir=nonPutt<=(hole.par-2)&&nonPutt>0;
-    hd.updown=!hd.gir&&hd.score<=hole.par;
+  // ── AUTO-INFER for shot tracking mode ──
+  if(AR.mode==='shot'&&shots.length>0){
+    // Score = total shots
+    hd.score=shots.length;
+
+    // Putts = shots where lie is Green
+    const greenShots=shots.filter(function(s){return s.lie==='Green';});
+    hd.putts=greenShots.length||hd.putts||0;
+
+    // Fairway: first shot lie (after tee) = Fairway → yes, else → no (par 4/5 only)
+    if(hole.par>=4){
+      const firstLie=shots.length>1?shots[1].lie:(shots[0]?shots[0].lie:null);
+      if(hd.fairway===undefined||hd.fairway===null){
+        hd.fairway=firstLie==='Fairway';
+      }
+    } else {
+      hd.fairway=null;
+    }
+
+    // GIR: shots to green ≤ par-2 AND player reached the green
+    const shotsToGreen=shots.filter(function(s){return s.lie!=='Green'&&s.lie!=='Chipping';}).length;
+    const reachedGreen=shots.some(function(s){return s.lie==='Green';});
+    if(hd.gir===undefined||hd.gir===null){
+      hd.gir=reachedGreen&&shotsToGreen<=(hole.par-2);
+    }
+
+    // Up & down: missed GIR + only 1 putt
+    if(hd.updown===undefined||hd.updown===null){
+      hd.updown=!hd.gir&&hd.putts===1;
+    }
   }
 
-  // Auto-calc for hole-by-hole mode based on score+putts
-  function autoCalcHoleMode(){
-    const score=hd.score;
-    const putts=hd.putts;
-    const par=hole.par;
-    // GIR: shots to green = score - putts, must be <= par-2
-    const shotsToGreen=score-putts;
-    hd.gir=shotsToGreen<=(par-2)&&shotsToGreen>0;
-    // Up & down: missed GIR but par or better
-    hd.updown=!hd.gir&&score<=par;
-    // 1-putt always = up and down attempt succeeded (if missed GIR)
-    if(putts===1&&!hd.gir)hd.updown=true;
+  // For hole mode - just calc up&down from score/putts
+  if(AR.mode==='hole'){
+    const s2g=Math.max(0,(hd.score||hole.par)-(hd.putts||0));
+    hd.gir=null; // manual only
+    hd.updown=null; // manual only
   }
 
   const shotsToGreen=AR.mode==='shot'?
-    (hd.shots||[]).filter(s=>s.lie!=='Green').length:
-    Math.max(0,hd.score-hd.putts);
+    shots.filter(function(s){return s.lie!=='Green'&&s.lie!=='Chipping';}).length:
+    Math.max(0,(hd.score||hole.par)-(hd.putts||2));
 
   pg.innerHTML=`
 <div class="hdr" style="margin-bottom:13px">
-  <div class="hdr-top"><span>Hole ${hole.h}</span></div>
-  <div class="hdr-row"><div class="hnum">H${hole.h}</div></div>
+  <div class="hdr-top"><span>Hole ${hole.h} · Score</span></div>
   <div class="hboxes">
     <div class="hbox"><div class="l">Par</div><div class="v">${hole.par}</div></div>
-    <div class="hbox"><div class="l">Yards</div><div class="v">${hole.y}</div></div>
+    <div class="hbox"><div class="l">Metres</div><div class="v">${hole.y}</div></div>
     <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
   </div>
 </div>
 
-<!-- Intuitive score -->
+<!-- Score + putts input -->
 <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:13px;padding:14px;margin-bottom:12px">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div style="text-align:center;flex:1">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">Shots to green</div>
-      <div style="font-size:36px;font-weight:900;color:var(--txt)" id="s2gEl">${shotsToGreen||'—'}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">${AR.mode==='shot'?'Shots played':'Score'}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        ${AR.mode==='hole'?`<button class="sbt" onclick="aV('score',-1)">−</button>`:''}
+        <span style="font-size:40px;font-weight:900;color:${(hd.score||0)<hole.par?'var(--g)':(hd.score||0)===hole.par?'var(--txt)':'var(--red)'}" id="svEl">${hd.score||hole.par}</span>
+        ${AR.mode==='hole'?`<button class="sbt" onclick="aV('score',1)">+</button>`:''}
+      </div>
     </div>
-    <div style="font-size:24px;color:var(--txt3)">+</div>
     <div style="text-align:center;flex:1">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">Putts</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:8px">
         <button class="sbt" onclick="aV('putts',-1)">−</button>
-        <span style="font-size:36px;font-weight:900;color:#3b82f6;min-width:32px;text-align:center" id="pvEl">${hd.putts}</span>
+        <span style="font-size:40px;font-weight:900;color:#3b82f6" id="pvEl">${hd.putts||0}</span>
         <button class="sbt" onclick="aV('putts',1)">+</button>
       </div>
     </div>
-    <div style="font-size:24px;color:var(--txt3)">=</div>
-    <div style="text-align:center;flex:1">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">Score</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-        <button class="sbt" onclick="aV('score',-1)">−</button>
-        <span style="font-size:36px;font-weight:900;min-width:32px;text-align:center;color:${hd.score<hole.par?'var(--g)':hd.score===hole.par?'var(--txt)':'var(--red)'}" id="svEl">${hd.score}</span>
-        <button class="sbt" onclick="aV('score',1)">+</button>
-      </div>
-    </div>
   </div>
-  <div style="text-align:center;font-size:15px;font-weight:700;margin-bottom:4px" id="scoreLbl">${getBdg(hd.score,hole.par)}</div>
+  <div style="text-align:center;font-size:15px;font-weight:700" id="scoreLbl">${getBdg(hd.score||hole.par,hole.par)}</div>
 </div>
 
-${AR.mode==='hole'?`
-<!-- Fairway toggle (hole mode only - manual input) -->
-${hole.par>3?`<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;margin-bottom:10px">
-  <div style="display:flex;align-items:center;justify-content:space-between">
-    <div><div style="font-weight:700">Fairway hit?</div><div style="font-size:12px;color:var(--txt3)">Did your tee shot land in the fairway?</div></div>
-    <button class="tog ${hd.fairway?'on':''}" id="fT" onclick="tH('fairway','fT')"></button>
+${AR.mode==='shot'?`
+<!-- Penalty stroke button -->
+<button onclick="addPenalty()" style="width:100%;padding:10px;background:#fee2e2;border:1.5px solid #ef4444;border-radius:10px;color:#dc2626;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;margin-bottom:12px">
+  ⚠️ Add penalty stroke (+1)
+</button>
+
+<!-- Auto-inferred stats with toggle overrides -->
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:12px">
+  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:10px">Stats — auto-filled, tap to override</div>
+  ${hole.par>=4?`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
+    <div><div style="font-weight:700;font-size:14px">Fairway hit</div><div style="font-size:12px;color:var(--txt3)">Tee shot landed in fairway</div></div>
+    <button class="tog ${hd.fairway?'on':''}" id="fwTog" onclick="toggleStat('fairway','fwTog')"></button>
+  </div>`:''}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
+    <div><div style="font-weight:700;font-size:14px">GIR</div><div style="font-size:12px;color:var(--txt3)">Green in regulation (≤${hole.par-2} shots to green)</div></div>
+    <button class="tog ${hd.gir?'on':''}" id="girTog" onclick="toggleStat('gir','girTog')"></button>
   </div>
-</div>`:''}
-<div style="background:var(--gl);border:1px solid var(--gll);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--gd)">
-  ✓ GIR and up & down calculated automatically from your score and putts
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+    <div><div style="font-weight:700;font-size:14px">Up & down</div><div style="font-size:12px;color:var(--txt3)">Missed GIR, holed in 1 putt</div></div>
+    <button class="tog ${hd.updown?'on':''}" id="udTog" onclick="toggleStat('updown','udTog')"></button>
+  </div>
 </div>`:`
-<!-- Shot mode: show auto-calc summary -->
-${(hd.shots||[]).length?`<div style="background:var(--gl);border:1.5px solid var(--gll);border-radius:12px;padding:11px;margin-bottom:12px;font-size:13px;color:var(--gd)">
-  ✓ Auto: GIR ${hd.gir!==null?hd.gir?'Yes':'No':'—'} · Fairway ${hd.fairway!==null?hd.fairway?'Yes':'No':'—'} · Up&Down ${hd.updown?'Yes':'No'}
-</div>`:''}`}
+<!-- Hole mode: manual toggles only -->
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:12px">
+  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:10px">Stats — manual entry</div>
+  ${hole.par>=4?`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
+    <div><div style="font-weight:700;font-size:14px">Fairway hit</div></div>
+    <button class="tog ${hd.fairway?'on':''}" id="fwTog" onclick="toggleStat('fairway','fwTog')"></button>
+  </div>`:''}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
+    <div><div style="font-weight:700;font-size:14px">GIR</div></div>
+    <button class="tog ${hd.gir?'on':''}" id="girTog" onclick="toggleStat('gir','girTog')"></button>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+    <div><div style="font-weight:700;font-size:14px">Up & down</div></div>
+    <button class="tog ${hd.updown?'on':''}" id="udTog" onclick="toggleStat('updown','udTog')"></button>
+  </div>
+</div>`}
 
 <button class="btn bg" onclick="saveHole()">${cHole<AR.totalHoles-1?'Save & next hole →':'Finish round 🏁'}</button>
 ${AR.mode==='shot'?`<button class="btn bo" onclick="WF.step='preshot';renderWF()">← Add another shot</button>`:''}`;
-
-  // Auto-calc GIR for hole mode whenever score/putts change
-  if(AR.mode==='hole')autoCalcHoleMode();
 }
+
+function toggleStat(key,btnId){
+  const hd=window._hd;
+  hd[key]=!hd[key];
+  const btn=document.getElementById(btnId);
+  if(btn)btn.classList.toggle('on',hd[key]);
+}
+
+function addPenalty(){
+  const hd=window._hd;
+  hd.score=(hd.score||0)+1;
+  const el=document.getElementById('svEl');
+  const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+  const hole=holes[cHole];
+  if(el){
+    el.textContent=hd.score;
+    el.style.color=hd.score<hole.par?'var(--g)':hd.score===hole.par?'var(--txt)':'var(--red)';
+  }
+  const lbl=document.getElementById('scoreLbl');
+  if(lbl)lbl.innerHTML=getBdg(hd.score,hole.par);
+  toast('Penalty stroke added');
+}
+
+
 
 
 function aV(k,d){
   const h=window._hd;
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const hole=holes[cHole];
-  if(k==='putts'){
-    h.putts=Math.max(0,h.putts+d);
-    if(AR.mode==='hole'){
-      // In hole mode, putts stepper doesn't change score directly
-      // Score is entered separately; GIR is derived
-    } else {
-      // In shot mode, score = shots to green + putts
-      const s2g=(h.shots||[]).filter(s=>s.lie!=='Green').length||Math.max(0,h.score-h.putts);
-      h.score=Math.max(1,s2g+h.putts);
-    }
-    const pvEl=document.getElementById('pvEl');
-    if(pvEl)pvEl.textContent=h.putts;
-  }
-  if(k==='score'){h.score=Math.max(1,h.score+d);}
-  // Auto-calc GIR/updown whenever score or putts change in hole mode
-  if(AR.mode==='hole'){
-    const s2g=Math.max(0,h.score-h.putts);
-    h.gir=s2g<=(hole.par-2)&&s2g>0;
-    h.updown=!h.gir&&h.score<=hole.par;
-    if(h.putts===1&&!h.gir)h.updown=true;
-    // Update shots to green display
-    const s2gEl=document.getElementById('s2gEl');
-    if(s2gEl)s2gEl.textContent=s2g||'—';
-  }
+  if(k==='putts'){h.putts=Math.max(0,(h.putts||0)+d);}
+  if(k==='score'){h.score=Math.max(1,(h.score||hole.par)+d);}
   const svEl=document.getElementById('svEl');
-  if(svEl){svEl.textContent=h.score;svEl.style.color=h.score<hole.par?'var(--g)':h.score===hole.par?'var(--txt)':'var(--red)';}
-  const lbl=document.getElementById('scoreLbl');
-  if(lbl)lbl.innerHTML=getBdg(h.score,hole.par);
+  if(svEl){svEl.textContent=h.score||hole.par;svEl.style.color=(h.score||0)<hole.par?'var(--g)':(h.score||0)===hole.par?'var(--txt)':'var(--red)';}
   const pvEl=document.getElementById('pvEl');
-  if(pvEl)pvEl.textContent=h.putts;
+  if(pvEl)pvEl.textContent=h.putts||0;
+  const lbl=document.getElementById('scoreLbl');
+  if(lbl)lbl.innerHTML=getBdg(h.score||hole.par,hole.par);
 }
 function tH(k,id){const h=window._hd;h[k]=!h[k];document.getElementById(id)?.classList.toggle('on',h[k]);}
 
@@ -2583,7 +2612,7 @@ function buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm){
     fw!==null?'Fairways hit%: '+fw+'% (tour avg 60%)':null,
     pt?'Putts per hole: '+pt:null,
     udPct!==null?'Up & down%: '+udPct+'%':null,
-    drives.length?'Avg drive: '+Math.round(drives.reduce((a,b)=>a+b,0)/drives.length)+'y (max '+Math.max(...drives)+'y)':null,
+    drives.length?'Avg drive: '+Math.round(drives.reduce((a,b)=>a+b,0)/drives.length)+'m (max '+Math.max(...drives)+'m)':null,
     totalHoles>0?'Score breakdown: '+eagles+' eagles, '+birdies+' birdies, '+pars+' pars, '+bogeys+' bogeys, '+doubles+' doubles, '+worse+' triple+':null,
     topMiss?'Most common miss: '+topMiss[0]+' ('+topMiss[1]+' shots)':null,
     totalDirShots>0?'Shot direction: '+Object.entries(dirCounts).map(function(e){return e[0]+' '+Math.round(e[1]/totalDirShots*100)+'%';}).join(', '):null,
@@ -2982,9 +3011,10 @@ function drawLeafletUserMap(played,rr,color,showLabels){
       // Label below marker
       const label=L.marker([c.lat,c.lng],{
         icon:L.divIcon({
-          className:'',
-          html:`<div style="background:#2d5a3d;color:#fff;font-size:15px;font-weight:800;padding:6px 13px;border-radius:20px;white-space:nowrap;margin-top:16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.5);border:2px solid #c9a84c;letter-spacing:0.01em">${shortName}${rounds>1?' ×'+rounds:''}</div>`,
-          iconAnchor:[0,0]
+          className:'map-lbl',
+          html:'<div style="background:#2d5a3d;color:#fff;font-size:14px;font-weight:800;padding:5px 14px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.5);border:2.5px solid #c9a84c;letter-spacing:0.01em;pointer-events:none">'+shortName+(rounds>1?' ×'+rounds:'')+'</div>',
+          iconSize:null,
+          iconAnchor:null
         })
       }).addTo(_leafletMap);
       _leafletLayers.push(label);
