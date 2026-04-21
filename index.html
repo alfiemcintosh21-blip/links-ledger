@@ -299,6 +299,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .red{color:var(--red)}
 .map-lbl{background:transparent!important;border:none!important;overflow:visible!important}
 .map-lbl>div{margin-top:12px}
+.map-dot{width:14px;height:14px;border-radius:50%;transition:all 0.2s}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -456,9 +457,14 @@ const CDB = {
   stclair:     {name:'St Clair GC',rating:69.8,slope:121,            loc:'Dunedin',   lat:-45.9108,lng:170.4751,h:[{h:1,par:4,y:346,si:4},{h:2,par:4,y:329,si:6},{h:3,par:4,y:423,si:2},{h:4,par:3,y:165,si:12},{h:5,par:4,y:314,si:8},{h:6,par:4,y:335,si:18},{h:7,par:3,y:150,si:10},{h:8,par:4,y:312,si:14},{h:9,par:5,y:463,si:16},{h:10,par:5,y:467,si:11},{h:11,par:4,y:419,si:1},{h:12,par:4,y:392,si:3},{h:13,par:3,y:160,si:13},{h:14,par:5,y:461,si:7},{h:15,par:4,y:362,si:9},{h:16,par:3,y:177,si:15},{h:17,par:4,y:331,si:17},{h:18,par:4,y:356,si:5}]},
   otakou:      {name:'Otakou GC',rating:68.9,slope:118,              loc:'Dunedin',   lat:-45.8057,lng:170.6967,h:[{h:1,par:5,y:486,si:14},{h:2,par:3,y:183,si:12},{h:3,par:4,y:410,si:6},{h:4,par:4,y:363,si:2},{h:5,par:5,y:530,si:8},{h:6,par:3,y:154,si:16},{h:7,par:4,y:399,si:4},{h:8,par:4,y:312,si:10},{h:9,par:4,y:247,si:18},{h:10,par:4,y:404,si:5},{h:11,par:3,y:135,si:15},{h:12,par:5,y:493,si:9},{h:13,par:4,y:388,si:1},{h:14,par:5,y:530,si:7},{h:15,par:3,y:172,si:13},{h:16,par:4,y:430,si:3},{h:17,par:4,y:318,si:11},{h:18,par:4,y:270,si:17}]},
   twelveoaks:  {name:'Twelve Oaks',rating:67.4,slope:115,            loc:'Mosgiel',   lat:-45.8662,lng:170.3255,h:[{h:1,par:4,y:371,si:4},{h:2,par:4,y:286,si:15},{h:3,par:5,y:431,si:12},{h:4,par:4,y:380,si:2},{h:5,par:3,y:102,si:17},{h:6,par:4,y:361,si:6},{h:7,par:3,y:161,si:13},{h:8,par:4,y:328,si:11},{h:9,par:4,y:333,si:9},{h:10,par:4,y:371,si:5},{h:11,par:4,y:286,si:16},{h:12,par:4,y:363,si:1},{h:13,par:4,y:380,si:3},{h:14,par:3,y:96,si:18},{h:15,par:4,y:353,si:7},{h:16,par:3,y:161,si:14},{h:17,par:4,y:343,si:10},{h:18,par:4,y:333,si:8}]},
-  belleknowes: {name:'Belleknowes GC',rating:58.2,slope:96,         loc:'Dunedin',   lat:-45.8721,lng:170.4912,h:[{h:1,par:3,y:85,si:9},{h:2,par:3,y:249,si:3},{h:3,par:3,y:185,si:1},{h:4,par:3,y:180,si:8},{h:5,par:3,y:158,si:6},{h:6,par:4,y:310,si:4},{h:7,par:3,y:149,si:7},{h:8,par:4,y:237,si:5},{h:9,par:4,y:215,si:2}]},
+  belleknowes: {name:'Belleknowes GC',rating:58.2,slope:96,nineHole:true,loc:'Dunedin',lat:-45.8721,lng:170.4912,
+    holeImages:{1:'https://i.imgur.com/uA46THy.png',2:'https://i.imgur.com/r5z6hwH.png',
+    3:'https://i.imgur.com/4UMBsa8.png',4:'https://i.imgur.com/RdBw8GV.png',
+    5:'https://i.imgur.com/eIouL2G.png',6:'https://i.imgur.com/bY8ioai.png',
+    7:'https://i.imgur.com/pqIsI8R.png',8:'https://i.imgur.com/IGN93ap.png',
+    9:'https://i.imgur.com/WrcLCkp.png'},h:[{h:1,par:3,y:85,si:9},{h:2,par:3,y:249,si:3},{h:3,par:3,y:185,si:1},{h:4,par:3,y:180,si:8},{h:5,par:3,y:158,si:6},{h:6,par:4,y:310,si:4},{h:7,par:3,y:149,si:7},{h:8,par:4,y:237,si:5},{h:9,par:4,y:215,si:2}]},
   gladfield:   {name:'Gladfield Country GC',rating:65.1,slope:108,   loc:'Dunedin',   lat:-45.9012,lng:170.3812,h:[{h:1,par:4,y:351,si:9},{h:2,par:5,y:489,si:1},{h:3,par:4,y:292,si:3},{h:4,par:3,y:142,si:15},{h:5,par:3,y:131,si:17},{h:6,par:4,y:318,si:5},{h:7,par:4,y:279,si:13},{h:8,par:4,y:318,si:11},{h:9,par:4,y:284,si:7}]},
-  jtees:       {name:"J.Tees Golf Centre",rating:60.2,slope:98,      loc:'Mosgiel',   lat:-45.8814,lng:170.3467,h:[{h:1,par:3,y:93,si:7},{h:2,par:3,y:105,si:9},{h:3,par:4,y:280,si:1},{h:4,par:3,y:134,si:5},{h:5,par:3,y:106,si:8},{h:6,par:3,y:172,si:3},{h:7,par:3,y:143,si:6},{h:8,par:3,y:144,si:4},{h:9,par:4,y:254,si:2}]},
+  jtees:       {name:"J.Tees Golf Centre",rating:60.2,slope:98,nineHole:true,loc:'Mosgiel',   lat:-45.8814,lng:170.3467,h:[{h:1,par:3,y:93,si:7},{h:2,par:3,y:105,si:9},{h:3,par:4,y:280,si:1},{h:4,par:3,y:134,si:5},{h:5,par:3,y:106,si:8},{h:6,par:3,y:172,si:3},{h:7,par:3,y:143,si:6},{h:8,par:3,y:144,si:4},{h:9,par:4,y:254,si:2}]},
   portchalmers:{name:'Port Chalmers GC',rating:64.8,slope:105,
     holeImages:{1:'https://i.imgur.com/nAXFMrl.jpg',2:'https://i.imgur.com/kteZzzb.jpg',
     3:'https://i.imgur.com/NnNgBw4.jpg',4:'https://i.imgur.com/j20UyI4.jpg',
@@ -467,7 +473,7 @@ const CDB = {
     9:'https://i.imgur.com/zRf6L7q.jpg'},       loc:'Dunedin',   lat:-45.8167,lng:170.6333,approx:true,h:[{h:1,par:4,y:320,si:4},{h:2,par:5,y:490,si:2},{h:3,par:3,y:140,si:8},{h:4,par:4,y:380,si:3},{h:5,par:4,y:350,si:5},{h:6,par:4,y:330,si:6},{h:7,par:4,y:310,si:7},{h:8,par:3,y:150,si:9},{h:9,par:4,y:360,si:1}]},
   masterton:   {name:'Masterton GC (Lansdowne)',rating:70.4,slope:124,loc:'Masterton', lat:-40.9344,lng:175.6788,h:[{h:1,par:5,y:457,si:14},{h:2,par:5,y:485,si:12},{h:3,par:3,y:216,si:6},{h:4,par:4,y:279,si:16},{h:5,par:4,y:370,si:8},{h:6,par:4,y:399,si:10},{h:7,par:4,y:450,si:2},{h:8,par:3,y:129,si:18},{h:9,par:4,y:411,si:4},{h:10,par:4,y:433,si:1},{h:11,par:3,y:191,si:11},{h:12,par:4,y:330,si:7},{h:13,par:3,y:144,si:9},{h:14,par:4,y:369,si:5},{h:15,par:4,y:371,si:3},{h:16,par:4,y:369,si:15},{h:17,par:4,y:371,si:13},{h:18,par:5,y:505,si:17}]},
   mahunga:     {name:'Mahunga GC',rating:69.2,slope:119,             loc:'Masterton', lat:-40.9329,lng:175.6603,h:[{h:1,par:4,y:306,si:9},{h:2,par:4,y:390,si:1},{h:3,par:3,y:127,si:8},{h:4,par:4,y:345,si:10},{h:5,par:4,y:366,si:4},{h:6,par:3,y:127,si:17},{h:7,par:4,y:295,si:18},{h:8,par:5,y:495,si:15},{h:9,par:4,y:393,si:6},{h:10,par:3,y:197,si:7},{h:11,par:5,y:484,si:12},{h:12,par:4,y:371,si:5},{h:13,par:4,y:388,si:3},{h:14,par:5,y:426,si:13},{h:15,par:4,y:406,si:2},{h:16,par:4,y:354,si:14},{h:17,par:3,y:153,si:16},{h:18,par:5,y:536,si:11}]},
-  islandpark: {name:'Island Park Golf Club',loc:'Dunedin',lat:-45.8976,lng:170.4821,rating:69.5,slope:119,h:[
+  islandpark: {name:'Island Park Golf Club',nineHole:true,loc:'Dunedin',lat:-45.8976,lng:170.4821,rating:69.5,slope:119,h:[
     {h:1,par:4,y:358,si:7,orientation:'N'},{h:2,par:4,y:342,si:11,orientation:'E'},
     {h:3,par:3,y:168,si:15,orientation:'S'},{h:4,par:5,y:476,si:3,orientation:'W'},
     {h:5,par:4,y:389,si:1,orientation:'N'},{h:6,par:3,y:155,si:17,orientation:'NE'},
@@ -1144,22 +1150,45 @@ function updateHolesOptions(){
   var sel=document.getElementById('wf-holes');
   if(!sel)return;
   var c=CDB[courseId]||{};
-  var ex=sel.querySelector('option[value="12f"]');
-  if(ex)ex.remove();
+
+  // Remove any previously injected custom options
+  ['12f','9only','18rep'].forEach(function(v){
+    var el=sel.querySelector('option[value="'+v+'"]');
+    if(el)el.remove();
+  });
+
   var opt9f=sel.querySelector('option[value="9f"]');
   var opt9b=sel.querySelector('option[value="9b"]');
-  if(c.front12){
+  var opt18=sel.querySelector('option[value="18"]');
+
+  if(c.nineHole){
+    // Pure 9-hole course - show "9 holes" and "18 holes (play twice)"
     if(opt9f)opt9f.style.display='none';
     if(opt9b)opt9b.style.display='none';
-    var opt=document.createElement('option');
-    opt.value='12f';
-    opt.textContent='Front 12 (Chisholm Links standard)';
-    sel.insertBefore(opt,sel.children[1]);
+    if(opt18)opt18.style.display='none';
+    // Add 9 holes option
+    var opt9=document.createElement('option');
+    opt9.value='9only';opt9.textContent='9 holes';
+    sel.insertBefore(opt9,sel.children[0]);
+    // Add 18 holes option
+    var opt18r=document.createElement('option');
+    opt18r.value='18rep';opt18r.textContent='18 holes (play course twice)';
+    sel.insertBefore(opt18r,sel.children[1]);
+    sel.value='9only';
+  } else if(c.front12){
+    // Chisholm - front 12
+    if(opt9f)opt9f.style.display='none';
+    if(opt9b)opt9b.style.display='none';
+    var opt12=document.createElement('option');
+    opt12.value='12f';opt12.textContent='Front 12 (Chisholm Links standard)';
+    sel.insertBefore(opt12,sel.children[1]);
     sel.value='12f';
   } else {
+    // Normal 18-hole course
     if(opt9f)opt9f.style.display='';
     if(opt9b)opt9b.style.display='';
-    if(sel.value==='12f')sel.value='9f';
+    if(opt18)opt18.style.display='';
+    if(sel.value==='12f'||sel.value==='9only'||sel.value==='18rep')sel.value='18';
   }
 }
 
@@ -1949,16 +1978,20 @@ function finishRound(){
   const par=holes.slice(0,ph.length).reduce((s,h)=>s+h.par,0);
   AR.total=total;AR.par=par;AR.toPar=total-par;
   AR.duration=Date.now()-roundStart;AR.walkDist=walkDist;AR.totalHoles=ph.length;
+  // BULLETPROOF SAVE - multiple fallback layers
+  let saved=false;
+  // Layer 1: normal save via ud/sud
   try{
     const d=ud();
     if(!d.rounds)d.rounds=[];
     d.rounds.unshift(AR);
     if(d.roundsInProgress)delete d.roundsInProgress[AR.id];
     sud(d);
-    toast('Round saved ✓');
-  }catch(e){
-    console.error('Save failed:',e);
-    // Emergency: save directly to localStorage
+    saved=true;
+  }catch(e){console.error('Layer 1 save failed:',e);}
+
+  // Layer 2: direct localStorage if Layer 1 failed
+  if(!saved){
     try{
       const key='ll_d_'+CU.uid;
       const raw=localStorage.getItem(key);
@@ -1966,10 +1999,24 @@ function finishRound(){
       if(!data.rounds)data.rounds=[];
       data.rounds.unshift(AR);
       localStorage.setItem(key,JSON.stringify(data));
-      toast('Round saved (emergency backup) ✓');
-    }catch(e2){
-      toast('Warning: round may not have saved. Screenshot your score!');
+      saved=true;
+      console.log('Layer 2 (emergency) save succeeded');
+    }catch(e2){console.error('Layer 2 save failed:',e2);}
+  }
+
+  // Verify save worked
+  try{
+    const verify=ud();
+    const found=(verify.rounds||[]).find(r=>r.id===AR.id);
+    if(found){
+      toast('Round saved ✓');
+    }else if(saved){
+      toast('Round saved ✓ (verify pending)');
+    }else{
+      toast('⚠️ Save may have failed — screenshot your score!');
     }
+  }catch(e){
+    toast(saved?'Round saved ✓':'⚠️ Save may have failed!');
   }
   WF.step='summary';renderWF();
 }
@@ -3008,16 +3055,21 @@ function drawLeafletUserMap(played,rr,color,showLabels){
     marker.bindPopup(`<strong>${c.name}</strong><br>${rounds} round${rounds>1?'s':''}`);
 
     if(showLabels){
-      // Label below marker
-      const label=L.marker([c.lat,c.lng],{
-        icon:L.divIcon({
-          className:'map-lbl',
-          html:'<div style="background:#2d5a3d;color:#fff;font-size:14px;font-weight:800;padding:5px 14px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.5);border:2.5px solid #c9a84c;letter-spacing:0.01em;pointer-events:none">'+shortName+(rounds>1?' ×'+rounds:'')+'</div>',
-          iconSize:null,
-          iconAnchor:null
-        })
-      }).addTo(_leafletMap);
-      _leafletLayers.push(label);
+      const zoom=_leafletMap.getZoom();
+      if(zoom>=9){
+        const fs=Math.max(9,Math.min(14,zoom));
+        const pd=zoom>=12?'5px 14px':'3px 8px';
+        const op=zoom>=11?1:zoom>=10?0.75:0.5;
+        const label=L.marker([c.lat,c.lng],{
+          icon:L.divIcon({
+            className:'map-lbl',
+            html:'<div style="background:#2d5a3d;color:#fff;font-size:'+fs+'px;font-weight:800;padding:'+pd+';border-radius:20px;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.5);border:2px solid #c9a84c;letter-spacing:0.01em;pointer-events:none;opacity:'+op+'">'+shortName+(rounds>1?' ×'+rounds:'')+'</div>',
+            iconSize:null,
+            iconAnchor:null
+          })
+        }).addTo(_leafletMap);
+        _leafletLayers.push(label);
+      }
     }
 
     _leafletLayers.push(marker);
@@ -3306,4 +3358,18 @@ document.addEventListener('click',function warmGPS(){
 },{once:true});
 </script>
 </body>
-</html>
+</html>const getH=(courseId,type)=>{
+  const c=gc(courseId);
+  if(!c)return[];
+  const h=c.h||[];
+  if(type==='9f'||type==='9only')return h.slice(0,9);
+  if(type==='9b')return h.slice(9,18);
+  if(type==='12f')return h.slice(0,12);
+  if(type==='18rep'){
+    // Play the 9-hole course twice - second 9 mirrors first
+    const front=h.slice(0,9);
+    const back=front.map((hole,i)=>({...hole,h:i+10}));
+    return [...front,...back];
+  }
+  return h; // 18 or custom
+};
