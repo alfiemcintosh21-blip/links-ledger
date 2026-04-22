@@ -776,13 +776,17 @@ const sud=d=>{SUD(CU.uid,d);};
 const gc=id=>{const g=GG();return CDB[id]||g.courses[id]||null;}
 function getH(id,type){
   const c=gc(id);if(!c)return[];
-  const h=JSON.parse(JSON.stringify(c.h));
-  const d=ud();const cp=d.customPars?.[id]||{};
-  h.forEach((hole,i)=>{if(cp[i]!=null)hole.par=cp[i];});
-  if(type==='9f')return h.slice(0,9);
-  if(type==='9b')return h.slice(9);
+  const h=JSON.parse(JSON.stringify(c.h||[]));
+  const d=ud();const cp=d.customPars&&d.customPars[id]||{};
+  h.forEach(function(hole,i){if(cp[i]!=null)hole.par=cp[i];});
+  if(type==='9f'||type==='9only')return h.slice(0,9);
+  if(type==='9b')return h.slice(9,18);
   if(type==='12f')return h.slice(0,12);
-  if(type==='12f')return h.slice(0,12);
+  if(type==='18rep'){
+    const front=h.slice(0,9);
+    const back=front.map(function(hole,i){return Object.assign({},hole,{h:i+10});});
+    return front.concat(back);
+  }
   return h;
 }
 
@@ -3414,23 +3418,7 @@ function init(){
 window.addEventListener('load',init);
 
 // GPS removed - world map only
-</script>
-</body>
-</html>const getH=(courseId,type)=>{
-  const c=gc(courseId);
-  if(!c)return[];
-  const h=c.h||[];
-  if(type==='9f'||type==='9only')return h.slice(0,9);
-  if(type==='9b')return h.slice(9,18);
-  if(type==='12f')return h.slice(0,12);
-  if(type==='18rep'){
-    // Play the 9-hole course twice - second 9 mirrors first
-    const front=h.slice(0,9);
-    const back=front.map((hole,i)=>({...hole,h:i+10}));
-    return [...front,...back];
-  }
-  return h; // 18 or custom
-};
+
 function getTrackingPrefs(){
   const d=ud();
   return Object.assign({shape:false,direction:false,contact:false,lie:true},d.trackingPrefs||{});
@@ -3444,3 +3432,9 @@ function togTrk(key,btnId){
   const btn=document.getElementById(btnId);
   if(btn){btn.classList.toggle('on',d.trackingPrefs[key]);}
 }
+
+
+
+</script>
+</body>
+</html>
