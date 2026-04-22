@@ -555,7 +555,7 @@ SCORING FRAMEWORK:
 DRILLS - USE THESE BY NAME:
 Driving: Gate drill (2 tees 1cm wider than clubhead, swing through), Towel drill (towel under armpits for rotation), Impact bag drill (feel shaft lean), Alignment stick shallowing drill
 Irons: 9-to-3 drill (half swings focusing low point), Divot drill (check divot points slightly left), Feet together drill (50 balls, improves centring), Step drill (step into shot for weight transfer)
-Chipping: Ladder drill (targets at 10/20/30/40/50 yards), One-hand chipping (trail hand only), 10-ball challenge (10 from same spot, count inside 6 feet)
+Chipping: Ladder drill (targets at 10/20/30/40/50 metres), One-hand chipping (trail hand only), 10-ball challenge (10 from same spot, count inside 6 feet)
 Putting: Gate drill (2 tees 1mm wider than putter), 3-6-9 drill (make 3 from each distance), Distance control drill (lag to tee peg at 30/40/50 feet), Coin drill (20 in a row from 1 foot)
 Course management: Always miss to your preferred miss side, par 5 strategy = two shots to 100y, aim at fat of green not flag on par 3s
 
@@ -572,7 +572,7 @@ const LD=(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v
 const SV=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 
 // ── STATE ──
-let CU=null, testMode=false, AR=null, cHole=0, walkDist=0, roundStart=null, gpsW=null, gpsPos=null, shotStart=null;
+let CU=null, testMode=false, AR=null, cHole=0, roundStart=null;
 let pendingShot=null, sfb={}, chatHist=[], wxData=null, diagramHole=0;
 
 // ── USER / DATA ──
@@ -686,7 +686,7 @@ function mkSeedRound(uid,id,courseId,courseName,date,type,total,par,toPar,birdie
   return{
     id,courseId,courseName,player:'Alfie McIntosh',date,type,
     holes,totalHoles:9,total,par,toPar,
-    walkDist:0,duration:0,started:new Date(date.split('/').reverse().join('-')).getTime(),
+    duration:0,started:new Date(date.split('/').reverse().join('-')).getTime(),
     mode:'hole',testMode:false,privateRound:false,
     // Store breakdown at round level for display
     breakdown:{birdies,pars,bogeys,doubles,triplePlus},
@@ -1027,7 +1027,7 @@ ${yMarkers}
 <text x="21" y="18" text-anchor="middle" font-family="DM Sans,system-ui" font-size="12" font-weight="900" fill="#fff">H${h}</text>
 <rect x="${W-40}" y="3" width="37" height="21" rx="6" fill="${par===3?'#e74c3c':par===5?'#2d5a8a':'rgba(0,0,0,0.65)'}"/>
 <text x="${W-21}" y="18" text-anchor="middle" font-family="DM Sans,system-ui" font-size="12" font-weight="900" fill="#fff">P${par}</text>
-<text x="${cx}" y="${H-7}" text-anchor="middle" font-family="DM Sans,system-ui" font-size="11" font-weight="800" fill="rgba(255,255,255,0.85)">${y} yds</text>
+<text x="${cx}" y="${H-7}" text-anchor="middle" font-family="DM Sans,system-ui" font-size="11" font-weight="800" fill="rgba(255,255,255,0.85)">${y} m</text>
 <g transform="translate(${W-19},${H-33})">
   <polygon points="0,-10 3,0 0,-2.5 -3,0" fill="rgba(255,255,255,0.8)"/>
   <text x="0" y="9" text-anchor="middle" font-family="DM Sans,system-ui" font-size="8" font-weight="700" fill="rgba(255,255,255,0.7)">N</text>
@@ -1117,7 +1117,7 @@ ${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;paddi
     return`<div class="rr">
     <div>
       <div style="font-weight:700;font-size:15px">${r.courseName}</div>
-      <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H played${r.walkDist>100?' · 🚶 '+fmtD(r.walkDist):''}${r.duration?' · ⏱ '+fmtT(r.duration):''}</div>
+      <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H played${r.duration?' · ⏱ '+fmtT(r.duration):''}</div>
       ${r.breakdown?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">🐦${r.breakdown.birdies} P${r.breakdown.pars} B${r.breakdown.bogeys} D${r.breakdown.doubles}</div>`:''}
     </div>
     <div style="text-align:right">
@@ -1306,7 +1306,6 @@ function resumeRound(roundId){
   if(!saved)return;
   AR={...saved};
   cHole=saved.currentHoleIdx||0;
-  walkDist=AR.walkDist||0;
   roundStart=AR.started||Date.now();
   WF={step:'play',courseId:AR.courseId,holeType:AR.type,mode:AR.mode};
   testMode=AR.testMode||false;
@@ -1331,7 +1330,7 @@ function deleteInProgress(roundId){
 async function beginRound(){
   const holes=getH(WF.courseId,WF.holeType==='custom'?'18':WF.holeType);
   const c=gc(WF.courseId);
-  AR={id:'r_'+Date.now(),courseId:WF.courseId,courseName:c.name,player:WF.playerName,date:new Date().toLocaleDateString('en-NZ'),type:WF.holeType,holes:[],totalHoles:holes.length,started:Date.now(),walkDist:0,gpsTrack:[],mode:WF.mode,testMode,privateRound:ud().settings?.privateRounds||false,rawShots:[]};
+  AR={id:'r_'+Date.now(),courseId:WF.courseId,courseName:c.name,player:WF.playerName,date:new Date().toLocaleDateString('en-NZ'),type:WF.holeType,holes:[],totalHoles:holes.length,started:Date.now(),mode:WF.mode,testMode,privateRound:ud().settings?.privateRounds||false,rawShots:[]};
   cHole=0;walkDist=0;roundStart=Date.now();gpsPos=null;shotStart=null;
   wxData=null;
   fetchWx(c.lat,c.lng).then(w=>{wxData=w;if(WF.step==='play')renderWF();});
@@ -1381,12 +1380,14 @@ ${wxHTML(cHole,hole.y)}
 <!-- Hole diagram -->
 <div class="hole-nav">
   <button class="hnb" onclick="diagPrev()">‹</button>
-  <div class="hinfo"><div class="hnum2">Hole ${hole.h}</div><div class="hpar">Par ${hole.par} · ${hole.y} yds · S.I. ${hole.si}</div></div>
+  <div class="hinfo"><div class="hnum2">Hole ${hole.h}</div><div class="hpar">Par ${hole.par} · ${hole.y} m · S.I. ${hole.si}</div></div>
   <button class="hnb" onclick="diagNext()">›</button>
 </div>
 <div class="hole-diagram-wrap" id="holeDiagWrap">
-  <div id="holeDiagImgWrap" style="display:none;position:relative">
+  <div id="holeDiagImgWrap" style="display:none;position:relative;cursor:crosshair;border-radius:12px;overflow:hidden" onclick="tapHoleImage(event)">
     <img id="holeDiagImg" src="" style="width:100%;max-height:380px;object-fit:contain;display:block;border-radius:12px" alt="Hole diagram">
+    <svg id="holeDiagDots" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></svg>
+    <div id="tapHint" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:10px;pointer-events:none;white-space:nowrap">📍 Tap image to mark ball</div>
   </div>
   <svg id="holeDiagSvg" viewBox="0 0 220 420" style="width:100%;display:block;height:360px"></svg>
 </div>
@@ -1416,6 +1417,9 @@ ${cHole>0?`<button class="btn bo" onclick="prevHole()">← Previous hole</button
   diagramHole=cHole;
   diagOffset=cHole; // sync diagram offset with current hole
   renderHoleDiagram(hole, cHole);
+  // Clear previous ball position dot
+  const svg=document.getElementById('holeDiagDots');if(svg)svg.innerHTML='';
+  const hint=document.getElementById('tapHint');if(hint)hint.style.display='block';
 }
 
 // Render hole diagram - real image or procedural SVG
@@ -1457,6 +1461,99 @@ function renderHoleDiagram(hole, holeIdx){
 }
 
 let diagOffset=0;
+function tapHoleImage(e){
+  const wrap=document.getElementById('holeDiagImgWrap');
+  const img=document.getElementById('holeDiagImg');
+  const svg=document.getElementById('holeDiagDots');
+  const hint=document.getElementById('tapHint');
+  if(!wrap||!img||!svg)return;
+
+  // Get tap position relative to image
+  const rect=img.getBoundingClientRect();
+  const x=((e.clientX-rect.left)/rect.width*100).toFixed(1);
+  const y=((e.clientY-rect.top)/rect.height*100).toFixed(1);
+
+  // Store ball position on current hole data
+  if(window._hd){
+    window._hd.ballPos={x:parseFloat(x),y:parseFloat(y),hole:cHole+1};
+    if(AR&&AR.holes[cHole])AR.holes[cHole].ballPos={x:parseFloat(x),y:parseFloat(y)};
+  }
+
+  // Draw dot on SVG overlay
+  svg.innerHTML='<circle cx="'+x+'%" cy="'+y+'%" r="8" fill="#c9a84c" stroke="#fff" stroke-width="2" opacity="0.95"/><circle cx="'+x+'%" cy="'+y+'%" r="3" fill="#fff"/>';
+
+  // Hide hint after first tap
+  if(hint)hint.style.display='none';
+
+  // Show distance entry popup
+  showDistancePopup(x, y);
+}
+
+function showDistancePopup(bx, by){
+  // Remove existing popup if any
+  const existing = document.getElementById('distPopup');
+  if(existing) existing.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'distPopup';
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:flex-end;justify-content:center';
+  popup.innerHTML = `
+<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:420px">
+  <div style="text-align:center;font-weight:800;font-size:18px;margin-bottom:4px">📍 Ball position marked</div>
+  <div style="text-align:center;color:var(--txt3);font-size:13px;margin-bottom:16px">How far was this shot? (metres)</div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px">
+    <div id="distDisplay" style="font-size:48px;font-weight:900;color:var(--g);min-width:120px;text-align:center;border-bottom:3px solid var(--g)">—</div>
+    <div style="font-size:13px;font-weight:700;color:var(--txt3)">m</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+    ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>`
+    <button onclick="distKey('${k}')" style="padding:16px;font-size:22px;font-weight:800;background:${k===''?'transparent':'var(--bg3)'};border:none;border-radius:12px;cursor:pointer;font-family:inherit;color:var(--txt)">${k}</button>`).join('')}
+  </div>
+  <div style="display:flex;gap:10px">
+    <button onclick="document.getElementById('distPopup').remove()" style="flex:1;padding:14px;background:var(--bg3);border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">Skip</button>
+    <button onclick="confirmDist()" style="flex:2;padding:14px;background:var(--g);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit">Save shot ✓</button>
+  </div>
+</div>`;
+  document.body.appendChild(popup);
+  window._distVal = '';
+}
+
+function distKey(k){
+  const disp = document.getElementById('distDisplay');
+  if(!disp) return;
+  if(k === '⌫'){
+    window._distVal = (window._distVal||'').slice(0,-1);
+  } else if(k === ''){
+    return;
+  } else {
+    if((window._distVal||'').length >= 3) return; // max 999m
+    window._distVal = (window._distVal||'') + k;
+  }
+  disp.textContent = window._distVal || '—';
+}
+
+function confirmDist(){
+  const dist = parseInt(window._distVal||'0') || null;
+  // Store distance on current shot data
+  if(window._hd){
+    if(!window._hd.shots) window._hd.shots = [];
+    // Store on last shot or create pending shot with distance
+    if(window._pendingBallPos){
+      window._pendingBallPos.dist = dist;
+    }
+    // Also store on hole data directly
+    window._hd.lastShotDist = dist;
+  }
+  // Store on AR hole data
+  if(AR && AR.holes[cHole]){
+    AR.holes[cHole].lastShotDist = dist;
+  }
+  const popup = document.getElementById('distPopup');
+  if(popup) popup.remove();
+  if(dist) toast('Shot: '+dist+'m saved 📍');
+  else toast('Ball position saved 📍');
+}
+
 function diagNext(){
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   diagOffset=(diagOffset+1)%holes.length;
@@ -1464,7 +1561,7 @@ function diagNext(){
   renderHoleDiagram(h,diagOffset);
   const hn=document.querySelector('.hnum2');const hp=document.querySelector('.hpar');
   if(hn)hn.textContent='Hole '+h.h;
-  if(hp)hp.textContent='Par '+h.par+' · '+h.y+' yds · S.I. '+h.si;
+  if(hp)hp.textContent='Par '+h.par+' · '+h.y+' m · S.I. '+h.si;
 }
 function diagPrev(){
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
@@ -1473,7 +1570,7 @@ function diagPrev(){
   renderHoleDiagram(h,diagOffset);
   const hn=document.querySelector('.hnum2');const hp=document.querySelector('.hpar');
   if(hn)hn.textContent='Hole '+h.h;
-  if(hp)hp.textContent='Par '+h.par+' · '+h.y+' yds · S.I. '+h.si;
+  if(hp)hp.textContent='Par '+h.par+' · '+h.y+' m · S.I. '+h.si;
 }
 
 function initHD(hole){return{score:hole.par,putts:2,gir:null,fairway:null,updown:null,shots:[],shotMode:AR.mode==='shot',selectedClub:null,selectedLie:null};}
@@ -1505,7 +1602,7 @@ function stepPreshot(pg){
 </div>
 
 <div style="font-weight:800;font-size:18px;margin-bottom:4px">Hole ${hole.h} · Shot ${shots.length+1}</div>
-<div style="color:var(--txt3);font-size:14px;margin-bottom:13px">${isFirst?'Tee shot — par '+hole.par+', '+hole.y+' m':'Next shot from '+((hd.selectedLie||'the fairway').toLowerCase())}</div>
+<div style="color:var(--txt3);font-size:14px;margin-bottom:13px">${isFirst?'Tee shot — par '+hole.par+', '+hole.y+'m':'Next shot from '+((hd.selectedLie||'the fairway').toLowerCase())}</div>
 
 ${trk.gps?`<div class="gps-card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -1515,8 +1612,7 @@ ${trk.gps?`<div class="gps-card">
       <div style="font-size:12px;opacity:0.7;margin-top:2px" id="sAcc">m · acquiring GPS...</div>
     </div>
     <div style="text-align:right;padding-top:4px">
-      <div style="font-size:12px;opacity:0.8">🚶 ${fmtD(walkDist)}</div>
-      <div style="font-size:12px;opacity:0.8;margin-top:4px">⏱ ${fmtT(Date.now()-roundStart)}</div>
+      <div style="font-size:12px;opacity:0.8">⏱ ${fmtT(Date.now()-roundStart)}</div>
     </div>
   </div>
 </div>`:''}
@@ -1545,7 +1641,7 @@ ${shots.length?`<div style="font-size:11px;font-weight:700;text-transform:upperc
 <div style="width:22px;height:22px;border-radius:50%;background:var(--g);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
 <div style="font-weight:800;min-width:26px">${s.club}</div>
 <div style="flex:1;color:var(--txt3);font-size:12px">${[s.lie,s.shape,s.dir,s.con].filter(Boolean).join(' · ')}</div>
-<div style="font-weight:700">${s.dist?s.dist+'y':'—'}</div></div>`).join('')}</div>`:''}
+<div style="font-weight:700">${s.dist?s.dist+'m':'—'}</div></div>`).join('')}</div>`:''}
 
 <button class="btn bo" onclick="WF.step='play';renderWF()">← Hole overview</button>`;
 }
@@ -1559,10 +1655,6 @@ function openShotMod(){
     window._hd=AR.holes[cHole]||initHD(holes[cHole]);
     AR.holes[cHole]=window._hd;
   }
-  // Record GPS if available (advisory only)
-  if(gpsPos)shotStart={...gpsPos};
-  // Record GPS position at moment of tap (best available, even if yellow/red)
-  if(gpsPos)shotStart={...gpsPos};
   const trk=getTrackingPrefs();
   if(!trk.shape&&!trk.direction&&!trk.contact){
     commitShot();
@@ -1705,9 +1797,40 @@ function skipShotFB(){
 
 function commitShot(){
   const hd=window._hd;if(!hd.shots)hd.shots=[];
-  let dist=null;
-  if(shotStart&&gpsPos){const dm=hav(shotStart,gpsPos);if(dm>2)dist=Math.round(dm*1.094);}
-  const shot={club:hd.selectedClub,lie:hd.selectedLie,shape:sfb.shape,dir:sfb.dir,con:sfb.con,dist,ts:Date.now(),gpsStart:shotStart?{...shotStart}:null,gpsEnd:gpsPos?{...gpsPos}:null,wind:wxData,holeNum:cHole+1};
+  const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+  const hole=holes[cHole]||{};
+  const shotNum=hd.shots.length+1;
+  const shot={
+    // Identity
+    shotNum,
+    holeNum:cHole+1,
+    roundId:AR.id,
+    courseId:AR.courseId,
+    courseName:AR.courseName,
+    date:AR.date,
+    // Hole context
+    holePar:hole.par,
+    holeDist:hole.y,
+    holeName:hole.name||null,
+    holeSI:hole.si,
+    // Shot details
+    club:hd.selectedClub,
+    lie:hd.selectedLie,
+    shape:sfb.shape||null,
+    dir:sfb.dir||null,
+    con:sfb.con||null,
+    // Position (from image tap)
+    ballPos:hd.ballPos||null,
+    dist:hd.lastShotDist||null,
+    // Context
+    ts:Date.now(),
+    wind:wxData||null,
+    // Running totals at time of shot
+    shotsToHere:shotNum,
+  };
+  // Clear last shot dist after recording
+  hd.lastShotDist=null;
+  hd.ballPos=null;
   hd.shots.push(shot);
   if(!AR.rawShots)AR.rawShots=[];AR.rawShots.push(shot);
   if(dist&&dist>0){
@@ -1751,7 +1874,7 @@ function stepLie(pg){
 <div class="gps-card" style="margin-bottom:11px">
   <div style="display:flex;justify-content:space-between;align-items:center">
     <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;opacity:0.8;margin-bottom:2px">Last shot distance</div>
-    <div style="font-size:34px;font-weight:900">${shots.length&&shots[shots.length-1].dist?shots[shots.length-1].dist+'y':'—'}</div></div>
+    <div style="font-size:34px;font-weight:900">${shots.length&&shots[shots.length-1].dist?shots[shots.length-1].dist+'m':'—'}</div></div>
     <div style="text-align:right"><div style="font-size:12px;opacity:0.8">🚶 ${fmtD(walkDist)}</div></div>
   </div>
 </div>
@@ -1965,13 +2088,15 @@ function saveHole(){
     sud(d);
   }
   autoSaveRound(); // auto-save after every hole
-  if(cHole<AR.totalHoles-1){cHole++;shotStart=null;WF.step='play';fetchWx(gc(AR.courseId).lat,gc(AR.courseId).lng).then(w=>{wxData=w;renderWF();});renderWF();}
+  // Enrich shots with hole outcome
+  if(window._hd&&window._hd.shots){const hs=window._hd;window._hd.shots.forEach(function(s){s.holeScore=hs.score;s.holePutts=hs.putts;s.holeGIR=hs.gir;s.holeFairway=hs.fairway;s.holeUpDown=hs.updown;s.holeToPar=hs.score-(hs.par||s.holePar||4);});}
+  autoSaveRound();
+  if(cHole<AR.totalHoles-1){cHole++;WF.step='play';fetchWx(gc(AR.courseId).lat,gc(AR.courseId).lng).then(function(w){wxData=w;renderWF();});renderWF();}
   else finishRound();
 }
 
 // ── FINISH ──
 function finishRound(){
-  if(gpsW){navigator.geolocation.clearWatch(gpsW);gpsW=null;}
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const ph=AR.holes.filter(Boolean);
   const total=ph.reduce((s,h)=>s+h.score,0);
@@ -2187,7 +2312,7 @@ function confirmScanResults(holes){
     total:h.reduce((s,sh)=>s+sh.score,0),
     par:courseHoles.slice(0,h.length).reduce((s,ch)=>s+ch.par,0),
     toPar:h.reduce((s,sh,i)=>s+sh.score-(courseHoles[i]?.par||4),0),
-    started:Date.now(),walkDist:0,duration:0,
+    started:Date.now(),duration:0,
     mode:'scan',testMode:false,privateRound:false
   };
 
@@ -2225,7 +2350,7 @@ function stepSummary(pg){
     <div class="sg-box"><div class="v">${pace?pace+' min/km':'—'}</div><div class="l">Pace</div></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
-    ${[['Putts',putts],[`GIR`,gir!=null?gir+'%':'—'],[`Fairways`,fw!=null?fw+'%':'—'],[`Up&Down`,udOK!=null?udOK+'%':'—'],[`Avg shot`,allSh.length?Math.round(allSh.reduce((a,s)=>a+s.dist,0)/allSh.length)+'y':'—'],[`Long drv`,drives.length?Math.max(...drives)+'y':'—']].map(([l,v])=>`<div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:9px;text-align:center"><div style="font-size:19px;font-weight:900">${v}</div><div style="font-size:9px;opacity:0.8;text-transform:uppercase;margin-top:1px">${l}</div></div>`).join('')}
+    ${[['Putts',putts],[`GIR`,gir!=null?gir+'%':'—'],[`Fairways`,fw!=null?fw+'%':'—'],[`Up&Down`,udOK!=null?udOK+'%':'—'],[`Avg shot`,allSh.length?Math.round(allSh.reduce((a,s)=>a+s.dist,0)/allSh.length)+'m':'—'],[`Long drv`,drives.length?Math.max(...drives)+'m':'—']].map(([l,v])=>`<div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:9px;text-align:center"><div style="font-size:19px;font-weight:900">${v}</div><div style="font-size:9px;opacity:0.8;text-transform:uppercase;margin-top:1px">${l}</div></div>`).join('')}
   </div>
 </div>
 <div class="sec">Score breakdown</div>
@@ -2307,7 +2432,7 @@ function startGPS(){
     gpsPos=np;
     updateGPSLight();
     const sd=document.getElementById('sDist'),sa=document.getElementById('sAcc');
-    if(sd&&shotStart){sd.textContent=Math.round(hav(shotStart,np)*1.094);if(sa)sa.textContent='yds · ±'+Math.round(pos.coords.accuracy)+'m';}
+    if(sd&&shotStart){sd.textContent=Math.round(hav(shotStart,np)*1.094);if(sa)sa.textContent='m · ±'+Math.round(pos.coords.accuracy)+'m';}
   },{enableHighAccuracy:true,maximumAge:2000,timeout:15000},
   ()=>{gpsAccuracy=null;updateGPSLight();});
 }
@@ -2405,7 +2530,7 @@ ${rr.map(r=>{
   return`<div class="rr">
   <div>
     <div style="font-weight:700;font-size:15px">${r.courseName}</div>
-    <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H${r.walkDist>100?' · 🚶 '+fmtD(r.walkDist):''}${r.duration?' · ⏱ '+fmtT(r.duration):''}</div>
+    <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H${r.duration?' · ⏱ '+fmtT(r.duration):''}</div>
     ${breakdown?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">🐦${breakdown.birdies} P${breakdown.pars} B${breakdown.bogeys} D${breakdown.doubles}</div>`:''}
   </div>
   <div style="text-align:right">
@@ -2561,7 +2686,7 @@ function rCoach(){
   const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
   const mc={};allShD.forEach(s=>{mc[s.dir]=(mc[s.dir]||0)+1;});
   const topMiss=Object.entries(mc).sort((a,b)=>b[1]-a[1])[0];
-  const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>c+':'+d.clubStats[c].avg+'y').join(', ');
+  const clubSumm=ALL_CLUBS.filter(c=>d.clubStats?.[c]).map(c=>c+':'+d.clubStats[c].avg+'m').join(', ');
   const lastRound=rr[0]||null;
   const hoursAgo=lastRound?Math.round((Date.now()-lastRound.started)/3600000):null;
   const justFinished=hoursAgo!==null&&hoursAgo<4;
@@ -2815,7 +2940,7 @@ async function askCoach(q){
     const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
     const drives=rr.flatMap(function(r){return(r.holes||[]).flatMap(function(h){return(h.shots||[]).filter(function(s,i){return i===0&&s.club==='Dr'&&s.dist;});});}).map(function(s){return s.dist;});
     const userData=ud();
-    const clubSumm=ALL_CLUBS.filter(function(c){return userData.clubStats&&userData.clubStats[c];}).map(function(c){return c+':'+userData.clubStats[c].avg+'y';}).join(', ');
+    const clubSumm=ALL_CLUBS.filter(function(c){return userData.clubStats&&userData.clubStats[c];}).map(function(c){return c+':'+userData.clubStats[c].avg+'m';}).join(', ');
     const avg=rr.length?Math.round(rr.reduce(function(s,r){return s+to18(r.total,r.totalHoles||9);},0)/rr.length):0;
     const statsCtx=buildStatsContext(avg,gir,null,fw,drives,topMiss,clubSumm);
     const systemPrompt=COACH_KB+'\n\n'+statsCtx;
@@ -3346,16 +3471,7 @@ function init(){
 
 window.addEventListener('load',init);
 
-// Pre-warm GPS on first user interaction to get faster lock during rounds
-document.addEventListener('click',function warmGPS(){
-  if(!gpsW&&navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(function(pos){
-      gpsPos={lat:pos.coords.latitude,lng:pos.coords.longitude,t:Date.now(),acc:pos.coords.accuracy};
-      gpsAccuracy=pos.coords.accuracy;
-    },{},{enableHighAccuracy:true,timeout:10000});
-  }
-  document.removeEventListener('click',warmGPS);
-},{once:true});
+// GPS removed - world map only
 </script>
 </body>
 </html>const getH=(courseId,type)=>{
