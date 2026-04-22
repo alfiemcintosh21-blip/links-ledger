@@ -1370,8 +1370,9 @@ function showDistancePopup(bx, by){
     <button onclick="distKey('${k}')" style="padding:16px;font-size:22px;font-weight:800;background:${k===''?'transparent':'var(--bg3)'};border:none;border-radius:12px;cursor:pointer;font-family:inherit;color:var(--txt)">${k}</button>`).join('')}
   </div>
   <div style="display:flex;gap:10px">
-    <button onclick="document.getElementById('distPopup').remove()" style="flex:1;padding:14px;background:var(--bg3);border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">Skip</button>
-    <button onclick="confirmDist()" style="flex:2;padding:14px;background:var(--g);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit">Save shot ✓</button>
+    <button onclick="minimiseDistPopup()" style="padding:14px 12px;background:var(--bg3);border:none;border-radius:12px;font-size:16px;cursor:pointer;font-family:inherit" title="Check ball position">👁</button>
+    <button onclick="window._distVal='';document.getElementById('distDisplay').textContent='—';confirmDist();" style="flex:1;padding:14px;background:var(--bg3);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Skip dist</button>
+    <button onclick="confirmDist()" style="flex:2;padding:14px;background:var(--g);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit">Save ✓</button>
   </div>
 </div>`;
   document.body.appendChild(popup);
@@ -1394,24 +1395,35 @@ function distKey(k){
 
 function confirmDist(){
   const dist = parseInt(window._distVal||'0') || null;
-  // Store distance on current shot data
-  if(window._hd){
-    if(!window._hd.shots) window._hd.shots = [];
-    // Store on last shot or create pending shot with distance
-    if(window._pendingBallPos){
-      window._pendingBallPos.dist = dist;
-    }
-    // Also store on hole data directly
-    window._hd.lastShotDist = dist;
-  }
-  // Store on AR hole data
-  if(AR && AR.holes[cHole]){
-    AR.holes[cHole].lastShotDist = dist;
-  }
+  if(window._hd) window._hd.lastShotDist = dist;
   const popup = document.getElementById('distPopup');
   if(popup) popup.remove();
-  if(dist) toast('Shot: '+dist+'m saved 📍');
-  else toast('Ball position saved 📍');
+  // Now commit the shot and advance workflow
+  const trk = getTrackingPrefs();
+  if(trk.lie && !window._hd.selectedLie){
+    WF.step='lie'; renderWF();
+  } else if(trk.shape||trk.direction||trk.contact){
+    // Show shot feedback modal
+    openShotMod();
+  } else {
+    commitShot();
+    WF.step='preshot'; renderWF();
+  }
+}
+
+function minimiseDistPopup(){
+  const popup = document.getElementById('distPopup');
+  if(popup) popup.style.display='none';
+  // Show restore button
+  const btn = document.createElement('button');
+  btn.id='restoreDistBtn';
+  btn.onclick = function(){ 
+    document.getElementById('distPopup').style.display='flex';
+    this.remove();
+  };
+  btn.style.cssText='position:fixed;bottom:80px;right:16px;z-index:600;background:var(--g);color:#fff;border:none;border-radius:50%;width:52px;height:52px;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.3)';
+  btn.textContent='📍';
+  document.body.appendChild(btn);
 }
 
 function diagNext(){
@@ -1688,26 +1700,28 @@ function commitShot(){
     // Running totals at time of shot
     shotsToHere:shotNum,
   };
-  // Clear last shot dist after recording
+  // Clear after recording
+  const distRecorded=shot.dist;
   hd.lastShotDist=null;
   hd.ballPos=null;
   hd.shots.push(shot);
-  if(!AR.rawShots)AR.rawShots=[];AR.rawShots.push(shot);
-  if(dist&&dist>0){
-    const d=ud(),c=hd.selectedClub;
-    if(!d.clubStats)d.clubStats={};
-    if(!d.clubStats[c])d.clubStats[c]={shots:[],avg:0,max:0,min:9999,byLie:{},byShape:{},byDir:{}};
-    d.clubStats[c].shots.push(dist);
-    const arr=d.clubStats[c].shots;
-    d.clubStats[c].avg=Math.round(arr.reduce((a,b)=>a+b,0)/arr.length);
-    d.clubStats[c].max=Math.max(...arr);d.clubStats[c].min=Math.min(...arr);
-    if(hd.selectedLie){if(!d.clubStats[c].byLie[hd.selectedLie])d.clubStats[c].byLie[hd.selectedLie]=[];d.clubStats[c].byLie[hd.selectedLie].push(dist);}
-    if(sfb.shape){d.clubStats[c].byShape=d.clubStats[c].byShape||{};d.clubStats[c].byShape[sfb.shape]=(d.clubStats[c].byShape[sfb.shape]||0)+1;}
-    if(sfb.dir){d.clubStats[c].byDir=d.clubStats[c].byDir||{};d.clubStats[c].byDir[sfb.dir]=(d.clubStats[c].byDir[sfb.dir]||0)+1;}
-    sud(d);
+  if(!AR.rawShots)AR.rawShots=[];
+  AR.rawShots.push(shot);
+  // Update club stats if distance recorded
+  if(distRecorded&&distRecorded>0&&hd.selectedClub){
+    const ud2=ud();
+    const c=hd.selectedClub;
+    if(!ud2.clubStats)ud2.clubStats={};
+    if(!ud2.clubStats[c])ud2.clubStats[c]={shots:[],avg:0,max:0,min:9999};
+    ud2.clubStats[c].shots.push(distRecorded);
+    const arr=ud2.clubStats[c].shots;
+    ud2.clubStats[c].avg=Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length);
+    ud2.clubStats[c].max=Math.max.apply(null,arr);
+    ud2.clubStats[c].min=Math.min.apply(null,arr);
+    sud(ud2);
   }
-  shotStart=gpsPos?{...gpsPos}:null;
   hd.selectedLie=null;
+  sfb={};
 }
 
 // STEP: Lie
@@ -2366,6 +2380,8 @@ function stepPlay(pg){
     <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
   </div>
 </div>
+
+${wxHTML(cHole,hole.y)}
 
 <!-- Hole diagram -->
 <div class="hole-diagram-wrap" id="holeDiagWrap">
