@@ -1145,10 +1145,17 @@ function startWF(isTest=false){
 }
 
 function renderWF(){
-  SP('round'); // always ensure round page is visible when workflow is active
+  SP('round');
   const pg=document.getElementById('pg-round');
   const steps={course:stepCourse,mode:stepMode,bag:stepBag,play:stepPlay,score:stepScore,lie:stepLie,preshot:stepPreshot,summary:stepSummary,scan:stepScan};
-  if(steps[WF.step])steps[WF.step](pg);
+  if(steps[WF.step]){
+    try{
+      steps[WF.step](pg);
+    }catch(e){
+      console.error('renderWF error in step '+WF.step+':',e);
+      pg.innerHTML='<div style="padding:20px;color:red"><strong>Error in '+WF.step+':</strong><br>'+e.message+'<br><br><button onclick="WF.step=\'play\';renderWF()">← Back</button></div>';
+    }
+  }
 }
 
 // STEP: Course
