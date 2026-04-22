@@ -1761,7 +1761,7 @@ function stepLie(pg){
   <div style="display:flex;justify-content:space-between;align-items:center">
     <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;opacity:0.8;margin-bottom:2px">Last shot distance</div>
     <div style="font-size:34px;font-weight:900">${shots.length&&shots[shots.length-1].dist?shots[shots.length-1].dist+'m':'—'}</div></div>
-    <div style="text-align:right"><div style="font-size:12px;opacity:0.8">🚶 ${fmtD(walkDist)}</div></div>
+    <div style="text-align:right"></div>
   </div>
 </div>
 
@@ -1988,7 +1988,7 @@ function finishRound(){
   const total=ph.reduce((s,h)=>s+h.score,0);
   const par=holes.slice(0,ph.length).reduce((s,h)=>s+h.par,0);
   AR.total=total;AR.par=par;AR.toPar=total-par;
-  AR.duration=Date.now()-roundStart;AR.walkDist=walkDist;AR.totalHoles=ph.length;
+  AR.duration=Date.now()-roundStart;AR.totalHoles=ph.length;
   // BULLETPROOF SAVE - multiple fallback layers
   let saved=false;
   // Layer 1: normal save via ud/sud
@@ -2222,7 +2222,7 @@ function stepSummary(pg){
   const fwH=knownFW(ph);const fw=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
   const udH=knownUD(ph.filter(h=>h.gir===false));const udOK=udH.length?Math.round(udH.filter(h=>h.updown).length/udH.length*100):null;
   const drives=ph.flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist)).map(s=>s.dist);
-  const pace=r.walkDist>200&&r.duration?Math.round(r.duration/60000/(r.walkDist/1000)):null;
+  const pace=null;
 
   pg.innerHTML=`
 <div class="strava">
@@ -2232,7 +2232,7 @@ function stepSummary(pg){
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
     <div class="sg-box"><div class="v">${r.total}</div><div class="l">Score (${r.toPar>=0?'+'+r.toPar:r.toPar})</div></div>
     <div class="sg-box"><div class="v">${fmtT(r.duration)}</div><div class="l">Time</div></div>
-    <div class="sg-box"><div class="v">${fmtD(r.walkDist)}</div><div class="l">Walked</div></div>
+ 
     <div class="sg-box"><div class="v">${pace?pace+' min/km':'—'}</div><div class="l">Pace</div></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
@@ -2378,7 +2378,7 @@ ${progRounds.length>=3?`<div class="sec">Career progression</div>
 <div class="sec">Activity</div>
 <div class="sg">
   <div class="sc"><div class="sv">${rr.length}</div><div class="sl">Rounds</div></div>
-  <div class="sc"><div class="sv">${fmtD(rr.reduce((s,r)=>s+(r.walkDist||0),0))}</div><div class="sl">Total walked</div></div>
+  <div class="sc"><div class="sv">—</div><div class="sl">Total walked</div></div>
   <div class="sc"><div class="sv">${fmtT(rr.reduce((s,r)=>s+(r.duration||0),0))}</div><div class="sl">Time on course</div></div>
   <div class="sc"><div class="sv">${[...new Set(rr.map(r=>r.courseId))].length}</div><div class="sl">Courses played</div></div>
 </div>
