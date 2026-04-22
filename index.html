@@ -1246,7 +1246,7 @@ function selMode(m){
 function stepBag(pg){
   const bag=new Set(myBag());
   const td=ud();
-  const trk=td.trackingPrefs||{shape:true,direction:true,contact:true,lie:true,gps:true};
+  const trk=td.trackingPrefs||{shape:true,direction:true,contact:true,lie:true};
   pg.innerHTML=`
 <h2 style="margin-bottom:6px;font-size:21px">Your bag</h2>
 <p style="color:var(--txt3);font-size:14px;margin-bottom:13px">Last used selection. Tap to adjust.</p>
@@ -1259,121 +1259,7 @@ function stepBag(pg){
   <div class="tr"><div><div class="tl">🎯 Direction</div><div class="ts">Left / online / right / short / long</div></div><button class="tog ${trk.direction?'on':''}" id="trk-direction" onclick="togTrk('direction','trk-direction')"></button></div>
   <div class="tr"><div><div class="tl">🏌️ Contact</div><div class="ts">Solid / thin / fat / heel / toe / topped</div></div><button class="tog ${trk.contact?'on':''}" id="trk-contact" onclick="togTrk('contact','trk-contact')"></button></div>
   <div class="tr"><div><div class="tl">🌿 Lie</div><div class="ts">Where your ball lands after each shot</div></div><button class="tog ${trk.lie?'on':''}" id="trk-lie" onclick="togTrk('lie','trk-lie')"></button></div>
-  <div class="tr"><div><div class="tl">📍 GPS distance</div><div class="ts">Measures shot distance automatically</div></div><button class="tog ${trk.gps?'on':''}" id="trk-gps" onclick="togTrk('gps','trk-gps')"></button></div>
-</div>
-
-<div class="field"><label>Private round?</label>
-  <div style="display:flex;align-items:center;gap:9px;margin-top:4px">
-    <button class="tog ${td.settings?.privateRounds?'on':''}" id="privTog" onclick="togPriv()"></button>
-    <span style="font-size:14px;color:var(--txt2)">Don't share with leaderboard</span>
-  </div>
-</div>
-<button class="btn bg" onclick="beginRound()">Play now ⛳</button>
-<button class="btn bo" onclick="WF.step='mode';renderWF()">← Back</button>`;
-}
-
-function togBag(c){const d=ud(),bag=new Set(d.bag||ALL_CLUBS);bag.has(c)?bag.delete(c):bag.add(c);d.bag=[...bag];sud(d);document.getElementById('bc_'+c)?.classList.toggle('sel',bag.has(c));}
-function togTrk(key,btnId){
-  const d=ud();
-  if(!d.trackingPrefs)d.trackingPrefs={shape:true,direction:true,contact:true,lie:true,gps:true};
-  d.trackingPrefs[key]=!d.trackingPrefs[key];
-  sud(d);
-  document.getElementById(btnId)?.classList.toggle('on',d.trackingPrefs[key]);
-}
-function getTrackingPrefs(){const d=ud();return d.trackingPrefs||{shape:true,direction:true,contact:true,lie:true,gps:true};}
-
-function togPriv(){const d=ud();d.settings=d.settings||{};d.settings.privateRounds=!d.settings.privateRounds;sud(d);document.getElementById('privTog')?.classList.toggle('on',d.settings.privateRounds);}
-
-// Auto-save active round every time a hole is saved
-function autoSaveRound(){
-  if(!AR)return;
-  const d=ud();
-  if(!d.roundsInProgress)d.roundsInProgress={};
-  d.roundsInProgress[AR.id]={...AR,savedAt:Date.now(),currentHoleIdx:cHole};
-  sud(d);
-}
-
-// Get any in-progress round
-function getInProgressRounds(){
-  const d=ud();
-  return Object.values(d.roundsInProgress||{}).sort((a,b)=>b.savedAt-a.savedAt);
-}
-
-// Resume a round
-function resumeRound(roundId){
-  const d=ud();
-  const saved=d.roundsInProgress?.[roundId];
-  if(!saved)return;
-  AR={...saved};
-  cHole=saved.currentHoleIdx||0;
-  roundStart=AR.started||Date.now();
-  WF={step:'play',courseId:AR.courseId,holeType:AR.type,mode:AR.mode};
-  testMode=AR.testMode||false;
-  document.getElementById('testBanner').style.display=testMode?'flex':'none';
-  window._hd=AR.holes[cHole]||initHD(getH(AR.courseId,AR.type==='custom'?'18':AR.type)[cHole]);
-  SP('round');
-  fetchWx(gc(AR.courseId).lat,gc(AR.courseId).lng).then(w=>{wxData=w;renderWF();});
-  renderWF();
-  startGPS();
-  toast('Round resumed ✓');
-}
-
-// Delete in-progress round
-function deleteInProgress(roundId){
-  if(!confirm('Remove this saved round?'))return;
-  const d=ud();
-  if(d.roundsInProgress)delete d.roundsInProgress[roundId];
-  sud(d);
-  rHome();
-}
-
-async function beginRound(){
-  const holes=getH(WF.courseId,WF.holeType==='custom'?'18':WF.holeType);
-  const c=gc(WF.courseId);
-  AR={id:'r_'+Date.now(),courseId:WF.courseId,courseName:c.name,player:WF.playerName,date:new Date().toLocaleDateString('en-NZ'),type:WF.holeType,holes:[],totalHoles:holes.length,started:Date.now(),mode:WF.mode,testMode,privateRound:ud().settings?.privateRounds||false,rawShots:[]};
-  cHole=0;walkDist=0;roundStart=Date.now();gpsPos=null;shotStart=null;
-  wxData=null;
-  fetchWx(c.lat,c.lng).then(w=>{wxData=w;if(WF.step==='play')renderWF();});
-  WF.step='play';
-  SP('round');   // make pg-round visible BEFORE rendering
-  renderWF();
-  startGPS();
-}
-
-// STEP: Hole screen with diagram + weather
-function stepPlay(pg){
-  if(!pg)pg=document.getElementById('pg-round');
-  const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
-  const hole=holes[cHole];if(!hole){finishRound();return;}
-  if(!AR.holes[cHole])AR.holes[cHole]=initHD(hole);
-  window._hd=AR.holes[cHole];
-
-  const doneH=AR.holes.slice(0,cHole).filter(Boolean);
-  const rel=cHole>0?doneH.reduce((s,h)=>s+h.score,0)-holes.slice(0,cHole).reduce((s,h)=>s+h.par,0):0;
-  const hs=getHoleHist(AR.courseId,hole.h);
-  const prog=Math.round(cHole/AR.totalHoles*100);
-  const c=gc(AR.courseId);
-  const gmLink=`https://maps.google.com/maps?q=${c.lat},${c.lng}&z=17`;
-
-  pg.innerHTML=`
-<div class="pb"><div class="pbf" style="width:${prog}%"></div></div>
-${testMode?`<div style="display:flex;gap:7px;margin-bottom:10px"><button class="bsm bsmg" onclick="simRound()" style="flex:1">Simulate rest</button><button class="bsm" onclick="confirmFinish()">End now</button></div>`:''}
-
-<div class="hdr">
-  <div class="hdr-top">
-    <span>${AR.courseName} · ${fmtT(Date.now()-roundStart)}</span>
-    <a href="${gmLink}" target="_blank" style="background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:18px;text-decoration:none">🗺 Open map</a>
-  </div>
-  <div class="hdr-row">
-    <div class="hnum">H${hole.h}</div>
-    ${cHole>0?`<div class="hrel">${rel>0?'+'+rel:rel===0?'E':''+rel}</div>`:''}
-  </div>
-  <div class="hboxes">
-    <div class="hbox"><div class="l">Par</div><div class="v">${hole.par}</div></div>
-    <div class="hbox"><div class="l">Metres</div><div class="v">${hole.y}</div></div>
-    <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
-  </div>
-</div>
+  <div class="tr"><div><div class="tl">📍 GPS distance</div><div class="ts">Measures shot distance automatically</div></div><button class="tog 
 
 ${wxHTML(cHole,hole.y)}
 
@@ -2420,22 +2306,7 @@ function updateGPSLight(){
   }
 }
 
-function startGPS(){
-  if(!navigator.geolocation)return;
-  if(gpsW)navigator.geolocation.clearWatch(gpsW);
-  gpsAccuracy=null;
-  updateGPSLight();
-  gpsW=navigator.geolocation.watchPosition(pos=>{
-    const np={lat:pos.coords.latitude,lng:pos.coords.longitude,t:Date.now(),acc:pos.coords.accuracy};
-    gpsAccuracy=pos.coords.accuracy;
-    if(gpsPos&&pos.coords.accuracy<50){const dm=hav(gpsPos,np);if(dm>2&&dm<300){walkDist+=dm;if(AR)AR.walkDist=walkDist;}}
-    gpsPos=np;
-    updateGPSLight();
-    const sd=document.getElementById('sDist'),sa=document.getElementById('sAcc');
-    if(sd&&shotStart){sd.textContent=Math.round(hav(shotStart,np)*1.094);if(sa)sa.textContent='m · ±'+Math.round(pos.coords.accuracy)+'m';}
-  },{enableHighAccuracy:true,maximumAge:2000,timeout:15000},
-  ()=>{gpsAccuracy=null;updateGPSLight();});
-}
+function startGPS(){}
 
 // ── STATS ──
 function rStats(){
