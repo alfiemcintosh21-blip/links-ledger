@@ -857,6 +857,13 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 
 // Real rounds only (not test)
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
+function getInProgressRounds(){
+  try{
+    const d=ud();
+    const ip=d.roundsInProgress||{};
+    return Object.values(ip).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+  }catch(e){return[];}
+}
 // Only holes with actually known values for averages
 const knownGIR=holes=>holes.filter(h=>h.gir!==null&&h.gir!==undefined);
 const knownFW=holes=>holes.filter(h=>h.fairway!==null&&h.fairway!==undefined);
