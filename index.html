@@ -1398,16 +1398,15 @@ function confirmDist(){
   if(window._hd) window._hd.lastShotDist = dist;
   const popup = document.getElementById('distPopup');
   if(popup) popup.remove();
-  // Now commit the shot and advance workflow
   const trk = getTrackingPrefs();
-  if(trk.lie && !window._hd.selectedLie){
+  // After marking position + distance: go to lie, then shape/dir/contact, then commit
+  if(trk.lie){
     WF.step='lie'; renderWF();
   } else if(trk.shape||trk.direction||trk.contact){
-    // Show shot feedback modal
     openShotMod();
   } else {
     commitShot();
-    WF.step='preshot'; renderWF();
+    WF.step='play'; renderWF();
   }
 }
 
@@ -1455,68 +1454,33 @@ function confirmFinish(){if(confirm('Finish round now?'))finishRound();}
 function stepPreshot(pg){
   if(!pg)pg=document.getElementById('pg-round');
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
-  const hole=holes[cHole];const hd=window._hd;const shots=hd.shots||[];
-  const isFirst=shots.length===0;
+  const hole=holes[cHole];
+  if(!window._hd){window._hd=AR.holes[cHole]||initHD(hole);AR.holes[cHole]=window._hd;}
+  const hd=window._hd;
+  const shots=hd.shots||[];
   const trk=getTrackingPrefs();
 
   pg.innerHTML=`
-<!-- Step guide banner -->
-<div style="background:var(--g);border-radius:12px;padding:12px 14px;margin-bottom:12px;color:#fff">
-  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.75;margin-bottom:4px">
-    ${isFirst?'Step 1 of 3':'Step 1 of 3'}
-  </div>
-  <div style="font-size:16px;font-weight:800">
-    ${isFirst?'🏌️ At the tee — select your club':'🏌️ Select club for this shot'}
-  </div>
-  <div style="font-size:13px;opacity:0.8;margin-top:3px">
-    Pick your club → then tap <strong>Mark shot position</strong> just before or after you hit
-  </div>
+<div style="background:var(--g);border-radius:12px;padding:12px 14px;margin-bottom:14px;color:#fff">
+  <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.75;margin-bottom:3px">Hole ${hole.h} · Shot ${shots.length+1}</div>
+  <div style="font-size:17px;font-weight:800">${shots.length===0?'🏌️ Tee shot — select your club':'🏌️ Next shot — select your club'}</div>
 </div>
 
-<div style="font-weight:800;font-size:18px;margin-bottom:4px">Hole ${hole.h} · Shot ${shots.length+1}</div>
-<div style="color:var(--txt3);font-size:14px;margin-bottom:13px">${isFirst?'Tee shot — par '+hole.par+', '+hole.y+'m':'Next shot from '+((hd.selectedLie||'the fairway').toLowerCase())}</div>
-
-${trk.gps?`<div class="gps-card">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div>
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;opacity:0.8;margin-bottom:2px">GPS distance from last shot</div>
-      <div style="font-size:46px;font-weight:900;line-height:1" id="sDist">—</div>
-      <div style="font-size:12px;opacity:0.7;margin-top:2px" id="sAcc">m · acquiring GPS...</div>
-    </div>
-    <div style="text-align:right;padding-top:4px">
-      <div style="font-size:12px;opacity:0.8">⏱ ${fmtT(Date.now()-roundStart)}</div>
-    </div>
-  </div>
-</div>`:''}
-
-<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--txt3);margin-bottom:7px">Select club</div>
+<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--txt3);margin-bottom:8px">Select club</div>
 <div class="club-grid">${myBag().map(c=>`<button class="cc${hd.selectedClub===c?' sel':''}" onclick="selClubPS('${c}')">${c}</button>`).join('')}</div>
 
-<!-- GPS traffic light + mark shot button -->
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-  <!-- Traffic light -->
-  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
-    <div id="gpsLight" style="width:18px;height:18px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px currentColor;transition:background 0.4s;flex-shrink:0" title="GPS not ready"></div>
-    <div style="font-size:9px;color:var(--txt3);font-weight:700;text-transform:uppercase;writing-mode:vertical-lr;transform:rotate(180deg);letter-spacing:0.06em">GPS</div>
-  </div>
-  <button id="markShotBtn" onclick="openShotMod()" style="flex:1;padding:20px;background:var(--gold);color:#fff;border:3px solid var(--gold3);border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;transition:all 0.3s;opacity:1">
-    ${shots.length===0?'🏌️ Mark tee position':'📍 Mark ball position'}
-  </button>
+${hd.selectedClub?`
+<div style="margin-top:14px;background:var(--gl);border:1px solid var(--gll);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--gd);margin-bottom:10px">
+  ✓ Club: <strong>${hd.selectedClub}</strong> — now tap the hole image to mark where the ball landed
 </div>
-<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;padding:8px 12px;background:var(--bg3);border-radius:9px">
-  <div id="gpsStatusTxt" style="font-size:12px;color:var(--txt3);flex:1">${shots.length===0?'🏌️ Tap when you are standing on the tee, before you hit':'📍 Tap when standing at your ball, before you swing'}</div>
-  <div style="font-size:10px;color:var(--txt3)" id="gpsAccTxt"></div>
-</div>
+<button class="btn bg" onclick="WF.step='play';renderWF()">📍 Mark ball on hole image →</button>`:`
+<div style="margin-top:14px;background:var(--bg3);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--txt3)">
+  Select a club above to continue
+</div>`}
 
-${shots.length?`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--txt3);margin-bottom:7px;margin-top:4px">Shots this hole</div>
-<div class="card" style="padding:10px 13px">${shots.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr)${i===shots.length-1?';border-bottom:none':''}">
-<div style="width:22px;height:22px;border-radius:50%;background:var(--g);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
-<div style="font-weight:800;min-width:26px">${s.club}</div>
-<div style="flex:1;color:var(--txt3);font-size:12px">${[s.lie,s.shape,s.dir,s.con].filter(Boolean).join(' · ')}</div>
-<div style="font-weight:700">${s.dist?s.dist+'m':'—'}</div></div>`).join('')}</div>`:''}
-
-<button class="btn bo" onclick="WF.step='play';renderWF()">← Hole overview</button>`;
+<button class="btn bo" style="margin-top:8px" onclick="WF.step='play';renderWF()">← Back to hole</button>`;
 }
+
 
 function selClubPS(c){if(window._hd)window._hd.selectedClub=c;stepPreshot();}
 
@@ -1530,7 +1494,7 @@ function openShotMod(){
   const trk=getTrackingPrefs();
   if(!trk.shape&&!trk.direction&&!trk.contact){
     commitShot();
-    WF.step=trk.lie?'lie':'preshot';
+    WF.step=trk.lie?'lie':'play';
     renderWF();
     return;
   }
