@@ -1256,9 +1256,10 @@ function stepBag(pg){
   const trk=td.trackingPrefs||{shape:true,direction:true,contact:true,lie:true};
   pg.innerHTML=`
 <h2 style="margin-bottom:6px;font-size:21px">Your bag</h2>
-<p style="color:var(--txt3);font-size:14px;margin-bottom:13px">Last used selection. Tap to adjust.</p>
+<p style="color:var(--txt3);font-size:14px;margin-bottom:13px">Tap to select clubs in your bag.</p>
 <div class="club-grid" id="bagGrid">${ALL_CLUBS.map(c=>`<button class="cc${bag.has(c)?' sel':''}" id="bc_${c}" onclick="togBag('${c}')">${c}</button>`).join('')}</div>
 
+${WF.mode==='shot'?`
 <div class="sec" style="margin-top:4px">What do you want to track?</div>
 <p style="color:var(--txt3);font-size:13px;margin-bottom:10px">Turn off anything you find too slow mid-round.</p>
 <div class="card" style="padding:10px 13px;margin-bottom:10px">
@@ -1266,54 +1267,20 @@ function stepBag(pg){
   <div class="tr"><div><div class="tl">🎯 Direction</div><div class="ts">Left / online / right / short / long</div></div><button class="tog ${trk.direction?'on':''}" id="trk-direction" onclick="togTrk('direction','trk-direction')"></button></div>
   <div class="tr"><div><div class="tl">🏌️ Contact</div><div class="ts">Solid / thin / fat / heel / toe / topped</div></div><button class="tog ${trk.contact?'on':''}" id="trk-contact" onclick="togTrk('contact','trk-contact')"></button></div>
   <div class="tr"><div><div class="tl">🌿 Lie</div><div class="ts">Where your ball lands after each shot</div></div><button class="tog ${trk.lie?'on':''}" id="trk-lie" onclick="togTrk('lie','trk-lie')"></button></div>
-  <div class="tr"><div><div class="tl">📍 GPS distance</div><div class="ts">Measures shot distance automatically</div></div><button class="tog 
-
-${wxHTML(cHole,hole.y)}
-
-<!-- Hole diagram -->
-<div class="hole-nav">
-  <button class="hnb" onclick="diagPrev()">‹</button>
-  <div class="hinfo"><div class="hnum2">Hole ${hole.h}</div><div class="hpar">Par ${hole.par} · ${hole.y} m · S.I. ${hole.si}</div></div>
-  <button class="hnb" onclick="diagNext()">›</button>
-</div>
-<div class="hole-diagram-wrap" id="holeDiagWrap">
-  <div id="holeDiagImgWrap" style="display:none;position:relative;cursor:crosshair;border-radius:12px;overflow:hidden" onclick="tapHoleImage(event)">
-    <img id="holeDiagImg" src="" style="width:100%;max-height:380px;object-fit:contain;display:block;border-radius:12px" alt="Hole diagram">
-    <svg id="holeDiagDots" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></svg>
-    <div id="tapHint" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:10px;pointer-events:none;white-space:nowrap">📍 Tap image to mark ball</div>
-  </div>
-  <svg id="holeDiagSvg" viewBox="0 0 220 420" style="width:100%;display:block;height:360px"></svg>
-</div>
-<div class="leg">
-  <div class="leg-i"><div class="leg-d" style="background:#2d8c3a"></div>Fairway</div>
-  <div class="leg-i"><div class="leg-d" style="background:#1a7a2e;border-radius:50%"></div>Green</div>
-  <div class="leg-i"><div class="leg-d" style="background:#f2e4a0;border:1px solid #c8b86a"></div>Bunker</div>
-  <div class="leg-i"><div class="leg-d" style="background:#4a90d9"></div>Water</div>
-  <div class="leg-i"><div class="leg-d" style="background:#e74c3c;border-radius:50%"></div>Tee</div>
-  <div class="leg-i"><span style="font-size:9px;color:var(--red)">●</span>150 <span style="font-size:9px;color:#fff;background:#fff;border-radius:50%;width:8px;height:8px;display:inline-block;border:1px solid #888"></span>100 <span style="font-size:9px;color:var(--blue)">●</span>50</div>
-</div>
-
-${hs?`<div class="card" style="padding:11px;margin-top:10px">
-  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--txt3);margin-bottom:7px">Your history — hole ${hole.h}</div>
-  <div class="sg3" style="margin-bottom:0">
-    <div class="sc"><div class="sv" style="font-size:17px">${hs.avg?hs.avg.toFixed(1):'—'}</div><div class="sl">Avg</div></div>
-    <div class="sc"><div class="sv" style="font-size:17px">${hs.best||'—'}</div><div class="sl">Best</div></div>
-    <div class="sc"><div class="sv" style="font-size:17px">${hs.gir!=null?hs.gir+'%':'—'}</div><div class="sl">GIR</div></div>
-  </div>
 </div>`:''}
 
-${AR.mode==='shot'?`<button class="btn bg" style="margin-top:10px" onclick="WF.step='preshot';renderWF()">📍 Play first shot →</button>`:`<button class="btn bg" style="margin-top:10px" onclick="WF.step='score';renderWF()">Enter score →</button>`}
-${cHole>0?`<button class="btn bo" onclick="prevHole()">← Previous hole</button>`:''}
-<button class="btn bo" onclick="confirmFinish()">🏁 Finish round</button>`;
+<div class="card" style="padding:11px 13px;margin-bottom:10px">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:14px;color:var(--txt2)">🔒 Private round</span>
+    <button class="tog ${ud().settings?.privateRounds?'on':''}" id="privTog" onclick="togPriv()"></button>
+  </div>
+  <div style="font-size:12px;color:var(--txt3);margin-top:4px">Don't share with leaderboard</div>
+</div>
 
-  // Draw diagram - use real image if available, else procedural SVG
-  diagramHole=cHole;
-  diagOffset=cHole; // sync diagram offset with current hole
-  renderHoleDiagram(hole, cHole);
-  // Clear previous ball position dot
-  const svg=document.getElementById('holeDiagDots');if(svg)svg.innerHTML='';
-  const hint=document.getElementById('tapHint');if(hint)hint.style.display='block';
+<button class="btn bg" onclick="beginRound()">Play now ⛳</button>
+<button class="btn bo" onclick="WF.step='mode';renderWF()">← Back</button>`;
 }
+
 
 // Render hole diagram - real image or procedural SVG
 // For 9-hole courses, holes 10-18 mirror holes 1-9
