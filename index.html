@@ -1238,7 +1238,7 @@ function goMode(){
 function stepMode(pg){
   pg.innerHTML=`
 <h2 style="margin-bottom:15px;font-size:21px">How are you playing?</h2>
-<div class="mode-card" onclick="selMode('shot')"><div class="mode-icon">🎯</div><div class="mode-title">Shot by shot</div><div class="mode-desc">GPS tracking, club, lie, shape, contact. Maximum stats and coaching.</div></div>
+<div class="mode-card" onclick="selMode('shot')"><div class="mode-icon">🎯</div><div class="mode-title">Shot by shot</div><div class="mode-desc">Club, lie, shape, contact. Maximum stats and coaching.</div></div>
 <div class="mode-card" onclick="selMode('hole')"><div class="mode-icon">📋</div><div class="mode-title">Hole by hole</div><div class="mode-desc">Score, putts, GIR, fairway. Quick and simple.</div></div>
 <div class="mode-card" onclick="selMode('scan')"><div class="mode-icon">📸</div><div class="mode-title">Scan scorecard</div><div class="mode-desc">Photo of a printed card after your round.</div></div>
 <button class="btn bo" onclick="WF.step='course';renderWF()">← Back</button>`;
@@ -2314,6 +2314,116 @@ function updateGPSLight(){
 }
 
 function startGPS(){}
+function togBag(c){
+  const d=ud();
+  if(!d.bag)d.bag=[];
+  const idx=d.bag.indexOf(c);
+  if(idx===-1){d.bag.push(c);}else{d.bag.splice(idx,1);}
+  sud(d);
+  const btn=document.getElementById('bc_'+c);
+  if(btn)btn.classList.toggle('sel',d.bag.includes(c));
+}
+
+function autoSaveRound(){
+  if(!AR||!CU)return;
+  try{
+    const d=ud();
+    if(!d.roundsInProgress)d.roundsInProgress={};
+    d.roundsInProgress[AR.id]={...AR,savedAt:Date.now(),currentHoleIdx:cHole};
+    sud(d);
+  }catch(e){console.warn('Autosave failed:',e);}
+}
+
+function nextHole(){
+  if(cHole<AR.totalHoles-1){
+    cHole++;
+    window._hd=null;
+    WF.step='play';
+    const c=gc(AR.courseId);
+    if(c)fetchWx(c.lat,c.lng).then(function(w){wxData=w;});
+    renderWF();
+  } else {
+    finishRound();
+  }
+}
+
+function beginRound(){
+  const holes=getH(WF.courseId,WF.holeType==='custom'?'18':WF.holeType);
+  if(!holes||!holes.length){toast('Course data not found');return;}
+  const c=gc(WF.courseId);
+  AR={
+    id:'r_'+Date.now(),
+    courseId:WF.courseId,
+    courseName:c?c.name:'Unknown',
+    player:WF.playerName||CU.name,
+    date:new Date().toLocaleDateString('en-NZ'),
+    type:WF.holeType,
+    holes:[],
+    totalHoles:holes.length,
+    started:Date.now(),
+    mode:WF.mode,
+    testMode:testMode,
+    privateRound:ud().settings&&ud().settings.privateRounds||false
+  };
+  cHole=0;
+  roundStart=Date.now();
+  wxData=null;
+  if(c)fetchWx(c.lat,c.lng).then(function(w){wxData=w;if(WF.step==='play')renderWF();});
+  WF.step='play';
+  SP('round');
+  renderWF();
+}
+
+function stepPlay(pg){
+  if(!AR)return;
+  const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+  const hole=holes[cHole];
+  if(!hole){toast('Hole not found');return;}
+  if(!AR.holes[cHole])AR.holes[cHole]=initHD(hole);
+  window._hd=AR.holes[cHole];
+  
+  diagOffset=cHole;
+  
+  pg.innerHTML=`
+<div class="hdr" style="margin-bottom:8px">
+  <div class="hdr-top"><span>Hole ${hole.h} of ${AR.totalHoles}</span><span>${AR.courseName}</span></div>
+  <div class="hdr-row">
+    <button class="hnb" onclick="diagPrev()">‹</button>
+    <div class="hnum2">Hole ${hole.h}</div>
+    <button class="hnb" onclick="diagNext()">›</button>
+  </div>
+  <div class="hpar">${hole.name?hole.name+' · ':''}Par ${hole.par} · ${hole.y}m · S.I. ${hole.si}</div>
+  <div class="hboxes">
+    <div class="hbox"><div class="l">Par</div><div class="v">${hole.par}</div></div>
+    <div class="hbox"><div class="l">Metres</div><div class="v">${hole.y}</div></div>
+    <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
+  </div>
+</div>
+
+<!-- Hole diagram -->
+<div class="hole-diagram-wrap" id="holeDiagWrap">
+  <div id="holeDiagImgWrap" style="display:none;position:relative;cursor:crosshair;border-radius:12px;overflow:hidden" onclick="tapHoleImage(event)">
+    <img id="holeDiagImg" src="" style="width:100%;max-height:380px;object-fit:contain;display:block;border-radius:12px" alt="Hole diagram">
+    <svg id="holeDiagDots" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></svg>
+    <div id="tapHint" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:10px;pointer-events:none;white-space:nowrap">📍 Tap image to mark ball</div>
+  </div>
+  <svg id="holeDiagSvg" viewBox="0 0 200 340" style="width:100%;max-height:300px;display:block"></svg>
+</div>
+
+${AR.mode==='hole'?`
+<button class="btn bg" onclick="WF.step='score';renderWF()" style="margin-top:8px">📋 Enter score</button>
+`:`
+<button class="btn bg" onclick="WF.step='preshot';renderWF()" style="margin-top:8px">🏌️ Track shot</button>
+`}
+<button class="btn bo" style="margin-top:6px;color:var(--red)" onclick="confirmFinish()">🏁 Finish round</button>`;
+
+  renderHoleDiagram(hole, cHole);
+  // Clear ball position dot for new hole
+  const svg=document.getElementById('holeDiagDots');if(svg)svg.innerHTML='';
+  const hint=document.getElementById('tapHint');if(hint)hint.style.display='block';
+}
+
+
 
 // ── STATS ──
 function rStats(){
@@ -3367,3 +3477,16 @@ window.addEventListener('load',init);
   }
   return h; // 18 or custom
 };
+function getTrackingPrefs(){
+  const d=ud();
+  return Object.assign({shape:false,direction:false,contact:false,lie:true},d.trackingPrefs||{});
+}
+
+function togTrk(key,btnId){
+  const d=ud();
+  if(!d.trackingPrefs)d.trackingPrefs={};
+  d.trackingPrefs[key]=!d.trackingPrefs[key];
+  sud(d);
+  const btn=document.getElementById(btnId);
+  if(btn){btn.classList.toggle('on',d.trackingPrefs[key]);}
+}
