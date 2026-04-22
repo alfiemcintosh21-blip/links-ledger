@@ -1759,126 +1759,150 @@ function stepScore(pg){
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const hole=holes[cHole];
   const hd=window._hd;
+  const par=hole.par;
+
+  // Calculate shots to green (non-putting shots)
   const shots=hd.shots||[];
+  const puttingShots=shots.filter(function(s){return s.lie==='Green'||s.lie==='Putting';});
+  const nonPuttingShots=shots.filter(function(s){return s.lie!=='Green'&&s.lie!=='Putting';});
+  
+  // Auto-infer shots to green from shot tracking
+  let s2g=nonPuttingShots.length||Math.max(1,hd.score-(hd.putts||0));
+  if(AR.mode==='hole') s2g=Math.max(0,hd.score-(hd.putts||2));
 
-  // ── AUTO-INFER for shot tracking mode ──
-  if(AR.mode==='shot'&&shots.length>0){
-    // Score = total shots
-    hd.score=shots.length;
+  // Auto-infer GIR: shots to green <= par-2
+  const girThreshold=par-2;
+  hd.gir=(s2g<=girThreshold&&s2g>0);
 
-    // Putts = shots where lie is Green
-    const greenShots=shots.filter(function(s){return s.lie==='Green';});
-    hd.putts=greenShots.length||hd.putts||0;
-
-    // Fairway: first shot lie (after tee) = Fairway → yes, else → no (par 4/5 only)
-    if(hole.par>=4){
-      const firstLie=shots.length>1?shots[1].lie:(shots[0]?shots[0].lie:null);
-      if(hd.fairway===undefined||hd.fairway===null){
-        hd.fairway=firstLie==='Fairway';
-      }
-    } else {
-      hd.fairway=null;
-    }
-
-    // GIR: shots to green ≤ par-2 AND player reached the green
-    const shotsToGreen=shots.filter(function(s){return s.lie!=='Green'&&s.lie!=='Chipping';}).length;
-    const reachedGreen=shots.some(function(s){return s.lie==='Green';});
-    if(hd.gir===undefined||hd.gir===null){
-      hd.gir=reachedGreen&&shotsToGreen<=(hole.par-2);
-    }
-
-    // Up & down: missed GIR + only 1 putt
-    if(hd.updown===undefined||hd.updown===null){
-      hd.updown=!hd.gir&&hd.putts===1;
-    }
+  // Auto-infer fairway from first shot lie
+  if(shots.length>0&&par>=4){
+    const firstShot=shots[0];
+    hd.fairway=firstShot.lie==='Fairway';
   }
 
-  // For hole mode - just calc up&down from score/putts
-  if(AR.mode==='hole'){
-    const s2g=Math.max(0,(hd.score||hole.par)-(hd.putts||0));
-    hd.gir=null; // manual only
-    hd.updown=null; // manual only
-  }
+  // Up and down: missed GIR + 1 putt
+  hd.updown=!hd.gir&&(hd.putts||0)===1;
 
-  const shotsToGreen=AR.mode==='shot'?
-    shots.filter(function(s){return s.lie!=='Green'&&s.lie!=='Chipping';}).length:
-    Math.max(0,(hd.score||hole.par)-(hd.putts||2));
+  // Running round to par
+  const completedHoles=AR.holes.slice(0,cHole).filter(Boolean);
+  const runningToPar=completedHoles.reduce(function(s,h){return s+(h.score-(holes[AR.holes.indexOf(h)]||{par:4}).par);},0);
+  
+  // Total score for this hole
+  const holeTotal=(s2g)+(hd.putts||0);
 
   pg.innerHTML=`
-<div class="hdr" style="margin-bottom:13px">
-  <div class="hdr-top"><span>Hole ${hole.h} · Score</span></div>
-  <div class="hboxes">
-    <div class="hbox"><div class="l">Par</div><div class="v">${hole.par}</div></div>
-    <div class="hbox"><div class="l">Metres</div><div class="v">${hole.y}</div></div>
-    <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
+<div style="background:var(--g);border-radius:12px;padding:12px 14px;margin-bottom:12px;color:#fff">
+  <div style="font-size:12px;text-transform:uppercase;opacity:0.75;margin-bottom:3px">Hole ${hole.h} · ${hole.name||'Par '+par}</div>
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:22px;font-weight:900">${hd.score?getBdg(hd.score,par)+' '+hd.score:'Enter your score'}</div>
+    <div style="text-align:right;font-size:13px;opacity:0.85">Round: <strong>${runningToPar>=0?'+'+runningToPar:runningToPar}</strong></div>
   </div>
 </div>
 
-<!-- Score + putts input -->
-<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:13px;padding:14px;margin-bottom:12px">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-    <div style="text-align:center;flex:1">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">${AR.mode==='shot'?'Shots played':'Score'}</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-        ${AR.mode==='hole'?`<button class="sbt" onclick="aV('score',-1)">−</button>`:''}
-        <span style="font-size:40px;font-weight:900;color:${(hd.score||0)<hole.par?'var(--g)':(hd.score||0)===hole.par?'var(--txt)':'var(--red)'}" id="svEl">${hd.score||hole.par}</span>
-        ${AR.mode==='hole'?`<button class="sbt" onclick="aV('score',1)">+</button>`:''}
-      </div>
+<!-- Score entry -->
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:12px">
+  
+  <!-- Shots to green -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-weight:700">Shots to green</div>
+      <div style="font-size:12px;color:var(--txt3)">Par ${par} → GIR in ${girThreshold} or fewer</div>
     </div>
-    <div style="text-align:center;flex:1">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:4px">Putts</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-        <button class="sbt" onclick="aV('putts',-1)">−</button>
-        <span style="font-size:40px;font-weight:900;color:#3b82f6" id="pvEl">${hd.putts||0}</span>
-        <button class="sbt" onclick="aV('putts',1)">+</button>
-      </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="sbt" onclick="adjS2G(-1)">−</button>
+      <span style="font-size:28px;font-weight:900;min-width:28px;text-align:center" id="s2gEl">${s2g}</span>
+      <button class="sbt" onclick="adjS2G(1)">+</button>
     </div>
   </div>
-  <div style="text-align:center;font-size:15px;font-weight:700" id="scoreLbl">${getBdg(hd.score||hole.par,hole.par)}</div>
+
+  <div style="border-top:1px solid var(--bdr);margin-bottom:14px"></div>
+
+  <!-- Putts -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-weight:700">Putts</div>
+      <div style="font-size:12px;color:var(--txt3)" id="puttHint">${(hd.putts||2)===1?'1 putt = up & down ✓':(hd.putts||2)===0?'No putts recorded':'Standard'}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="sbt" onclick="aV('putts',-1)">−</button>
+      <span style="font-size:28px;font-weight:900;color:#3b82f6;min-width:28px;text-align:center" id="pvEl">${hd.putts||2}</span>
+      <button class="sbt" onclick="aV('putts',1)">+</button>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--bdr);margin-bottom:12px"></div>
+
+  <!-- Total score -->
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-weight:700">Total score</div>
+      <div style="font-size:12px;color:var(--txt3)">Shots to green + putts</div>
+    </div>
+    <div style="text-align:center">
+      <span style="font-size:36px;font-weight:900;min-width:40px;display:inline-block;color:${hd.score<par?'var(--g)':hd.score===par?'var(--txt)':'var(--red)'}" id="svEl">${hd.score||holeTotal}</span>
+      <div style="font-size:13px;font-weight:700" id="scoreLbl">${getBdg(hd.score||holeTotal,par)}</div>
+    </div>
+  </div>
 </div>
 
-${AR.mode==='shot'?`
-<!-- Penalty stroke button -->
-<button onclick="addPenalty()" style="width:100%;padding:10px;background:#fee2e2;border:1.5px solid #ef4444;border-radius:10px;color:#dc2626;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;margin-bottom:12px">
-  ⚠️ Add penalty stroke (+1)
-</button>
+<!-- Auto-inferred stats -->
+<div style="background:var(--gl);border:1px solid var(--gll);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--gd)">
+  <div style="font-weight:700;margin-bottom:4px">Auto-calculated:</div>
+  <div id="autoStats">GIR: ${hd.gir?'✓ Yes':'✗ No'} · Fairway: ${hd.fairway===true?'✓ Yes':hd.fairway===false?'✗ No':'—'} · Up&Down: ${hd.updown?'✓ Yes':'—'}</div>
+</div>
 
-<!-- Auto-inferred stats with toggle overrides -->
-<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:12px">
-  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:10px">Stats — auto-filled, tap to override</div>
-  ${hole.par>=4?`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
-    <div><div style="font-weight:700;font-size:14px">Fairway hit</div><div style="font-size:12px;color:var(--txt3)">Tee shot landed in fairway</div></div>
-    <button class="tog ${hd.fairway?'on':''}" id="fwTog" onclick="toggleStat('fairway','fwTog')"></button>
-  </div>`:''}
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
-    <div><div style="font-weight:700;font-size:14px">GIR</div><div style="font-size:12px;color:var(--txt3)">Green in regulation (≤${hole.par-2} shots to green)</div></div>
-    <button class="tog ${hd.gir?'on':''}" id="girTog" onclick="toggleStat('gir','girTog')"></button>
+<!-- Manual overrides (par 3s don't need fairway) -->
+${par>3?`<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-weight:700;font-size:14px">Fairway hit?</div>
+    <button class="tog ${hd.fairway?'on':''}" id="fwT" onclick="togHoleStat('fairway','fwT')"></button>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
-    <div><div style="font-weight:700;font-size:14px">Up & down</div><div style="font-size:12px;color:var(--txt3)">Missed GIR, holed in 1 putt</div></div>
-    <button class="tog ${hd.updown?'on':''}" id="udTog" onclick="toggleStat('updown','udTog')"></button>
+</div>`:''}
+
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div style="font-weight:700;font-size:14px">GIR override</div>
+    <button class="tog ${hd.gir?'on':''}" id="girT" onclick="togHoleStat('gir','girT')"></button>
   </div>
-</div>`:`
-<!-- Hole mode: manual toggles only -->
-<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:12px">
-  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:10px">Stats — manual entry</div>
-  ${hole.par>=4?`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
-    <div><div style="font-weight:700;font-size:14px">Fairway hit</div></div>
-    <button class="tog ${hd.fairway?'on':''}" id="fwTog" onclick="toggleStat('fairway','fwTog')"></button>
-  </div>`:''}
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)">
-    <div><div style="font-weight:700;font-size:14px">GIR</div></div>
-    <button class="tog ${hd.gir?'on':''}" id="girTog" onclick="toggleStat('gir','girTog')"></button>
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-weight:700;font-size:14px">Up & down</div>
+    <button class="tog ${hd.updown?'on':''}" id="udT" onclick="togHoleStat('updown','udT')"></button>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
-    <div><div style="font-weight:700;font-size:14px">Up & down</div></div>
-    <button class="tog ${hd.updown?'on':''}" id="udTog" onclick="toggleStat('updown','udTog')"></button>
-  </div>
-</div>`}
+</div>
 
 <button class="btn bg" onclick="saveHole()">${cHole<AR.totalHoles-1?'Save & next hole →':'Finish round 🏁'}</button>
-${AR.mode==='shot'?`<button class="btn bo" onclick="WF.step='preshot';renderWF()">← Add another shot</button>`:''}`;
+${AR.mode==='shot'?`<button class="btn bo" onclick="WF.step='play';renderWF()">← Add another shot</button>`:''}`;
+
+  // Store initial values
+  window._s2g = s2g;
+  if(!hd.score)hd.score=s2g+(hd.putts||2);
 }
+
+function adjS2G(d){
+  window._s2g=Math.max(0,(window._s2g||0)+d);
+  const hd=window._hd;
+  const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+  const par=holes[cHole].par;
+  hd.gir=(window._s2g<=(par-2)&&window._s2g>0);
+  hd.score=window._s2g+(hd.putts||0);
+  const s2gEl=document.getElementById('s2gEl');if(s2gEl)s2gEl.textContent=window._s2g;
+  const svEl=document.getElementById('svEl');
+  if(svEl){svEl.textContent=hd.score;svEl.style.color=hd.score<par?'var(--g)':hd.score===par?'var(--txt)':'var(--red)';}
+  const lbl=document.getElementById('scoreLbl');if(lbl)lbl.innerHTML=getBdg(hd.score,par);
+  const as=document.getElementById('autoStats');
+  if(as)as.textContent='GIR: '+(hd.gir?'✓ Yes':'✗ No')+' · Fairway: '+(hd.fairway===true?'✓ Yes':hd.fairway===false?'✗ No':'—')+' · Up&Down: '+(hd.updown?'✓ Yes':'—');
+}
+
+function togHoleStat(stat,btnId){
+  const hd=window._hd;
+  hd[stat]=!hd[stat];
+  const btn=document.getElementById(btnId);
+  if(btn)btn.classList.toggle('on',hd[stat]);
+  const as=document.getElementById('autoStats');
+  if(as)as.textContent='GIR: '+(hd.gir?'✓ Yes':'✗ No')+' · Fairway: '+(hd.fairway===true?'✓ Yes':hd.fairway===false?'✗ No':'—')+' · Up&Down: '+(hd.updown?'✓ Yes':'—');
+}
+
+
 
 function toggleStat(key,btnId){
   const hd=window._hd;
@@ -1909,14 +1933,20 @@ function aV(k,d){
   const h=window._hd;
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const hole=holes[cHole];
-  if(k==='putts'){h.putts=Math.max(0,(h.putts||0)+d);}
-  if(k==='score'){h.score=Math.max(1,(h.score||hole.par)+d);}
+  if(k==='putts') h.putts=Math.max(0,(h.putts||0)+d);
+  // Score = shots to green + putts
+  const s2g=window._s2g!==undefined?window._s2g:Math.max(1,(h.score||3)-(h.putts||0));
+  h.score=Math.max(1,s2g+(h.putts||0));
+  h.gir=(s2g<=(hole.par-2)&&s2g>0);
+  h.updown=!h.gir&&(h.putts||0)===1;
+  const pvEl=document.getElementById('pvEl');if(pvEl)pvEl.textContent=h.putts||0;
   const svEl=document.getElementById('svEl');
-  if(svEl){svEl.textContent=h.score||hole.par;svEl.style.color=(h.score||0)<hole.par?'var(--g)':(h.score||0)===hole.par?'var(--txt)':'var(--red)';}
-  const pvEl=document.getElementById('pvEl');
-  if(pvEl)pvEl.textContent=h.putts||0;
-  const lbl=document.getElementById('scoreLbl');
-  if(lbl)lbl.innerHTML=getBdg(h.score||hole.par,hole.par);
+  if(svEl){svEl.textContent=h.score;svEl.style.color=h.score<hole.par?'var(--g)':h.score===hole.par?'var(--txt)':'var(--red)';}
+  const lbl=document.getElementById('scoreLbl');if(lbl)lbl.innerHTML=getBdg(h.score,hole.par);
+  const hint=document.getElementById('puttHint');
+  if(hint)hint.textContent=(h.putts||0)===1?'1 putt = up & down ✓':(h.putts||0)===0?'No putts recorded':'Standard';
+  const as=document.getElementById('autoStats');
+  if(as)as.textContent='GIR: '+(h.gir?'✓ Yes':'✗ No')+' · Fairway: '+(h.fairway===true?'✓ Yes':h.fairway===false?'✗ No':'—')+' · Up&Down: '+(h.updown?'✓ Yes':'—');
 }
 function tH(k,id){const h=window._hd;h[k]=!h[k];document.getElementById(id)?.classList.toggle('on',h[k]);}
 
@@ -2376,9 +2406,57 @@ ${AR.mode==='hole'?`
 <button class="btn bo" style="margin-top:6px;color:var(--red)" onclick="confirmFinish()">🏁 Finish round</button>`;
 
   renderHoleDiagram(hole, cHole);
-  // Clear ball position dot for new hole
-  const svg=document.getElementById('holeDiagDots');if(svg)svg.innerHTML='';
-  const hint=document.getElementById('tapHint');if(hint)hint.style.display='block';
+  // Draw historical ball positions for current session shots on this hole
+  const dotsEl=document.getElementById('holeDiagDots');
+  if(dotsEl){
+    dotsEl.innerHTML='';
+    const hd=window._hd;
+    const pastShots=(hd&&hd.shots)||[];
+    if(pastShots.length>0){
+      // Draw lines between positions first
+      const posShots=pastShots.filter(function(s){return s.ballPos;});
+      if(posShots.length>1){
+        for(var si=0;si<posShots.length-1;si++){
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1',posShots[si].ballPos.x+'%');
+          line.setAttribute('y1',posShots[si].ballPos.y+'%');
+          line.setAttribute('x2',posShots[si+1].ballPos.x+'%');
+          line.setAttribute('y2',posShots[si+1].ballPos.y+'%');
+          line.setAttribute('stroke','rgba(255,255,255,0.7)');
+          line.setAttribute('stroke-width','2');
+          line.setAttribute('stroke-dasharray','4,3');
+          dotsEl.appendChild(line);
+        }
+      }
+      // Draw dots for each shot
+      const shotColors=['#e74c3c','#c9a84c','#3b82f6','#2d8c3a','#9b59b6','#e67e22'];
+      posShots.forEach(function(s,i){
+        const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        circle.setAttribute('cx',s.ballPos.x+'%');
+        circle.setAttribute('cy',s.ballPos.y+'%');
+        circle.setAttribute('r','9');
+        circle.setAttribute('fill',shotColors[i%shotColors.length]);
+        circle.setAttribute('stroke','#fff');
+        circle.setAttribute('stroke-width','2');
+        dotsEl.appendChild(circle);
+        // Shot number label
+        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',s.ballPos.x+'%');
+        txt.setAttribute('y',s.ballPos.y+'%');
+        txt.setAttribute('dominant-baseline','central');
+        txt.setAttribute('text-anchor','middle');
+        txt.setAttribute('fill','#fff');
+        txt.setAttribute('font-size','9');
+        txt.setAttribute('font-weight','700');
+        txt.textContent=i+1;
+        dotsEl.appendChild(txt);
+      });
+      // Hide hint if shots already recorded
+      const hint=document.getElementById('tapHint');if(hint)hint.style.display='none';
+    } else {
+      const hint=document.getElementById('tapHint');if(hint)hint.style.display='block';
+    }
+  }
 }
 
 
@@ -3421,7 +3499,7 @@ window.addEventListener('load',init);
 
 function getTrackingPrefs(){
   const d=ud();
-  return Object.assign({shape:false,direction:false,contact:false,lie:true},d.trackingPrefs||{});
+  return Object.assign({shape:true,direction:true,contact:true,lie:true},d.trackingPrefs||{});
 }
 
 function togTrk(key,btnId){
