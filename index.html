@@ -1640,25 +1640,18 @@ function buildConGrid(){document.getElementById('conGrid').innerHTML=CONS.map(c=
 function selCon(id){sfb.con=id;CONS.forEach(c=>document.getElementById('con_'+c.id)?.classList.toggle('sel',c.id===id));}
 
 function saveShotFB(){
+  // Save lie BEFORE commitShot clears it
+  const wasOnGreen=window._hd&&window._hd.selectedLie==='Green';
   commitShot();
   document.getElementById('shotMod').classList.remove('open');
-  // Go to score if on green, otherwise back to hole view for next shot
-  if(window._hd&&window._hd.selectedLie==='Green'){
-    WF.step='score';
-  } else {
-    WF.step='play';
-  }
+  WF.step=wasOnGreen?'score':'play';
   renderWF();
 }
 function skipShotFB(){
+  const wasOnGreen=window._hd&&window._hd.selectedLie==='Green';
   commitShot();
   document.getElementById('shotMod').classList.remove('open');
-  // Go to score if on green, otherwise back to hole view for next shot
-  if(window._hd&&window._hd.selectedLie==='Green'){
-    WF.step='score';
-  } else {
-    WF.step='play';
-  }
+  WF.step=wasOnGreen?'score':'play';
   renderWF();
 }
 
@@ -1774,25 +1767,19 @@ function selLie(l){
 
 function contFromLie(){
   const trk=getTrackingPrefs();
-  // MUST have lie selected if lie tracking is on
   if(trk.lie&&!window._hd.selectedLie){
     toast('Select where your ball landed first');
     return;
   }
-  const lie=window._hd.selectedLie;
-  const goToScore=!trk.lie||lie==='Green';
-  // Show shape/dir/contact modal if enabled
+  // Save lie state BEFORE anything clears it
+  const wasOnGreen=!trk.lie||window._hd.selectedLie==='Green';
   if(trk.shape||trk.direction||trk.contact){
     openShotMod();
     return;
   }
-  // Commit shot then advance
   commitShot();
-  if(goToScore){
-    WF.step='score';renderWF();
-  } else {
-    WF.step='play';renderWF();
-  }
+  WF.step=wasOnGreen?'score':'play';
+  renderWF();
 }
 
 // STEP: Score
@@ -1805,15 +1792,13 @@ function stepScore(pg){
   const shots=hd.shots||[];
 
   // ── AUTO-CALC SHOTS TO GREEN ──
-  // Count all shots where lie is NOT Green (putting shots)
-  const nonGreenShots=shots.filter(function(s){return s.lie!=='Green';});
-  const s2g=nonGreenShots.length||1; // at least 1 if in shot mode
+  // All tracked shots = shots to green (player tapped green when on the green)
+  // Putts are entered separately on score screen
+  const s2g=shots.length||1;
   window._s2g=s2g;
 
-  // ── AUTO-CALC PUTTS ──
-  const greenShots=shots.filter(function(s){return s.lie==='Green';});
-  if(greenShots.length>0&&!hd.putts)hd.putts=greenShots.length;
-  if(!hd.putts)hd.putts=2; // default 2 putts
+  // ── AUTO-CALC PUTTS - default 2, but 1 if par 3 GIR ──
+  if(!hd.putts)hd.putts=2;
 
   // ── AUTO-CALC GIR ──
   // Non-green shots must be <= par-2
