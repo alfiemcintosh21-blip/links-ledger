@@ -1369,8 +1369,7 @@ function showDistancePopup(bx, by){
   popup.id = 'distPopup';
   popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:flex-end;justify-content:center';
   // Calculate previous tee distance for shot distance calc
-  const prevDist=(window._hd&&window._hd.shots&&window._hd.shots.length>0)?
-    (window._hd.shots[window._hd.shots.length-1].teeDist||0):0;
+  const prevDist=(window._hd&&window._hd.lastCommittedTeeDist)||0;
   const shotNum=((window._hd&&window._hd.shots)?window._hd.shots.length:0)+1;
   popup.innerHTML = `
 <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:420px">
@@ -1413,10 +1412,9 @@ function distKey(k){
   if(calcEl && window._distVal){
     const tee = parseInt(window._distVal)||0;
     const hd = window._hd;
-    const shots = (hd&&hd.shots)||[];
-    const prevTee = shots.length>0 ? (shots[shots.length-1].teeDist||0) : 0;
-    const shotDist = shots.length===0 ? tee : Math.max(0, tee - prevTee);
-    calcEl.textContent = 'Shot distance: ' + shotDist + 'm' + (shots.length>0?' (from '+prevTee+'m)':'');
+    const prevTee = (hd&&hd.lastCommittedTeeDist)||0;
+    const shotDist = prevTee===0 ? tee : Math.max(0, tee - prevTee);
+    calcEl.textContent = 'Shot distance: ' + shotDist + 'm' + (prevTee>0?' (from '+prevTee+'m)':'');
     calcEl.style.color = shotDist>0 ? 'var(--g)' : 'var(--red)';
   }
 }
@@ -1426,9 +1424,8 @@ function confirmDist(){
   
   if(window._hd && teeDist){
     // Calculate actual shot distance = this tee dist - previous tee dist
-    const shots = window._hd.shots||[];
-    const prevTeeDist = shots.length>0 ? (shots[shots.length-1].teeDist||0) : 0;
-    const shotDist = shots.length===0 ? teeDist : Math.max(0, teeDist - prevTeeDist);
+    const prevTeeDist = window._hd.lastCommittedTeeDist||0;
+    const shotDist = prevTeeDist===0 ? teeDist : Math.max(0, teeDist - prevTeeDist);
     window._hd.lastShotDist = shotDist;  // actual shot distance
     window._hd.lastTeeDist = teeDist;    // distance from tee (stored on shot)
   }
@@ -1721,6 +1718,8 @@ function commitShot(){
     ud2.clubStats[c].min=Math.min.apply(null,arr);
     sud(ud2);
   }
+  // Store the last committed tee distance for next shot's calc
+  if(shot.teeDist) hd.lastCommittedTeeDist = shot.teeDist;
   hd.selectedLie=null;
   sfb={};
 }
@@ -2041,6 +2040,8 @@ function saveHole(){
   // Enrich shots with hole outcome
   if(window._hd&&window._hd.shots){const hs=window._hd;window._hd.shots.forEach(function(s){s.holeScore=hs.score;s.holePutts=hs.putts;s.holeGIR=hs.gir;s.holeFairway=hs.fairway;s.holeUpDown=hs.updown;s.holeToPar=hs.score-(hs.par||s.holePar||4);});}
   autoSaveRound();
+  // Reset tee distance tracking for next hole
+  if(window._hd)window._hd.lastCommittedTeeDist=0;
   if(cHole<AR.totalHoles-1){cHole++;WF.step='play';fetchWx(gc(AR.courseId).lat,gc(AR.courseId).lng).then(function(w){wxData=w;renderWF();});renderWF();}
   else finishRound();
 }
