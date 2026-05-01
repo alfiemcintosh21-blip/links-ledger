@@ -1368,14 +1368,20 @@ function showDistancePopup(bx, by){
   const popup = document.createElement('div');
   popup.id = 'distPopup';
   popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:flex-end;justify-content:center';
+  // Calculate previous tee distance for shot distance calc
+  const prevDist=(window._hd&&window._hd.shots&&window._hd.shots.length>0)?
+    (window._hd.shots[window._hd.shots.length-1].teeDist||0):0;
+  const shotNum=((window._hd&&window._hd.shots)?window._hd.shots.length:0)+1;
   popup.innerHTML = `
 <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:420px">
-  <div style="text-align:center;font-weight:800;font-size:18px;margin-bottom:4px">📍 Ball position marked</div>
-  <div style="text-align:center;color:var(--txt3);font-size:13px;margin-bottom:16px">How far was this shot? (metres)</div>
-  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px">
+  <div style="text-align:center;font-weight:800;font-size:18px;margin-bottom:2px">📍 Shot ${shotNum}</div>
+  <div style="text-align:center;color:var(--txt3);font-size:14px;font-weight:700;margin-bottom:4px">How far is your ball from the tee box?</div>
+  <div style="text-align:center;color:var(--txt3);font-size:12px;margin-bottom:16px">Measure straight back to where you teed off</div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px">
     <div id="distDisplay" style="font-size:48px;font-weight:900;color:var(--g);min-width:120px;text-align:center;border-bottom:3px solid var(--g)">—</div>
-    <div style="font-size:13px;font-weight:700;color:var(--txt3)">m</div>
+    <div style="font-size:13px;font-weight:700;color:var(--txt3)">m from tee</div>
   </div>
+  <div style="text-align:center;font-size:13px;color:var(--txt3);margin-bottom:12px" id="shotDistCalc">Shot distance: —</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
     ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>`
     <button onclick="distKey('${k}')" style="padding:16px;font-size:22px;font-weight:800;background:${k===''?'transparent':'var(--bg3)'};border:none;border-radius:12px;cursor:pointer;font-family:inherit;color:var(--txt)">${k}</button>`).join('')}
@@ -1402,15 +1408,34 @@ function distKey(k){
     window._distVal = (window._distVal||'') + k;
   }
   disp.textContent = window._distVal || '—';
+  // Show calculated shot distance
+  const calcEl = document.getElementById('shotDistCalc');
+  if(calcEl && window._distVal){
+    const tee = parseInt(window._distVal)||0;
+    const hd = window._hd;
+    const shots = (hd&&hd.shots)||[];
+    const prevTee = shots.length>0 ? (shots[shots.length-1].teeDist||0) : 0;
+    const shotDist = shots.length===0 ? tee : Math.max(0, tee - prevTee);
+    calcEl.textContent = 'Shot distance: ' + shotDist + 'm' + (shots.length>0?' (from '+prevTee+'m)':'');
+    calcEl.style.color = shotDist>0 ? 'var(--g)' : 'var(--red)';
+  }
 }
 
 function confirmDist(){
-  const dist = parseInt(window._distVal||'0') || null;
-  if(window._hd) window._hd.lastShotDist = dist;
+  const teeDist = parseInt(window._distVal||'0') || null;
+  
+  if(window._hd && teeDist){
+    // Calculate actual shot distance = this tee dist - previous tee dist
+    const shots = window._hd.shots||[];
+    const prevTeeDist = shots.length>0 ? (shots[shots.length-1].teeDist||0) : 0;
+    const shotDist = shots.length===0 ? teeDist : Math.max(0, teeDist - prevTeeDist);
+    window._hd.lastShotDist = shotDist;  // actual shot distance
+    window._hd.lastTeeDist = teeDist;    // distance from tee (stored on shot)
+  }
+
   const popup = document.getElementById('distPopup');
   if(popup) popup.remove();
   const trk = getTrackingPrefs();
-  // After marking position + distance: go to lie, then shape/dir/contact, then commit
   if(trk.lie){
     WF.step='lie'; renderWF();
   } else if(trk.shape||trk.direction||trk.contact){
@@ -1668,7 +1693,8 @@ function commitShot(){
     con:sfb.con||null,
     // Position (from image tap)
     ballPos:hd.ballPos||null,
-    dist:hd.lastShotDist||null,
+    dist:hd.lastShotDist||null,    // actual shot distance (calculated)
+    teeDist:hd.lastTeeDist||null,  // distance from tee box (entered by player)
     // Context
     ts:Date.now(),
     wind:wxData||null,
