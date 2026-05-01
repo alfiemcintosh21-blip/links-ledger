@@ -1432,15 +1432,9 @@ function confirmDist(){
 
   const popup = document.getElementById('distPopup');
   if(popup) popup.remove();
-  const trk = getTrackingPrefs();
-  if(trk.lie){
-    WF.step='lie'; renderWF();
-  } else if(trk.shape||trk.direction||trk.contact){
-    openShotMod();
-  } else {
-    commitShot();
-    WF.step='play'; renderWF();
-  }
+  // After entering distance: go to preshot to select club, then shape/dir/contact, then commit
+  WF.step='preshot';
+  renderWF();
 }
 
 function minimiseDistPopup(){
@@ -1504,9 +1498,9 @@ function stepPreshot(pg){
 
 ${hd.selectedClub?`
 <div style="margin-top:14px;background:var(--gl);border:1px solid var(--gll);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--gd);margin-bottom:10px">
-  ✓ Club: <strong>${hd.selectedClub}</strong> — now tap the hole image to mark where the ball landed
+  ✓ Club: <strong>${hd.selectedClub}</strong>
 </div>
-<button class="btn bg" onclick="WF.step='play';renderWF()">📍 Mark ball on hole image →</button>`:`
+<button class="btn bg" onclick="openShotMod()">🏌️ Record shot details →</button>`:`
 <div style="margin-top:14px;background:var(--bg3);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--txt3)">
   Select a club above to continue
 </div>`}
@@ -1652,15 +1646,23 @@ function selCon(id){sfb.con=id;CONS.forEach(c=>document.getElementById('con_'+c.
 function saveShotFB(){
   commitShot();
   document.getElementById('shotMod').classList.remove('open');
-  const trk=getTrackingPrefs();
-  WF.step=trk.lie?'lie':'preshot';
+  // Go to score if on green, otherwise back to hole view for next shot
+  if(window._hd&&window._hd.selectedLie==='Green'){
+    WF.step='score';
+  } else {
+    WF.step='play';
+  }
   renderWF();
 }
 function skipShotFB(){
   commitShot();
   document.getElementById('shotMod').classList.remove('open');
-  const trk=getTrackingPrefs();
-  WF.step=trk.lie?'lie':'preshot';
+  // Go to score if on green, otherwise back to hole view for next shot
+  if(window._hd&&window._hd.selectedLie==='Green'){
+    WF.step='score';
+  } else {
+    WF.step='play';
+  }
   renderWF();
 }
 
@@ -1720,8 +1722,11 @@ function commitShot(){
   }
   // Store the last committed tee distance for next shot's calc
   if(shot.teeDist) hd.lastCommittedTeeDist = shot.teeDist;
+  // Ensure AR.holes[cHole] always points to the same object
+  AR.holes[cHole] = hd;
   hd.selectedLie=null;
   sfb={};
+  console.log('Shot committed. Total shots on hole:', hd.shots.length, 'Hole:', cHole);
 }
 
 // STEP: Lie
@@ -1760,7 +1765,7 @@ ${LIE_IMGS[l]?`<img src="${LIE_IMGS[l]}" style="width:48px;height:38px;object-fi
 <div class="lie-lbl">${l}</div></button>`).join('')}
 </div>
 
-${hd.selectedLie==='Green'?`<button class="btn bg" onclick="WF.step='score';renderWF()">✓ Go to score entry →</button>`:
+${hd.selectedLie==='Green'?`<button class="btn bg" onclick="contFromLie()">✓ Go to score entry →</button>`:
 `<button class="btn bg" onclick="contFromLie()">✓ Select club for next shot →</button>`}
 <button class="btn bo" onclick="WF.step='preshot';renderWF()">← Back</button>`;
 }
@@ -1774,8 +1779,18 @@ function selLie(l){
 function contFromLie(){
   const trk=getTrackingPrefs();
   if(trk.lie&&!window._hd.selectedLie){toast('Select a lie first');return;}
-  if(!trk.lie||window._hd.selectedLie==='Green'){WF.step='score';renderWF();return;}
-  WF.step='preshot';renderWF();
+  // Show shape/dir/contact modal if any tracking enabled
+  if(trk.shape||trk.direction||trk.contact){
+    openShotMod(); // openShotMod calls commitShot internally
+    return;
+  }
+  // No shape/dir/contact tracking - commit shot now
+  commitShot();
+  if(window._hd.selectedLie==='Green'){
+    WF.step='score';renderWF();
+  } else {
+    WF.step='play';renderWF(); // back to hole view for next shot
+  }
 }
 
 // STEP: Score
