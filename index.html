@@ -2505,31 +2505,6 @@ ${AR.mode==='hole'?`
       const posShots=pastShots.filter(function(s){return s.ballPos;});
       const SVG_NS='http://www.w3.org/2000/svg';
 
-      // Tee box position - bottom centre of image (where red arrow starts)
-      const teeX=50;
-      const teeY=92;
-
-      // Draw tee box marker
-      const teeDot=document.createElementNS(SVG_NS,'circle');
-      teeDot.setAttribute('cx',teeX+'%');teeDot.setAttribute('cy',teeY+'%');
-      teeDot.setAttribute('r','7');teeDot.setAttribute('fill','#fff');
-      teeDot.setAttribute('stroke','#2d5a3d');teeDot.setAttribute('stroke-width','2');
-      dotsEl.appendChild(teeDot);
-      const teeLabel=document.createElementNS(SVG_NS,'text');
-      teeLabel.setAttribute('x',teeX+'%');teeLabel.setAttribute('y',teeY+'%');
-      teeLabel.setAttribute('dominant-baseline','central');teeLabel.setAttribute('text-anchor','middle');
-      teeLabel.setAttribute('fill','#2d5a3d');teeLabel.setAttribute('font-size','8');teeLabel.setAttribute('font-weight','900');
-      teeLabel.textContent='T';dotsEl.appendChild(teeLabel);
-
-      // Draw line from tee to first ball position
-      if(posShots.length>0){
-        const firstLine=document.createElementNS(SVG_NS,'line');
-        firstLine.setAttribute('x1',teeX+'%');firstLine.setAttribute('y1',teeY+'%');
-        firstLine.setAttribute('x2',posShots[0].ballPos.x+'%');firstLine.setAttribute('y2',posShots[0].ballPos.y+'%');
-        firstLine.setAttribute('stroke','rgba(255,255,255,0.8)');firstLine.setAttribute('stroke-width','2');
-        firstLine.setAttribute('stroke-dasharray','4,3');dotsEl.appendChild(firstLine);
-      }
-
       // Draw lines between ball positions
       for(var si=0;si<posShots.length-1;si++){
         const line=document.createElementNS(SVG_NS,'line');
@@ -2559,25 +2534,26 @@ ${AR.mode==='hole'?`
         numTxt.setAttribute('fill','#fff');numTxt.setAttribute('font-size','9');numTxt.setAttribute('font-weight','700');
         numTxt.textContent=i+1;dotsEl.appendChild(numTxt);
 
-        // Distance label (show actual shot distance)
+        // Distance label - right next to dot, flip left if near right edge
         if(s.dist||s.teeDist){
-          const distVal=s.dist||s.teeDist;
-          // Label background pill
-          const labelX=cx>75?cx-14:cx+14;
-          const labelY=cy>85?cy-10:cy+10;
-          const bg=document.createElementNS(SVG_NS,'rect');
-          const labelText=distVal+'m';
-          const approxW=labelText.length*5+8;
-          bg.setAttribute('x','calc('+labelX+'% - '+Math.round(approxW/2)+'px)');
-          bg.setAttribute('y','calc('+labelY+'% - 7px)');
-          bg.setAttribute('width',approxW+'px');bg.setAttribute('height','14px');
-          bg.setAttribute('rx','4');bg.setAttribute('fill','rgba(0,0,0,0.7)');
-          dotsEl.appendChild(bg);
+          const distVal=(s.dist||s.teeDist)+'m';
+          const nearRight=cx>70;
+          const nearBottom=cy>85;
+          // Anchor text just beside the dot (12px offset)
           const distTxt=document.createElementNS(SVG_NS,'text');
-          distTxt.setAttribute('x',labelX+'%');distTxt.setAttribute('y',labelY+'%');
-          distTxt.setAttribute('dominant-baseline','central');distTxt.setAttribute('text-anchor','middle');
-          distTxt.setAttribute('fill','#fff');distTxt.setAttribute('font-size','9');distTxt.setAttribute('font-weight','700');
-          distTxt.textContent=distVal+'m';dotsEl.appendChild(distTxt);
+          distTxt.setAttribute('x','calc('+cx+'% '+(nearRight?'- 14px':'+ 14px')+')');
+          distTxt.setAttribute('y','calc('+cy+'%'+(nearBottom?' - 8px':' + 0px')+')');
+          distTxt.setAttribute('dominant-baseline','central');
+          distTxt.setAttribute('text-anchor',nearRight?'end':'start');
+          distTxt.setAttribute('fill','#fff');
+          distTxt.setAttribute('font-size','11');
+          distTxt.setAttribute('font-weight','900');
+          distTxt.setAttribute('paint-order','stroke');
+          distTxt.setAttribute('stroke','rgba(0,0,0,0.8)');
+          distTxt.setAttribute('stroke-width','3');
+          distTxt.setAttribute('stroke-linejoin','round');
+          distTxt.textContent=distVal;
+          dotsEl.appendChild(distTxt);
         }
       });
       // Hide hint if shots already recorded
