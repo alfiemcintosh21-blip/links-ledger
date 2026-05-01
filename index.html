@@ -1420,21 +1420,17 @@ function distKey(k){
 }
 
 function confirmDist(){
-  const teeDist = parseInt(window._distVal||'0') || null;
-  
-  if(window._hd && teeDist){
-    // Calculate actual shot distance = this tee dist - previous tee dist
-    const prevTeeDist = window._hd.lastCommittedTeeDist||0;
-    const shotDist = prevTeeDist===0 ? teeDist : Math.max(0, teeDist - prevTeeDist);
-    window._hd.lastShotDist = shotDist;  // actual shot distance
-    window._hd.lastTeeDist = teeDist;    // distance from tee (stored on shot)
+  const teeDist=parseInt(window._distVal||'0')||null;
+  if(window._hd&&teeDist){
+    const prevTeeDist=window._hd.lastCommittedTeeDist||0;
+    const shotDist=prevTeeDist===0?teeDist:Math.max(0,teeDist-prevTeeDist);
+    window._hd.lastShotDist=shotDist;
+    window._hd.lastTeeDist=teeDist;
   }
-
-  const popup = document.getElementById('distPopup');
-  if(popup) popup.remove();
-  // After entering distance: go to preshot to select club, then shape/dir/contact, then commit
-  WF.step='preshot';
-  renderWF();
+  const popup=document.getElementById('distPopup');if(popup)popup.remove();
+  const btn=document.getElementById('restoreDistBtn');if(btn)btn.remove();
+  // Always go to lie selection - lie determines if putting or not
+  WF.step='lie';renderWF();
 }
 
 function minimiseDistPopup(){
@@ -1778,18 +1774,24 @@ function selLie(l){
 
 function contFromLie(){
   const trk=getTrackingPrefs();
-  if(trk.lie&&!window._hd.selectedLie){toast('Select a lie first');return;}
-  // Show shape/dir/contact modal if any tracking enabled
-  if(trk.shape||trk.direction||trk.contact){
-    openShotMod(); // openShotMod calls commitShot internally
+  // MUST have lie selected if lie tracking is on
+  if(trk.lie&&!window._hd.selectedLie){
+    toast('Select where your ball landed first');
     return;
   }
-  // No shape/dir/contact tracking - commit shot now
+  const lie=window._hd.selectedLie;
+  const goToScore=!trk.lie||lie==='Green';
+  // Show shape/dir/contact modal if enabled
+  if(trk.shape||trk.direction||trk.contact){
+    openShotMod();
+    return;
+  }
+  // Commit shot then advance
   commitShot();
-  if(window._hd.selectedLie==='Green'){
+  if(goToScore){
     WF.step='score';renderWF();
   } else {
-    WF.step='play';renderWF(); // back to hole view for next shot
+    WF.step='play';renderWF();
   }
 }
 
@@ -2500,43 +2502,83 @@ ${AR.mode==='hole'?`
     const hd=window._hd;
     const pastShots=(hd&&hd.shots)||[];
     if(pastShots.length>0){
-      // Draw lines between positions first
       const posShots=pastShots.filter(function(s){return s.ballPos;});
-      if(posShots.length>1){
-        for(var si=0;si<posShots.length-1;si++){
-          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-          line.setAttribute('x1',posShots[si].ballPos.x+'%');
-          line.setAttribute('y1',posShots[si].ballPos.y+'%');
-          line.setAttribute('x2',posShots[si+1].ballPos.x+'%');
-          line.setAttribute('y2',posShots[si+1].ballPos.y+'%');
-          line.setAttribute('stroke','rgba(255,255,255,0.7)');
-          line.setAttribute('stroke-width','2');
-          line.setAttribute('stroke-dasharray','4,3');
-          dotsEl.appendChild(line);
-        }
+      const SVG_NS='http://www.w3.org/2000/svg';
+
+      // Tee box position - bottom centre of image (where red arrow starts)
+      const teeX=50;
+      const teeY=92;
+
+      // Draw tee box marker
+      const teeDot=document.createElementNS(SVG_NS,'circle');
+      teeDot.setAttribute('cx',teeX+'%');teeDot.setAttribute('cy',teeY+'%');
+      teeDot.setAttribute('r','7');teeDot.setAttribute('fill','#fff');
+      teeDot.setAttribute('stroke','#2d5a3d');teeDot.setAttribute('stroke-width','2');
+      dotsEl.appendChild(teeDot);
+      const teeLabel=document.createElementNS(SVG_NS,'text');
+      teeLabel.setAttribute('x',teeX+'%');teeLabel.setAttribute('y',teeY+'%');
+      teeLabel.setAttribute('dominant-baseline','central');teeLabel.setAttribute('text-anchor','middle');
+      teeLabel.setAttribute('fill','#2d5a3d');teeLabel.setAttribute('font-size','8');teeLabel.setAttribute('font-weight','900');
+      teeLabel.textContent='T';dotsEl.appendChild(teeLabel);
+
+      // Draw line from tee to first ball position
+      if(posShots.length>0){
+        const firstLine=document.createElementNS(SVG_NS,'line');
+        firstLine.setAttribute('x1',teeX+'%');firstLine.setAttribute('y1',teeY+'%');
+        firstLine.setAttribute('x2',posShots[0].ballPos.x+'%');firstLine.setAttribute('y2',posShots[0].ballPos.y+'%');
+        firstLine.setAttribute('stroke','rgba(255,255,255,0.8)');firstLine.setAttribute('stroke-width','2');
+        firstLine.setAttribute('stroke-dasharray','4,3');dotsEl.appendChild(firstLine);
       }
-      // Draw dots for each shot
+
+      // Draw lines between ball positions
+      for(var si=0;si<posShots.length-1;si++){
+        const line=document.createElementNS(SVG_NS,'line');
+        line.setAttribute('x1',posShots[si].ballPos.x+'%');line.setAttribute('y1',posShots[si].ballPos.y+'%');
+        line.setAttribute('x2',posShots[si+1].ballPos.x+'%');line.setAttribute('y2',posShots[si+1].ballPos.y+'%');
+        line.setAttribute('stroke','rgba(255,255,255,0.8)');line.setAttribute('stroke-width','2');
+        line.setAttribute('stroke-dasharray','4,3');dotsEl.appendChild(line);
+      }
+
+      // Draw dots and distance labels
       const shotColors=['#e74c3c','#c9a84c','#3b82f6','#2d8c3a','#9b59b6','#e67e22'];
       posShots.forEach(function(s,i){
-        const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
-        circle.setAttribute('cx',s.ballPos.x+'%');
-        circle.setAttribute('cy',s.ballPos.y+'%');
-        circle.setAttribute('r','9');
-        circle.setAttribute('fill',shotColors[i%shotColors.length]);
-        circle.setAttribute('stroke','#fff');
-        circle.setAttribute('stroke-width','2');
+        const cx=s.ballPos.x;const cy=s.ballPos.y;
+        const col=shotColors[i%shotColors.length];
+
+        // Dot
+        const circle=document.createElementNS(SVG_NS,'circle');
+        circle.setAttribute('cx',cx+'%');circle.setAttribute('cy',cy+'%');
+        circle.setAttribute('r','9');circle.setAttribute('fill',col);
+        circle.setAttribute('stroke','#fff');circle.setAttribute('stroke-width','2');
         dotsEl.appendChild(circle);
-        // Shot number label
-        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
-        txt.setAttribute('x',s.ballPos.x+'%');
-        txt.setAttribute('y',s.ballPos.y+'%');
-        txt.setAttribute('dominant-baseline','central');
-        txt.setAttribute('text-anchor','middle');
-        txt.setAttribute('fill','#fff');
-        txt.setAttribute('font-size','9');
-        txt.setAttribute('font-weight','700');
-        txt.textContent=i+1;
-        dotsEl.appendChild(txt);
+
+        // Shot number
+        const numTxt=document.createElementNS(SVG_NS,'text');
+        numTxt.setAttribute('x',cx+'%');numTxt.setAttribute('y',cy+'%');
+        numTxt.setAttribute('dominant-baseline','central');numTxt.setAttribute('text-anchor','middle');
+        numTxt.setAttribute('fill','#fff');numTxt.setAttribute('font-size','9');numTxt.setAttribute('font-weight','700');
+        numTxt.textContent=i+1;dotsEl.appendChild(numTxt);
+
+        // Distance label (show actual shot distance)
+        if(s.dist||s.teeDist){
+          const distVal=s.dist||s.teeDist;
+          // Label background pill
+          const labelX=cx>75?cx-14:cx+14;
+          const labelY=cy>85?cy-10:cy+10;
+          const bg=document.createElementNS(SVG_NS,'rect');
+          const labelText=distVal+'m';
+          const approxW=labelText.length*5+8;
+          bg.setAttribute('x','calc('+labelX+'% - '+Math.round(approxW/2)+'px)');
+          bg.setAttribute('y','calc('+labelY+'% - 7px)');
+          bg.setAttribute('width',approxW+'px');bg.setAttribute('height','14px');
+          bg.setAttribute('rx','4');bg.setAttribute('fill','rgba(0,0,0,0.7)');
+          dotsEl.appendChild(bg);
+          const distTxt=document.createElementNS(SVG_NS,'text');
+          distTxt.setAttribute('x',labelX+'%');distTxt.setAttribute('y',labelY+'%');
+          distTxt.setAttribute('dominant-baseline','central');distTxt.setAttribute('text-anchor','middle');
+          distTxt.setAttribute('fill','#fff');distTxt.setAttribute('font-size','9');distTxt.setAttribute('font-weight','700');
+          distTxt.textContent=distVal+'m';dotsEl.appendChild(distTxt);
+        }
       });
       // Hide hint if shots already recorded
       const hint=document.getElementById('tapHint');if(hint)hint.style.display='none';
