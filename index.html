@@ -1228,13 +1228,14 @@ function updateHolesOptions(){
     sel.insertBefore(opt18r,sel.children[1]);
     sel.value='9only';
   } else if(c.front12){
-    // Chisholm - front 12
+    // Chisholm - show Front 12 (standard) AND Full 18
     if(opt9f)opt9f.style.display='none';
     if(opt9b)opt9b.style.display='none';
+    if(opt18)opt18.style.display=''; // Keep 18 visible
     var opt12=document.createElement('option');
-    opt12.value='12f';opt12.textContent='Front 12 (Chisholm Links standard)';
-    sel.insertBefore(opt12,sel.children[1]);
-    sel.value='12f';
+    opt12.value='12f';opt12.textContent='Front 12 (Chisholm standard)';
+    sel.insertBefore(opt12,sel.children[0]);
+    sel.value='12f'; // Default to 12 but 18 is selectable
   } else {
     // Normal 18-hole course
     if(opt9f)opt9f.style.display='';
@@ -1515,28 +1516,80 @@ function stepPreshot(pg){
   if(!window._hd){window._hd=AR.holes[cHole]||initHD(hole);AR.holes[cHole]=window._hd;}
   const hd=window._hd;
   const shots=hd.shots||[];
+  const shotNum=shots.length+1;
   const trk=getTrackingPrefs();
 
   pg.innerHTML=`
-<div style="background:var(--g);border-radius:12px;padding:12px 14px;margin-bottom:14px;color:#fff">
-  <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.75;margin-bottom:3px">Hole ${hole.h} · Shot ${shots.length+1}</div>
-  <div style="font-size:17px;font-weight:800">${shots.length===0?'🏌️ Tee shot — select your club':'🏌️ Next shot — select your club'}</div>
+<div style="background:var(--g);border-radius:10px;padding:10px 14px;margin-bottom:14px;color:#fff">
+  <div style="font-size:11px;text-transform:uppercase;opacity:0.75;margin-bottom:2px">Hole ${hole.h} · Shot ${shotNum}</div>
+  <div style="font-size:16px;font-weight:800">Select club & shot details</div>
 </div>
 
-<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--txt3);margin-bottom:8px">Select club</div>
-<div class="club-grid">${myBag().map(c=>`<button class="cc${hd.selectedClub===c?' sel':''}" onclick="selClubPS('${c}')">${c}</button>`).join('')}</div>
+<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:8px">Club</div>
+<div class="club-grid" id="clubGridPS"></div>
 
-${hd.selectedClub?`
-<div style="margin-top:14px;background:var(--gl);border:1px solid var(--gll);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--gd);margin-bottom:10px">
-  ✓ Club: <strong>${hd.selectedClub}</strong>
-</div>
-<button class="btn bg" onclick="openShotMod()">🏌️ Record shot details →</button>`:`
-<div style="margin-top:14px;background:var(--bg3);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--txt3)">
-  Select a club above to continue
-</div>`}
+${trk.direction?`
+<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 8px">Shot Direction</div>
+<div id="dirGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>`:''}
 
-<button class="btn bo" style="margin-top:8px" onclick="WF.step='play';renderWF()">← Back to hole</button>`;
+${trk.shape?`
+<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 8px">Shape</div>
+<div id="shapeGrid" style="display:flex;gap:6px;flex-wrap:wrap"></div>`:''}
+
+${trk.contact?`
+<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 8px">Contact</div>
+<div id="conGrid" style="display:flex;gap:6px;flex-wrap:wrap"></div>`:''}
+
+<div style="margin-top:16px;display:flex;gap:8px">
+  <button class="btn bg" onclick="donePreshot()" style="flex:2">Walk to ball 🚶</button>
+  <button class="btn bo" onclick="WF.step='play';renderWF()" style="flex:1">← Back</button>
+</div>`;
+
+  // Build club grid
+  const cgPS=document.getElementById('clubGridPS');
+  if(cgPS){
+    const bag=myBag();
+    cgPS.innerHTML='';
+    bag.forEach(function(c){
+      var btn=document.createElement('button');
+      btn.className='cc'+(hd.selectedClub===c?' sel':'');
+      btn.textContent=c;
+      btn.onclick=function(){selClubPS(c);};
+      cgPS.appendChild(btn);
+    });
+  }
+  // Build grids
+  if(trk.direction){
+    const dirs=['Left','Straight','Right','Short','On target','Long'];
+    const dg=document.getElementById('dirGrid');
+    if(dg){dg.innerHTML='';dirs.forEach(function(d){var b=document.createElement('button');b.className='cc'+(sfb.dir===d?' sel':'');b.textContent=d;b.onclick=function(){sfb.dir=d;dg.querySelectorAll('.cc').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};dg.appendChild(b);});}
+  }
+  if(trk.shape){
+    const shapes=['Hook','Draw','Straight','Fade','Slice'];
+    const sg=document.getElementById('shapeGrid');
+    if(sg){sg.innerHTML='';shapes.forEach(function(s){var b=document.createElement('button');b.className='cc'+(sfb.shape===s?' sel':'');b.textContent=s;b.onclick=function(){sfb.shape=s;sg.querySelectorAll('.cc').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};sg.appendChild(b);});}
+  }
+  if(trk.contact){
+    const contacts=['Solid','Thin','Fat','Heel','Toe','Topped','Shanked'];
+    const cg=document.getElementById('conGrid');
+    if(cg){cg.innerHTML='';contacts.forEach(function(c){var b=document.createElement('button');b.className='cc'+(sfb.con===c?' sel':'');b.textContent=c;b.onclick=function(){sfb.con=c;cg.querySelectorAll('.cc').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};cg.appendChild(b);});}
+  }
 }
+
+function donePreshot(){
+  if(!window._hd.selectedClub){toast('Select a club first');return;}
+  // Store shape/dir/contact on pending shot data
+  window._hd.pendingShape=sfb.shape;
+  window._hd.pendingDir=sfb.dir;
+  window._hd.pendingCon=sfb.con;
+  sfb={};
+  // Go back to hole view - player walks to ball
+  window._waitingForBall=true;
+  WF.step='play';
+  renderWF();
+}
+
+
 
 
 function selClubPS(c){if(window._hd)window._hd.selectedClub=c;stepPreshot();}
@@ -1710,9 +1763,9 @@ function commitShot(){
     // Shot details
     club:hd.selectedClub,
     lie:hd.selectedLie,
-    shape:sfb.shape||null,
-    dir:sfb.dir||null,
-    con:sfb.con||null,
+    shape:hd.pendingShape||sfb.shape||null,
+    dir:hd.pendingDir||sfb.dir||null,
+    con:hd.pendingCon||sfb.con||null,
     // Position (from image tap)
     ballPos:hd.ballPos||null,
     dist:hd.lastShotDist||null,    // actual shot distance (calculated)
@@ -2408,6 +2461,175 @@ function updateGPSLight(){
 }
 
 function startGPS(){}
+
+// ── INLINE HOLE MAP ──
+let _inlineMap=null, _inlineCrosshair=null, _inlineTeeMarker=null;
+let _inlinePinMarker=null, _inlineLayupMarker=null;
+let _inlineMode='yardage'; // 'yardage' or 'mark'
+let _inlineTeePos=null, _inlinePinPos=null, _inlineLayupPos=null;
+let _inlineTeeToLayupLine=null, _inlineLayupToPinLine=null;
+
+function initInlineHoleMap(courseId, holeNum, shotNum){
+  const gps=getHoleGPS(courseId, holeNum);
+  const c=CDB[courseId];
+  const holeData=(c&&c.h)?c.h[holeNum-1]:{par:4};
+  const mapEl=document.getElementById('holeMapInlineEl');
+  if(!mapEl)return;
+
+  if(_inlineMap){_inlineMap.remove();_inlineMap=null;}
+
+  const centre=gps?[gps.tee.lat,gps.tee.lng]:[c.lat,c.lng];
+  _inlineMap=L.map('holeMapInlineEl',{
+    center:centre,zoom:16,
+    zoomControl:false,attributionControl:false,
+    dragging:true,scrollWheelZoom:false
+  });
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(_inlineMap);
+
+  if(!gps){
+    return;
+  }
+
+  // Store working positions (draggable)
+  _inlineTeePos=_playerTee||gps.tee;
+  _inlinePinPos=gps.green;
+  _inlineLayupPos=gps.layup||null;
+
+  // Frame map: tee at bottom, green at top
+  const frameTee=gps.frameTee||gps.tee;
+  const frameGreen=gps.frameGreen||gps.green;
+  if(shotNum===1){
+    _inlineMap.fitBounds([[frameTee.lat,frameTee.lng],[frameGreen.lat,frameGreen.lng]],{padding:[40,20]});
+  } else if(_prevBallGPS){
+    const bearing=getBearing(gps.green,_prevBallGPS);
+    const behind=offsetCoord(_prevBallGPS,bearing,20);
+    _inlineMap.fitBounds([[behind.lat,behind.lng],[frameGreen.lat,frameGreen.lng]],{padding:[40,20]});
+  }
+
+  // Yardage arcs
+  [50,100,150,200,250].forEach(function(m){
+    L.circle([_inlinePinPos.lat,_inlinePinPos.lng],{radius:m,color:'rgba(255,255,255,0.3)',weight:1,fill:false,dashArray:'3,4'}).addTo(_inlineMap);
+    const arcPt=offsetCoord(_inlinePinPos,90,m);
+    L.marker([arcPt.lat,arcPt.lng],{icon:L.divIcon({className:'',html:'<div style="background:rgba(0,0,0,0.55);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px">'+m+'m</div>',iconAnchor:[12,6]}),interactive:false}).addTo(_inlineMap);
+  });
+
+  // Front/back green labels
+  if(gps.frontGreen){
+    const fd=Math.round(hav(_inlineTeePos,gps.frontGreen));
+    L.marker([gps.frontGreen.lat,gps.frontGreen.lng],{icon:L.divIcon({className:'',html:'<div style="background:rgba(0,100,0,0.85);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px">F '+fd+'m</div>',iconAnchor:[20,8]}),interactive:false}).addTo(_inlineMap);
+  }
+  if(gps.backGreen){
+    const bd=Math.round(hav(_inlineTeePos,gps.backGreen));
+    L.marker([gps.backGreen.lat,gps.backGreen.lng],{icon:L.divIcon({className:'',html:'<div style="background:rgba(150,0,0,0.85);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px">B '+bd+'m</div>',iconAnchor:[20,8]}),interactive:false}).addTo(_inlineMap);
+  }
+
+  // Draw the tee->layup->pin line system
+  drawInlineLines();
+
+  // TEE marker (draggable - player sets their tee position)
+  const teeIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;box-shadow:0 0 6px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  _inlineTeeMarker=L.marker([_inlineTeePos.lat,_inlineTeePos.lng],{icon:teeIcon,draggable:true,zIndexOffset:900}).addTo(_inlineMap);
+  _inlineTeeMarker.bindTooltip('T',{permanent:true,direction:'top',className:'map-lbl',offset:[0,-10]});
+  _inlineTeeMarker.on('drag',function(e){
+    _inlineTeePos={lat:e.latlng.lat,lng:e.latlng.lng};
+    drawInlineLines();
+    updateInlineDistances();
+  });
+
+  // PIN marker (draggable - player can move to pin position)
+  const pinIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#c9a84c;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  _inlinePinMarker=L.marker([_inlinePinPos.lat,_inlinePinPos.lng],{icon:pinIcon,draggable:true,zIndexOffset:900}).addTo(_inlineMap);
+  _inlinePinMarker.bindTooltip('📍',{permanent:true,direction:'top',offset:[0,-10]});
+  _inlinePinMarker.on('drag',function(e){
+    _inlinePinPos={lat:e.latlng.lat,lng:e.latlng.lng};
+    drawInlineLines();
+    updateInlineDistances();
+  });
+
+  // LAYUP marker (draggable midpoint on par 4/5)
+  if(holeData.par>3&&_inlineLayupPos){
+    const layupIcon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#f97316;border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+    _inlineLayupMarker=L.marker([_inlineLayupPos.lat,_inlineLayupPos.lng],{icon:layupIcon,draggable:true,zIndexOffset:800}).addTo(_inlineMap);
+    _inlineLayupMarker.bindTooltip('Layup',{permanent:true,direction:'right',className:'map-lbl',offset:[8,0]});
+    _inlineLayupMarker.on('drag',function(e){
+      _inlineLayupPos={lat:e.latlng.lat,lng:e.latlng.lng};
+      drawInlineLines();
+    });
+  }
+
+  // Crosshair (for yardage checking / ball marking)
+  const startPos=shotNum===1?(holeData.par===3?_inlinePinPos:(_inlineLayupPos||_inlineMap.getCenter())):(_prevBallGPS||_inlineMap.getCenter());
+  const crossIcon=L.divIcon({className:'',html:'<div style="width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,0.4);position:relative"><div style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#fff;margin-top:-.75px"></div><div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#fff;margin-left:-.75px"></div><div style="position:absolute;top:50%;left:50%;width:4px;height:4px;background:#fff;border-radius:50%;transform:translate(-50%,-50%)"></div></div>',iconSize:[32,32],iconAnchor:[16,16]});
+  _inlineCrosshair=L.marker([startPos.lat||startPos[0],startPos.lng||startPos[1]],{icon:crossIcon,draggable:true,zIndexOffset:1000}).addTo(_inlineMap);
+  _inlineCrosshair.on('drag',function(e){updateInlineDistances();});
+
+  updateInlineDistances();
+}
+
+function drawInlineLines(){
+  if(!_inlineMap)return;
+  if(_inlineTeeToLayupLine){_inlineTeeToLayupLine.remove();_inlineTeeToLayupLine=null;}
+  if(_inlineLayupToPinLine){_inlineLayupToPinLine.remove();_inlineLayupToPinLine=null;}
+  if(!_inlineTeePos||!_inlinePinPos)return;
+
+  if(_inlineLayupPos){
+    _inlineTeeToLayupLine=L.polyline([[_inlineTeePos.lat,_inlineTeePos.lng],[_inlineLayupPos.lat,_inlineLayupPos.lng]],{color:'rgba(255,255,255,0.7)',weight:2,dashArray:'6,3'}).addTo(_inlineMap);
+    _inlineLayupToPinLine=L.polyline([[_inlineLayupPos.lat,_inlineLayupPos.lng],[_inlinePinPos.lat,_inlinePinPos.lng]],{color:'rgba(201,168,76,0.7)',weight:2,dashArray:'6,3'}).addTo(_inlineMap);
+  } else {
+    _inlineTeeToLayupLine=L.polyline([[_inlineTeePos.lat,_inlineTeePos.lng],[_inlinePinPos.lat,_inlinePinPos.lng]],{color:'rgba(255,255,255,0.7)',weight:2,dashArray:'6,3'}).addTo(_inlineMap);
+  }
+}
+
+function updateInlineDistances(){
+  if(!_inlineCrosshair||!_inlinePinPos)return;
+  const latlng=_inlineCrosshair.getLatLng();
+  const pos={lat:latlng.lat,lng:latlng.lng};
+  const toPin=Math.round(hav(pos,_inlinePinPos));
+  document.getElementById('inlineToPin').textContent=toPin;
+  const origin=_shotNum===1?_inlineTeePos:_prevBallGPS;
+  if(origin){
+    const fromOrigin=Math.round(hav(pos,origin));
+    document.getElementById('inlineFromTee').textContent=fromOrigin;
+    document.getElementById('inlineFromLabel').textContent=_shotNum===1?'From Tee':'Shot dist';
+  }
+}
+
+function toggleInlineMapMode(){
+  _inlineMode=_inlineMode==='yardage'?'mark':'yardage';
+  const btn=document.getElementById('inlineModeBtn');
+  const markBtn=document.getElementById('inlineMarkBtn');
+  if(_inlineMode==='mark'){
+    btn.textContent='📏 Yardage';
+    btn.style.background='#555';
+    if(markBtn)markBtn.style.display='block';
+  } else {
+    btn.textContent='📍 Mark mode';
+    btn.style.background='#333';
+    if(markBtn)markBtn.style.display='none';
+  }
+}
+
+function confirmInlinePosition(){
+  if(!_inlineCrosshair)return;
+  const latlng=_inlineCrosshair.getLatLng();
+  const pos={lat:latlng.lat,lng:latlng.lng};
+  const origin=_shotNum===1?_inlineTeePos:_prevBallGPS;
+  if(window._hd){
+    window._hd.ballPos={x:pos.lat,y:pos.lng,gps:true};
+    if(origin){
+      window._hd.lastShotDist=Math.round(hav(pos,origin));
+      if(_inlineTeePos)window._hd.lastTeeDist=Math.round(hav(pos,_inlineTeePos));
+      window._hd.lastCommittedTeeDist=window._hd.lastTeeDist||window._hd.lastShotDist;
+    }
+  }
+  // Store player tee position if shot 1
+  if(_shotNum===1&&_inlineTeePos)_playerTee=_inlineTeePos;
+  _prevBallGPS=pos;
+  // Go to lie selection
+  WF.step='lie';renderWF();
+}
+
+
 function togBag(c){
   const d=ud();
   if(!d.bag)d.bag=[];
@@ -2469,121 +2691,139 @@ function beginRound(){
 }
 
 function stepPlay(pg){
+  if(!pg)pg=document.getElementById('pg-round');
   if(!AR)return;
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const hole=holes[cHole];
-  if(!hole){toast('Hole not found');return;}
+  if(!hole){toast('Hole data missing');return;}
   if(!AR.holes[cHole])AR.holes[cHole]=initHD(hole);
   window._hd=AR.holes[cHole];
-  
-  diagOffset=cHole;
-  
+  const hd=window._hd;
+  const shots=hd.shots||[];
+  const shotNum=shots.length+1;
+  const isFirstShot=shots.length===0;
+  const waitingForBall=window._waitingForBall||false;
+
   pg.innerHTML=`
-<div class="hdr" style="margin-bottom:8px">
-  <div class="hdr-top"><span>Hole ${hole.h} of ${AR.totalHoles}</span><span>${AR.courseName}</span></div>
-  <div class="hdr-row">
-    <button class="hnb" onclick="diagPrev()">‹</button>
-    <div class="hnum2">Hole ${hole.h}</div>
-    <button class="hnb" onclick="diagNext()">›</button>
+<div style="background:var(--g);border-radius:10px;padding:10px 14px;margin-bottom:8px;color:#fff;display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div style="font-size:11px;text-transform:uppercase;opacity:0.75">Hole ${hole.h} · Par ${hole.par} · ${hole.y}m</div>
+    <div style="font-size:15px;font-weight:800">${waitingForBall?'📍 Move crosshair to your ball':(isFirstShot?'🏌️ Set your tee position, then hit':'🏌️ Shot '+shotNum)}</div>
   </div>
-  <div class="hpar">${hole.name?hole.name+' · ':''}Par ${hole.par} · ${hole.y}m · S.I. ${hole.si}</div>
-  <div class="hboxes">
-    <div class="hbox"><div class="l">Par</div><div class="v">${hole.par}</div></div>
-    <div class="hbox"><div class="l">Metres</div><div class="v">${hole.y}</div></div>
-    <div class="hbox"><div class="l">S.I.</div><div class="v">${hole.si}</div></div>
+  <div style="text-align:right;font-size:12px;opacity:0.85">
+    ${shots.length} shot${shots.length!==1?'s':''} played
   </div>
 </div>
 
-${wxHTML(cHole,hole.y)}
-
-<!-- Hole diagram -->
-<div class="hole-diagram-wrap" id="holeDiagWrap">
-  <div id="holeDiagImgWrap" style="display:none;position:relative;cursor:crosshair;border-radius:12px;overflow:hidden" onclick="tapHoleImage(event)">
-    <img id="holeDiagImg" src="" style="width:100%;max-height:380px;object-fit:contain;display:block;border-radius:12px" alt="Hole diagram">
-    <svg id="holeDiagDots" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></svg>
-    <div id="tapHint" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:10px;pointer-events:none;white-space:nowrap">📍 Tap image to mark ball</div>
+<!-- Inline GPS Map -->
+<div id="holeMapInlineWrap" style="border-radius:12px;overflow:hidden;background:#111;margin-bottom:8px">
+  <div id="holeMapInlineEl" style="height:320px;width:100%"></div>
+  <div style="background:#111;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;gap:14px">
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">To Pin</div>
+        <div id="inlineToPin" style="font-size:24px;font-weight:900;color:#fff">—</div>
+        <div style="font-size:9px;color:#888">m</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700" id="inlineFromLabel">${isFirstShot?'From Tee':'Shot dist'}</div>
+        <div id="inlineFromTee" style="font-size:24px;font-weight:900;color:#c9a84c">—</div>
+        <div style="font-size:9px;color:#888">m</div>
+      </div>
+    </div>
+    ${waitingForBall?`
+    <div style="display:flex;gap:6px">
+      <select id="lieSel" style="padding:7px 10px;border-radius:10px;border:1px solid var(--bdr);font-size:13px;font-weight:700;font-family:inherit;background:#fff">
+        <option value="">Select lie...</option>
+        ${LIES.map(function(l){return'<option value="'+l+'">'+l+'</option>';}).join('')}
+      </select>
+      <button onclick="confirmBallAndLie()" style="padding:8px 14px;background:#c9a84c;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">✓ Confirm</button>
+    </div>`:`
+    <button onclick="playerHitShot()" style="padding:10px 16px;background:#2d5a3d;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">I've hit →</button>`}
   </div>
-  <svg id="holeDiagSvg" viewBox="0 0 200 340" style="width:100%;max-height:300px;display:block"></svg>
 </div>
 
-${AR.mode==='hole'?`
-<button class="btn bg" onclick="WF.step='score';renderWF()" style="margin-top:8px">📋 Enter score</button>
-`:`
-<div style="display:flex;gap:8px;margin-top:8px">
-  <button class="btn bg" style="flex:2" onclick="openHoleMap(${cHole+1})">🗺️ Hole map</button>
-  <button class="btn bo" style="flex:1" onclick="WF.step='lie';renderWF()">📍 Track →</button>
-</div>`}
-<button class="btn bo" style="margin-top:6px;color:var(--red)" onclick="confirmFinish()">🏁 Finish round</button>`;
+${AR.mode==='hole'?`<button class="btn bg" style="margin-top:4px" onclick="WF.step='score';renderWF()">📋 Enter score →</button>`:''}
+<button class="btn bo" style="margin-top:4px;color:var(--red)" onclick="confirmFinish()">🏁 Finish round</button>`;
 
-  renderHoleDiagram(hole, cHole);
-  // Draw historical ball positions for current session shots on this hole
-  const dotsEl=document.getElementById('holeDiagDots');
-  if(dotsEl){
-    dotsEl.innerHTML='';
-    const hd=window._hd;
-    const pastShots=(hd&&hd.shots)||[];
-    if(pastShots.length>0){
-      const posShots=pastShots.filter(function(s){return s.ballPos;});
-      const SVG_NS='http://www.w3.org/2000/svg';
+  // Init inline map
+  setTimeout(function(){
+    const sn=(hd.shots||[]).length+1;
+    if(sn===1&&!window._waitingForBall)resetHoleMapState();
+    _shotNum=sn;
+    initInlineHoleMap(AR.courseId,cHole+1,sn);
+    // Draw previous ball positions
+    drawBallHistory(hd);
+  },80);
+}
 
-      // Draw lines between ball positions
-      for(var si=0;si<posShots.length-1;si++){
-        const line=document.createElementNS(SVG_NS,'line');
-        line.setAttribute('x1',posShots[si].ballPos.x+'%');line.setAttribute('y1',posShots[si].ballPos.y+'%');
-        line.setAttribute('x2',posShots[si+1].ballPos.x+'%');line.setAttribute('y2',posShots[si+1].ballPos.y+'%');
-        line.setAttribute('stroke','rgba(255,255,255,0.8)');line.setAttribute('stroke-width','2');
-        line.setAttribute('stroke-dasharray','4,3');dotsEl.appendChild(line);
-      }
+// Player tapped "I've hit" - go to club/shape/contact selection
+function playerHitShot(){
+  // Save tee position from map on first shot
+  if((_shotNum===1||window._hd.shots.length===0)&&_inlineTeeMarker){
+    const ll=_inlineTeeMarker.getLatLng();
+    _playerTee={lat:ll.lat,lng:ll.lng};
+    _inlineTeePos=_playerTee;
+  }
+  window._waitingForBall=false;
+  WF.step='preshot';
+  renderWF();
+}
 
-      // Draw dots and distance labels
-      const shotColors=['#e74c3c','#c9a84c','#3b82f6','#2d8c3a','#9b59b6','#e67e22'];
-      posShots.forEach(function(s,i){
-        const cx=s.ballPos.x;const cy=s.ballPos.y;
-        const col=shotColors[i%shotColors.length];
+// Player confirms ball position + lie from map
+function confirmBallAndLie(){
+  const lieSel=document.getElementById('lieSel');
+  const lie=lieSel?lieSel.value:'';
+  if(!lie){toast('Select your lie first');return;}
 
-        // Dot
-        const circle=document.createElementNS(SVG_NS,'circle');
-        circle.setAttribute('cx',cx+'%');circle.setAttribute('cy',cy+'%');
-        circle.setAttribute('r','9');circle.setAttribute('fill',col);
-        circle.setAttribute('stroke','#fff');circle.setAttribute('stroke-width','2');
-        dotsEl.appendChild(circle);
+  if(!_inlineCrosshair){toast('Move crosshair to your ball');return;}
+  const latlng=_inlineCrosshair.getLatLng();
+  const pos={lat:latlng.lat,lng:latlng.lng};
 
-        // Shot number
-        const numTxt=document.createElementNS(SVG_NS,'text');
-        numTxt.setAttribute('x',cx+'%');numTxt.setAttribute('y',cy+'%');
-        numTxt.setAttribute('dominant-baseline','central');numTxt.setAttribute('text-anchor','middle');
-        numTxt.setAttribute('fill','#fff');numTxt.setAttribute('font-size','9');numTxt.setAttribute('font-weight','700');
-        numTxt.textContent=i+1;dotsEl.appendChild(numTxt);
-
-        // Distance label - right next to dot, flip left if near right edge
-        if(s.dist||s.teeDist){
-          const distVal=(s.dist||s.teeDist)+'m';
-          const nearRight=cx>70;
-          const nearBottom=cy>85;
-          // Anchor text just beside the dot (12px offset)
-          const distTxt=document.createElementNS(SVG_NS,'text');
-          distTxt.setAttribute('x','calc('+cx+'% '+(nearRight?'- 14px':'+ 14px')+')');
-          distTxt.setAttribute('y','calc('+cy+'%'+(nearBottom?' - 8px':' + 0px')+')');
-          distTxt.setAttribute('dominant-baseline','central');
-          distTxt.setAttribute('text-anchor',nearRight?'end':'start');
-          distTxt.setAttribute('fill','#fff');
-          distTxt.setAttribute('font-size','11');
-          distTxt.setAttribute('font-weight','900');
-          distTxt.setAttribute('paint-order','stroke');
-          distTxt.setAttribute('stroke','rgba(0,0,0,0.8)');
-          distTxt.setAttribute('stroke-width','3');
-          distTxt.setAttribute('stroke-linejoin','round');
-          distTxt.textContent=distVal;
-          dotsEl.appendChild(distTxt);
-        }
-      });
-      // Hide hint if shots already recorded
-      const hint=document.getElementById('tapHint');if(hint)hint.style.display='none';
-    } else {
-      const hint=document.getElementById('tapHint');if(hint)hint.style.display='block';
+  // Store ball position
+  if(window._hd){
+    window._hd.ballPos={x:pos.lat,y:pos.lng,gps:true};
+    window._hd.selectedLie=lie;
+    const origin=_shotNum===1?_inlineTeePos:_prevBallGPS;
+    if(origin){
+      window._hd.lastShotDist=Math.round(hav(pos,origin));
+      window._hd.lastTeeDist=_inlineTeePos?Math.round(hav(pos,_inlineTeePos)):window._hd.lastShotDist;
+      window._hd.lastCommittedTeeDist=window._hd.lastTeeDist;
     }
   }
+  if(_shotNum===1&&_inlineTeePos)_playerTee=_inlineTeePos;
+  _prevBallGPS=pos;
+  window._waitingForBall=false;
+
+  // Commit the shot
+  commitShot();
+
+  // Green = score screen, else next shot
+  if(lie==='Green'){
+    WF.step='score';
+  } else {
+    WF.step='play';
+  }
+  renderWF();
 }
+
+function drawBallHistory(hd){
+  // Draw previous ball positions on the inline map
+  const dotsEl=document.querySelector('#holeMapInlineWrap svg.ball-history');
+  // Use Leaflet markers instead
+  if(!_inlineMap||!hd||!hd.shots)return;
+  const shotColors=['#e74c3c','#c9a84c','#3b82f6','#2d8c3a','#9b59b6'];
+  const posShots=(hd.shots||[]).filter(function(s){return s.ballPos&&s.ballPos.gps;});
+  posShots.forEach(function(s,i){
+    const icon=L.divIcon({className:'',html:'<div style="width:16px;height:16px;background:'+shotColors[i%shotColors.length]+';border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff">'+(i+1)+'</div>',iconSize:[16,16],iconAnchor:[8,8]});
+    L.marker([s.ballPos.x,s.ballPos.y],{icon:icon,interactive:false}).addTo(_inlineMap);
+    if(s.dist){
+      L.marker([s.ballPos.x,s.ballPos.y],{icon:L.divIcon({className:'',html:'<div style="background:rgba(0,0,0,0.7);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:4px;margin-top:18px">'+s.dist+'m</div>',iconAnchor:[-2,-2]}),interactive:false}).addTo(_inlineMap);
+    }
+  });
+}
+
+
 
 
 
