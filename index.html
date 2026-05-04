@@ -2539,52 +2539,186 @@ ${holes.map(function(h,i){return'<button class="btn bo" style="padding:12px;font
 function openYardageMap(holeNum){
   const gps=WF.courseId?getHoleGPS(WF.courseId,holeNum):null;
   const c=WF.courseId?CDB[WF.courseId]:null;
-  const holes=WF.courseId?getH(WF.courseId,WF.holeType||'18'):[]; 
+  const holes=WF.courseId?getH(WF.courseId,WF.holeType||'18'):[];
   const hd=holes[holeNum-1]||{par:4};
-  
+
+  // Remove existing modal
+  const existing=document.getElementById('yardageModal');
+  if(existing)existing.remove();
+
   const modal=document.createElement('div');
   modal.id='yardageModal';
   modal.style.cssText='position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;background:#000';
   modal.innerHTML=`
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1a1a1a;color:#fff;flex-shrink:0">
-  <div style="font-weight:800;font-size:16px">Hole ${holeNum} · Par ${hd.par} · Yardage Tool</div>
-  <button onclick="document.getElementById('yardageModal').remove()" style="padding:7px 14px;background:#444;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer">✕ Close</button>
+  <div style="font-weight:800;font-size:16px">H${holeNum} · Par ${hd.par} · Yardage</div>
+  <button onclick="document.getElementById('yardageModal').remove()" style="padding:7px 14px;background:#444;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">✕</button>
 </div>
-<div id="yardageMapEl" style="flex:1"></div>
-<div style="background:#1a1a1a;padding:8px 14px;display:flex;gap:20px;justify-content:center;flex-shrink:0">
-  <div style="text-align:center"><div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">To Pin</div><div id="ydToPin" style="font-size:26px;font-weight:900;color:#fff">—</div><div style="font-size:9px;color:#888">m</div></div>
-  <div style="text-align:center"><div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">From Tee</div><div id="ydFromTee" style="font-size:26px;font-weight:900;color:#c9a84c">—</div><div style="font-size:9px;color:#888">m</div></div>
+<div id="yardageMapEl" style="flex:1;position:relative"></div>
+<div style="background:#1a1a1a;padding:8px 12px;flex-shrink:0">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="display:flex;gap:16px">
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">Target→Pin</div>
+        <div id="ydToPin" style="font-size:24px;font-weight:900;color:#fff">—</div>
+        <div style="font-size:9px;color:#888">m</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">Tee→Target</div>
+        <div id="ydFromTee" style="font-size:24px;font-weight:900;color:#fff">—</div>
+        <div style="font-size:9px;color:#888">m</div>
+      </div>
+      <div style="text-align:center" id="ydMeasureBox" style="display:none">
+        <div style="font-size:9px;text-transform:uppercase;color:#f97316;font-weight:700">Measure</div>
+        <div id="ydMeasure" style="font-size:24px;font-weight:900;color:#f97316">—</div>
+        <div style="font-size:9px;color:#888">m</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <button id="ydMeasureBtn" onclick="toggleYdMode('measure')" style="padding:6px 10px;background:#333;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📐 Measure</button>
+      <button id="ydPinBtn" onclick="toggleYdMode('pin')" style="padding:6px 10px;background:#333;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📍 Drop pin</button>
+      <button id="ydTargetBtn" onclick="toggleYdMode('target')" style="padding:6px 10px;background:#2d5a3d;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🎯 Target</button>
+    </div>
+  </div>
+  <div id="ydHint" style="font-size:11px;color:#888;text-align:center">Drag target circle · Switch modes below</div>
 </div>`;
   document.body.appendChild(modal);
+
+  // State
+  let ydMap=null, ydTarget=null, ydTee=null, ydPin=null;
+  let ydFront=null, ydBack=null, ydFrontPos=null, ydBackPos=null;
+  let ydTeeLine=null, ydTargetLine=null;
+  let ydMeasureMode=null; // 'measure', 'pin', 'target'
+  let ydMeasureStart=null, ydMeasureLine=null, ydMeasurePin=null;
+  let ydDroppedPins=[];
 
   setTimeout(function(){
     const mapEl=document.getElementById('yardageMapEl');
     if(!mapEl)return;
     const centre=gps?[gps.tee.lat,gps.tee.lng]:(c?[c.lat,c.lng]:[0,0]);
-    const ydMap=L.map('yardageMapEl',{center:centre,zoom:16,zoomControl:true,attributionControl:false});
+    ydMap=L.map('yardageMapEl',{center:centre,zoom:16,zoomControl:true,attributionControl:false});
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19}).addTo(ydMap);
 
-    if(!gps)return;
+    if(!gps){
+      document.getElementById('ydHint').textContent='No GPS data for this hole';
+      return;
+    }
 
     // Frame
-    ydMap.fitBounds([[gps.frameTee.lat,gps.frameTee.lng],[gps.frameGreen.lat,gps.frameGreen.lng]],{padding:[30,20]});
+    const ft=gps.frameTee||gps.tee, fg=gps.frameGreen||gps.green;
+    ydMap.fitBounds([[ft.lat,ft.lng],[fg.lat,fg.lng]],{padding:[40,20]});
 
-    // Markers
-    const pinIcon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#c9a84c;border-radius:50%;border:2px solid #fff"></div>',iconSize:[12,12],iconAnchor:[6,6]});
-    L.marker([gps.green.lat,gps.green.lng],{icon:pinIcon,interactive:false}).addTo(ydMap);
-    L.marker([gps.tee.lat,gps.tee.lng],{icon:L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#fff;border-radius:50%;border:2px solid #2d5a3d"></div>',iconSize:[10,10],iconAnchor:[5,5]}),interactive:false}).addTo(ydMap);
-    L.polyline([[gps.tee.lat,gps.tee.lng],[gps.green.lat,gps.green.lng]],{color:'rgba(255,255,255,0.6)',weight:1.5,dashArray:'6,4'}).addTo(ydMap);
+    // Tee marker
+    ydTee={lat:gps.tee.lat,lng:gps.tee.lng};
+    const teeIco=L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#fff;border-radius:50%;border:2.5px solid #2d5a3d;box-shadow:0 0 4px rgba(0,0,0,0.5)"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+    L.marker([ydTee.lat,ydTee.lng],{icon:teeIco,interactive:false}).addTo(ydMap);
 
-    // Crosshair
-    const crossIcon=L.divIcon({className:'',html:'<div style="width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;background:rgba(255,255,255,0.1);position:relative"><div style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#fff;margin-top:-.75px"></div><div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#fff;margin-left:-.75px"></div></div>',iconSize:[32,32],iconAnchor:[16,16]});
-    const cross=L.marker([gps.green.lat,gps.green.lng],{icon:crossIcon,draggable:true,zIndexOffset:1000}).addTo(ydMap);
-    cross.on('drag',function(e){
-      const pos={lat:e.latlng.lat,lng:e.latlng.lng};
-      document.getElementById('ydToPin').textContent=Math.round(hav(pos,gps.green));
-      document.getElementById('ydFromTee').textContent=Math.round(hav(pos,gps.tee));
+    // Pin marker (draggable)
+    const pinIco=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#c9a84c;border-radius:50%;border:2px solid #fff;cursor:move"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+    ydPin=L.marker([gps.green.lat,gps.green.lng],{icon:pinIco,draggable:true,zIndexOffset:900}).addTo(ydMap);
+    ydPin.bindTooltip('pin',{permanent:true,direction:'top',className:'map-lbl',offset:[0,-8]});
+    ydPin.on('drag',function(){updateYdDistances();drawYdLines();});
+
+    // Front/back green (draggable)
+    if(gps.frontGreen){
+      ydFrontPos={lat:gps.frontGreen.lat,lng:gps.frontGreen.lng};
+      ydFront=L.marker([ydFrontPos.lat,ydFrontPos.lng],{icon:L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px solid #ccc;cursor:move;white-space:nowrap">F —m</div>',iconAnchor:[24,10]}),draggable:true,zIndexOffset:700}).addTo(ydMap);
+      ydFront.on('drag',function(e){ydFrontPos={lat:e.latlng.lat,lng:e.latlng.lng};updateYdFrontBack();});
+    }
+    if(gps.backGreen){
+      ydBackPos={lat:gps.backGreen.lat,lng:gps.backGreen.lng};
+      ydBack=L.marker([ydBackPos.lat,ydBackPos.lng],{icon:L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px solid #ccc;cursor:move;white-space:nowrap">B —m</div>',iconAnchor:[24,10]}),draggable:true,zIndexOffset:700}).addTo(ydMap);
+      ydBack.on('drag',function(e){ydBackPos={lat:e.latlng.lat,lng:e.latlng.lng};updateYdFrontBack();});
+    }
+
+    // Target circle (draggable) - starts on layup or green for par 3
+    const startPos=(hd.par>3&&gps.layup)?gps.layup:gps.green;
+    const targIco=L.divIcon({className:'',html:'<div style="width:28px;height:28px;border:2.5px solid rgba(255,255,255,0.9);border-radius:50%;background:rgba(255,255,255,0.1);cursor:move"></div>',iconSize:[28,28],iconAnchor:[14,14]});
+    ydTarget=L.marker([startPos.lat,startPos.lng],{icon:targIco,draggable:true,zIndexOffset:800}).addTo(ydMap);
+    ydTarget.on('drag',function(){updateYdDistances();drawYdLines();});
+    ydTarget.on('dragend',function(){updateYdDistances();drawYdLines();});
+
+    drawYdLines();
+    updateYdDistances();
+    updateYdFrontBack();
+
+    // Map click handlers for measure/pin modes
+    ydMap.on('click',function(e){
+      if(ydMeasureMode==='measure'){
+        if(!ydMeasureStart){
+          ydMeasureStart={lat:e.latlng.lat,lng:e.latlng.lng};
+          document.getElementById('ydHint').textContent='Tap second point to measure';
+        } else {
+          const dist=Math.round(hav(ydMeasureStart,{lat:e.latlng.lat,lng:e.latlng.lng}));
+          if(ydMeasureLine)ydMeasureLine.remove();
+          ydMeasureLine=L.polyline([[ydMeasureStart.lat,ydMeasureStart.lng],[e.latlng.lat,e.latlng.lng]],{color:'#f97316',weight:3,dashArray:'6,3'}).addTo(ydMap);
+          // Label at midpoint
+          const mid={lat:(ydMeasureStart.lat+e.latlng.lat)/2,lng:(ydMeasureStart.lng+e.latlng.lng)/2};
+          L.marker([mid.lat,mid.lng],{icon:L.divIcon({className:'',html:'<div style="background:#f97316;color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;white-space:nowrap">'+dist+'m</div>',iconAnchor:[20,10]}),interactive:false}).addTo(ydMap);
+          document.getElementById('ydMeasure').textContent=dist;
+          document.getElementById('ydHint').textContent='Tap to start new measurement';
+          ydMeasureStart=null;
+        }
+      } else if(ydMeasureMode==='pin'){
+        const pinPos={lat:e.latlng.lat,lng:e.latlng.lng};
+        const distToGreen=Math.round(hav(pinPos,ydPin?ydPin.getLatLng():{lat:gps.green.lat,lng:gps.green.lng}));
+        const distToTee=Math.round(hav(pinPos,ydTee));
+        const dropIco=L.divIcon({className:'',html:'<div style="background:rgba(201,168,76,0.9);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;white-space:nowrap;border:1px solid rgba(255,255,255,0.5)">📍 '+distToGreen+'m pin · '+distToTee+'m tee</div>',iconAnchor:[40,12]});
+        const dropPin=L.marker([pinPos.lat,pinPos.lng],{icon:dropIco}).addTo(ydMap);
+        dropPin.on('click',function(){dropPin.remove();});
+        ydDroppedPins.push(dropPin);
+        document.getElementById('ydHint').textContent='Pin dropped · Tap to remove · Tap map to add more';
+      }
     });
-  },100);
+
+    function drawYdLines(){
+      if(ydTeeLine){ydTeeLine.remove();ydTeeLine=null;}
+      if(ydTargetLine){ydTargetLine.remove();ydTargetLine=null;}
+      if(!ydTarget||!ydPin)return;
+      const tPos=ydTarget.getLatLng();
+      const pPos=ydPin.getLatLng();
+      ydTeeLine=L.polyline([[ydTee.lat,ydTee.lng],[tPos.lat,tPos.lng]],{color:'rgba(255,255,255,0.85)',weight:2.5,dashArray:'6,3'}).addTo(ydMap);
+      ydTargetLine=L.polyline([[tPos.lat,tPos.lng],[pPos.lat,pPos.lng]],{color:'rgba(255,255,255,0.85)',weight:2.5,dashArray:'6,3'}).addTo(ydMap);
+    }
+
+    function updateYdDistances(){
+      if(!ydTarget||!ydPin)return;
+      const tPos=ydTarget.getLatLng();
+      const pPos=ydPin.getLatLng();
+      document.getElementById('ydToPin').textContent=Math.round(hav({lat:tPos.lat,lng:tPos.lng},{lat:pPos.lat,lng:pPos.lng}));
+      document.getElementById('ydFromTee').textContent=Math.round(hav(ydTee,{lat:tPos.lat,lng:tPos.lng}));
+    }
+
+    function updateYdFrontBack(){
+      const origin=ydTee;
+      if(ydFront&&ydFrontPos){
+        const fd=Math.round(hav(origin,ydFrontPos));
+        ydFront.setIcon(L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px solid #ccc;cursor:move;white-space:nowrap">F '+fd+'m</div>',iconAnchor:[24,10]}));
+      }
+      if(ydBack&&ydBackPos){
+        const bd=Math.round(hav(origin,ydBackPos));
+        ydBack.setIcon(L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px solid #ccc;cursor:move;white-space:nowrap">B '+bd+'m</div>',iconAnchor:[24,10]}));
+      }
+    }
+
+    // Mode toggle
+    window._ydMapRef=ydMap;
+    window.toggleYdMode=function(mode){
+      ydMeasureMode=ydMeasureMode===mode?null:mode;
+      ydMeasureStart=null;
+      ['measure','pin','target'].forEach(function(m){
+        const b=document.getElementById('yd'+m.charAt(0).toUpperCase()+m.slice(1)+'Btn');
+        if(b)b.style.background=ydMeasureMode===m?'#c9a84c':'#333';
+      });
+      const hints={measure:'Tap first point to start measuring',pin:'Tap anywhere to drop a hazard pin',target:'Drag the target circle',null:'Drag target circle · Switch modes below'};
+      document.getElementById('ydHint').textContent=hints[ydMeasureMode]||hints['null'];
+      if(ydMeasureMode==='target')ydMeasureMode=null;
+    };
+
+  },150);
 }
+
+
 
 
 
