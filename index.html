@@ -540,6 +540,24 @@ const LIE_IMGS = {
   Chipping: 'https://back2basics.golf/cdn/shop/articles/good-chipping-and-the-art-of-getting-up-and-down-315454_1400x.png?v=1619461552',
   Green: 'https://cdn.mos.cms.futurecdn.net/v2/t:0,l:312,cw:1876,ch:1407,q:80,w:1876/MAnQQjgyhExSNLTXFc3oNW.jpg',
 };
+
+const SHAPE_IMGS={
+  Hook:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Golf_ball_hook.svg/100px-Golf_ball_hook.svg.png',
+  Draw:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Golf_ball_hook.svg/100px-Golf_ball_hook.svg.png',
+  Straight:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Fade:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Slice:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+};
+
+const CON_IMGS={
+  Solid:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Thin:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Fat:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Heel:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Toe:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Topped:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+  Shanked:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Golfball.jpg/100px-Golfball.jpg',
+};
 // Lie icons — clean SVG-based, no emoji
 const LIE_SVG = {
   Tee:`<svg viewBox="0 0 40 40" width="34" height="34"><circle cx="20" cy="28" r="9" fill="#2d8c3a" stroke="#1a6b22" stroke-width="1.5"/><rect x="19" y="8" width="2" height="14" fill="#888"/><circle cx="20" cy="8" r="4" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
@@ -879,7 +897,7 @@ function calcWHSHandicap(rounds){
   // Apply 0.96 multiplier
   return Math.round(avg*0.96*10)/10;
 }
-const myBag=()=>{const d=ud();return d.bag||['Dr','3W','5W','Hy','6i','7i','8i','9i','PW','GW','SW','Pu'];};
+const myBag=()=>{const d=ud();return d.bag||['Dr','3W','5W','Hy','4i','5i','6i','7i','8i','9i','Pw','Sw','Pu'];};
 const fmtT=ms=>{if(!ms)return'—';const t=Math.round(ms/1000),h=Math.floor(t/3600),m=Math.floor((t%3600)/60);return h>0?`${h}h ${m}m`:`${m}m`;};
 const fmtD=m=>{if(!m||m<5)return'—';return m>=1000?(m/1000).toFixed(2)+'km':Math.round(m)+'m';};
 const hav=(a,b)=>{const R=6371000,dL=(b.lat-a.lat)*Math.PI/180,dO=(b.lng-a.lng)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
@@ -1228,14 +1246,17 @@ function updateHolesOptions(){
     sel.insertBefore(opt18r,sel.children[1]);
     sel.value='9only';
   } else if(c.front12){
-    // Chisholm - show Front 12 (standard) AND Full 18
+    // Chisholm - Front 12 default, Full 18 also available
     if(opt9f)opt9f.style.display='none';
     if(opt9b)opt9b.style.display='none';
-    if(opt18)opt18.style.display=''; // Keep 18 visible
-    var opt12=document.createElement('option');
-    opt12.value='12f';opt12.textContent='Front 12 (Chisholm standard)';
-    sel.insertBefore(opt12,sel.children[0]);
-    sel.value='12f'; // Default to 12 but 18 is selectable
+    if(opt18)opt18.style.display='';
+    // Only add the 12f option once
+    if(!sel.querySelector('option[value="12f"]')){
+      var opt12=document.createElement('option');
+      opt12.value='12f';opt12.textContent='Front 12 (Chisholm standard)';
+      sel.insertBefore(opt12,sel.children[0]);
+    }
+    sel.value='12f';
   } else {
     // Normal 18-hole course
     if(opt9f)opt9f.style.display='';
@@ -1530,7 +1551,17 @@ function stepPreshot(pg){
 
 ${trk.direction?`
 <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 8px">Shot Direction</div>
-<div id="dirGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>`:''}
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:4px" id="dirGrid">
+  <button class="dir-btn" data-h="left" data-v="long" onclick="togDir(this,'left','long')">↖ Long left</button>
+  <button class="dir-btn" data-h="" data-v="long" onclick="togDir(this,'','long')">⬆ Long</button>
+  <button class="dir-btn" data-h="right" data-v="long" onclick="togDir(this,'right','long')">↗ Long right</button>
+  <button class="dir-btn" data-h="left" data-v="" onclick="togDir(this,'left','')">◀ Left</button>
+  <button class="dir-btn sel" data-h="" data-v="" onclick="togDir(this,'','')">🎯 On target</button>
+  <button class="dir-btn" data-h="right" data-v="" onclick="togDir(this,'right','')">▶ Right</button>
+  <button class="dir-btn" data-h="left" data-v="short" onclick="togDir(this,'left','short')">↙ Short left</button>
+  <button class="dir-btn" data-h="" data-v="short" onclick="togDir(this,'','short')">⬇ Short</button>
+  <button class="dir-btn" data-h="right" data-v="short" onclick="togDir(this,'right','short')">↘ Short right</button>
+</div>`:''}
 
 ${trk.shape?`
 <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 8px">Shape</div>
@@ -1567,13 +1598,40 @@ ${trk.contact?`
   if(trk.shape){
     const shapes=['Hook','Draw','Straight','Fade','Slice'];
     const sg=document.getElementById('shapeGrid');
-    if(sg){sg.innerHTML='';shapes.forEach(function(s){var b=document.createElement('button');b.className='cc'+(sfb.shape===s?' sel':'');b.textContent=s;b.onclick=function(){sfb.shape=s;sg.querySelectorAll('.cc').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};sg.appendChild(b);});}
+    if(sg){sg.innerHTML='';shapes.forEach(function(s){
+      var b=document.createElement('button');
+      b.className='cc img-sel'+(sfb.shape===s?' sel':'');
+      b.style.cssText='display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;';
+      var img=SHAPE_IMGS&&SHAPE_IMGS[s]?'<img src="'+SHAPE_IMGS[s]+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px">':'';
+      b.innerHTML=img+'<span style="font-size:11px;font-weight:700">'+s+'</span>';
+      b.onclick=function(){sfb.shape=s;sg.querySelectorAll('.cc').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};
+      sg.appendChild(b);
+    });}
   }
   if(trk.contact){
     const contacts=['Solid','Thin','Fat','Heel','Toe','Topped','Shanked'];
     const cg=document.getElementById('conGrid');
-    if(cg){cg.innerHTML='';contacts.forEach(function(c){var b=document.createElement('button');b.className='cc'+(sfb.con===c?' sel':'');b.textContent=c;b.onclick=function(){sfb.con=c;cg.querySelectorAll('.cc').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};cg.appendChild(b);});}
+    if(cg){cg.innerHTML='';contacts.forEach(function(c){
+      var b=document.createElement('button');
+      b.className='cc img-sel'+(sfb.con===c?' sel':'');
+      b.style.cssText='display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;';
+      var img=CON_IMGS&&CON_IMGS[c]?'<img src="'+CON_IMGS[c]+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px">':'';
+      b.innerHTML=img+'<span style="font-size:11px;font-weight:700">'+c+'</span>';
+      b.onclick=function(){sfb.con=c;cg.querySelectorAll('.cc').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};
+      cg.appendChild(b);
+    });}
   }
+}
+
+function togDir(btn, h, v){
+  // Select this direction button
+  document.querySelectorAll('.dir-btn').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel');
+  // Build direction string
+  var parts=[];
+  if(h)parts.push(h);
+  if(v)parts.push(v);
+  sfb.dir=parts.length?parts.join('-'):'on-target';
 }
 
 function donePreshot(){
@@ -2484,7 +2542,9 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
     zoomControl:false,attributionControl:false,
     dragging:true,scrollWheelZoom:false
   });
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(_inlineMap);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    maxZoom:20,maxNativeZoom:19,tileSize:256,zoomOffset:0
+  }).addTo(_inlineMap);
 
   if(!gps){
     return;
@@ -2546,14 +2606,27 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
     updateInlineDistances();
   });
 
-  // LAYUP marker (draggable midpoint on par 4/5)
-  if(holeData.par>3&&_inlineLayupPos){
-    const layupIcon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#f97316;border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[12,12],iconAnchor:[6,6]});
-    _inlineLayupMarker=L.marker([_inlineLayupPos.lat,_inlineLayupPos.lng],{icon:layupIcon,draggable:true,zIndexOffset:800}).addTo(_inlineMap);
-    _inlineLayupMarker.bindTooltip('Layup',{permanent:true,direction:'right',className:'map-lbl',offset:[8,0]});
+  // TARGET CIRCLE marker (draggable, par 4/5 only)
+  // Target circle: par 4/5 starts on layup, par 3 starts on pin
+  if(!_inlineLayupPos||holeData.par===3){
+    _inlineLayupPos=_inlinePinPos;
+  }
+  if(_inlineLayupPos){
+    const targetIcon=L.divIcon({
+      className:'',
+      html:'<div style="width:28px;height:28px;border:2.5px solid rgba(255,255,255,0.9);border-radius:50%;background:rgba(255,255,255,0.1);cursor:move;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
+      iconSize:[28,28],iconAnchor:[14,14]
+    });
+    _inlineLayupMarker=L.marker([_inlineLayupPos.lat,_inlineLayupPos.lng],{icon:targetIcon,draggable:true,zIndexOffset:800}).addTo(_inlineMap);
     _inlineLayupMarker.on('drag',function(e){
       _inlineLayupPos={lat:e.latlng.lat,lng:e.latlng.lng};
       drawInlineLines();
+      updateInlineDistances();
+    });
+    _inlineLayupMarker.on('dragend',function(e){
+      _inlineLayupPos={lat:e.target.getLatLng().lat,lng:e.target.getLatLng().lng};
+      drawInlineLines();
+      updateInlineDistances();
     });
   }
 
@@ -2573,24 +2646,55 @@ function drawInlineLines(){
   if(!_inlineTeePos||!_inlinePinPos)return;
 
   if(_inlineLayupPos){
-    _inlineTeeToLayupLine=L.polyline([[_inlineTeePos.lat,_inlineTeePos.lng],[_inlineLayupPos.lat,_inlineLayupPos.lng]],{color:'rgba(255,255,255,0.7)',weight:2,dashArray:'6,3'}).addTo(_inlineMap);
-    _inlineLayupToPinLine=L.polyline([[_inlineLayupPos.lat,_inlineLayupPos.lng],[_inlinePinPos.lat,_inlinePinPos.lng]],{color:'rgba(201,168,76,0.7)',weight:2,dashArray:'6,3'}).addTo(_inlineMap);
+    // Tee → target circle (white line)
+    _inlineTeeToLayupLine=L.polyline(
+      [[_inlineTeePos.lat,_inlineTeePos.lng],[_inlineLayupPos.lat,_inlineLayupPos.lng]],
+      {color:'rgba(255,255,255,0.85)',weight:2.5,dashArray:'6,3'}
+    ).addTo(_inlineMap);
+    // Target circle → pin (gold line)
+    _inlineLayupToPinLine=L.polyline(
+      [[_inlineLayupPos.lat,_inlineLayupPos.lng],[_inlinePinPos.lat,_inlinePinPos.lng]],
+      {color:'rgba(201,168,76,0.85)',weight:2.5,dashArray:'6,3'}
+    ).addTo(_inlineMap);
   } else {
-    _inlineTeeToLayupLine=L.polyline([[_inlineTeePos.lat,_inlineTeePos.lng],[_inlinePinPos.lat,_inlinePinPos.lng]],{color:'rgba(255,255,255,0.7)',weight:2,dashArray:'6,3'}).addTo(_inlineMap);
+    // Direct tee → pin line (no layup)
+    _inlineTeeToLayupLine=L.polyline(
+      [[_inlineTeePos.lat,_inlineTeePos.lng],[_inlinePinPos.lat,_inlinePinPos.lng]],
+      {color:'rgba(255,255,255,0.85)',weight:2.5,dashArray:'6,3'}
+    ).addTo(_inlineMap);
   }
 }
 
 function updateInlineDistances(){
-  if(!_inlineCrosshair||!_inlinePinPos)return;
-  const latlng=_inlineCrosshair.getLatLng();
-  const pos={lat:latlng.lat,lng:latlng.lng};
-  const toPin=Math.round(hav(pos,_inlinePinPos));
-  document.getElementById('inlineToPin').textContent=toPin;
-  const origin=_shotNum===1?_inlineTeePos:_prevBallGPS;
-  if(origin){
-    const fromOrigin=Math.round(hav(pos,origin));
-    document.getElementById('inlineFromTee').textContent=fromOrigin;
-    document.getElementById('inlineFromLabel').textContent=_shotNum===1?'From Tee':'Shot dist';
+  if(!_inlinePinPos)return;
+  
+  // If target circle exists: show tee→target and target→pin
+  // If no target (par 3 or no layup): show crosshair→tee and crosshair→pin
+  const latlng=_inlineCrosshair?_inlineCrosshair.getLatLng():null;
+  const pos=latlng?{lat:latlng.lat,lng:latlng.lng}:null;
+
+  if(_inlineLayupPos){
+    // Line distances: tee→target (white) and target→pin (gold)
+    const origin=_shotNum===1?_inlineTeePos:_prevBallGPS;
+    if(origin){
+      const teeToTarget=Math.round(hav(origin,_inlineLayupPos));
+      document.getElementById('inlineFromTee').textContent=teeToTarget;
+      document.getElementById('inlineFromLabel').textContent=_shotNum===1?'Tee→Target':'Ball→Target';
+    }
+    const targetToPin=Math.round(hav(_inlineLayupPos,_inlinePinPos));
+    document.getElementById('inlineToPin').textContent=targetToPin;
+    // Update element label
+    const pinLbl=document.getElementById('inlineToPinLabel');
+    if(pinLbl)pinLbl.textContent='Target→Pin';
+  } else if(pos){
+    // Crosshair distances (par 3 or no layup)
+    const toPin=Math.round(hav(pos,_inlinePinPos));
+    document.getElementById('inlineToPin').textContent=toPin;
+    const origin=_shotNum===1?_inlineTeePos:_prevBallGPS;
+    if(origin){
+      document.getElementById('inlineFromTee').textContent=Math.round(hav(pos,origin));
+      document.getElementById('inlineFromLabel').textContent=_shotNum===1?'From Tee':'Shot dist';
+    }
   }
 }
 
@@ -2716,8 +2820,8 @@ function stepPlay(pg){
 </div>
 
 <!-- Inline GPS Map -->
-<div id="holeMapInlineWrap" style="border-radius:12px;overflow:hidden;background:#111;margin-bottom:8px">
-  <div id="holeMapInlineEl" style="height:320px;width:100%"></div>
+<div id="holeMapInlineWrap" style="border-radius:12px;overflow:hidden;background:#111;margin-bottom:8px;max-width:420px;margin-left:auto;margin-right:auto">
+  <div id="holeMapInlineEl" style="height:260px;width:100%"></div>
   <div style="background:#111;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
     <div style="display:flex;gap:14px">
       <div style="text-align:center">
@@ -3935,8 +4039,7 @@ function initHoleMap(courseId, holeNum, shotNum){
     
     // ESRI World Imagery - high res satellite
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
-      maxZoom:20,
-      attribution:'ESRI'
+      maxZoom:20,maxNativeZoom:19,tileSize:256,attribution:'ESRI'
     }).addTo(_holeMap);
     
     if(gps){
