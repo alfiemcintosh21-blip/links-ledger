@@ -1203,7 +1203,7 @@ function startWF(isTest=false){
 function renderWF(){
   SP('round');
   const pg=document.getElementById('pg-round');
-  const steps={course:stepCourse,mode:stepMode,bag:stepBag,play:stepPlay,score:stepScore,lie:stepLie,preshot:stepPreshot,summary:stepSummary,scan:stepScan};
+  const steps={course:stepCourse,mode:stepMode,bag:stepBag,play:stepPlay,score:stepScore,lie:stepLie,preshot:stepPreshot,summary:stepSummary,scan:stepScan,yardage_hole:stepYardag};
   if(steps[WF.step]){
     try{
       steps[WF.step](pg);
@@ -1255,8 +1255,9 @@ function updateHolesOptions(){
       var opt12=document.createElement('option');
       opt12.value='12f';opt12.textContent='Front 12 (Chisholm standard)';
       sel.insertBefore(opt12,sel.children[0]);
+      sel.value='12f'; // Only auto-select on first inject
     }
-    sel.value='12f';
+    // Don't force value if user already changed it
   } else {
     // Normal 18-hole course
     if(opt9f)opt9f.style.display='';
@@ -1308,11 +1309,13 @@ function stepMode(pg){
 <div class="mode-card" onclick="selMode('shot')"><div class="mode-icon">🎯</div><div class="mode-title">Shot by shot</div><div class="mode-desc">Club, lie, shape, contact. Maximum stats and coaching.</div></div>
 <div class="mode-card" onclick="selMode('hole')"><div class="mode-icon">📋</div><div class="mode-title">Hole by hole</div><div class="mode-desc">Score, putts, GIR, fairway. Quick and simple.</div></div>
 <div class="mode-card" onclick="selMode('scan')"><div class="mode-icon">📸</div><div class="mode-title">Scan scorecard</div><div class="mode-desc">Photo of a printed card after your round.</div></div>
+<div class="mode-card" onclick="selMode('yardage')" style="border:2px solid var(--gold)"><div class="mode-icon">📏</div><div class="mode-title">Yardage tool</div><div class="mode-desc">Jump into any hole to check distances. Nothing saves.</div></div>
 <button class="btn bo" onclick="WF.step='course';renderWF()">← Back</button>`;
 }
 
 function selMode(m){
   if(m==='scan'){WF.mode='scan';WF.step='scan';renderWF();return;}
+  if(m==='yardage'){WF.mode='yardage';WF.step='yardage_hole';renderWF();return;}
   WF.mode=m;WF.step='bag';renderWF();
 }
 
@@ -2520,12 +2523,79 @@ function updateGPSLight(){
 
 function startGPS(){}
 
+function stepYardag(pg){
+  if(!pg)pg=document.getElementById('pg-round');
+  const c=WF.courseId?CDB[WF.courseId]:null;
+  const holes=WF.courseId?getH(WF.courseId,WF.holeType==='custom'?'18':WF.holeType):[];
+  pg.innerHTML=`
+<h2 style="margin-bottom:12px">📏 Yardage Tool</h2>
+<p style="color:var(--txt3);font-size:14px;margin-bottom:16px">Select a hole to check distances. Nothing is saved.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+${holes.map(function(h,i){return'<button class="btn bo" style="padding:12px;font-size:14px;font-weight:700" onclick="openYardageMap('+(i+1)+')">H'+(i+1)+'<br><span style=\'font-size:11px;opacity:0.7\'>Par '+h.par+'</span></button>';}).join('')}
+</div>
+<button class="btn bo" onclick="WF.step='mode';renderWF()">← Back</button>`;
+}
+
+function openYardageMap(holeNum){
+  const gps=WF.courseId?getHoleGPS(WF.courseId,holeNum):null;
+  const c=WF.courseId?CDB[WF.courseId]:null;
+  const holes=WF.courseId?getH(WF.courseId,WF.holeType||'18'):[]; 
+  const hd=holes[holeNum-1]||{par:4};
+  
+  const modal=document.createElement('div');
+  modal.id='yardageModal';
+  modal.style.cssText='position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;background:#000';
+  modal.innerHTML=`
+<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1a1a1a;color:#fff;flex-shrink:0">
+  <div style="font-weight:800;font-size:16px">Hole ${holeNum} · Par ${hd.par} · Yardage Tool</div>
+  <button onclick="document.getElementById('yardageModal').remove()" style="padding:7px 14px;background:#444;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer">✕ Close</button>
+</div>
+<div id="yardageMapEl" style="flex:1"></div>
+<div style="background:#1a1a1a;padding:8px 14px;display:flex;gap:20px;justify-content:center;flex-shrink:0">
+  <div style="text-align:center"><div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">To Pin</div><div id="ydToPin" style="font-size:26px;font-weight:900;color:#fff">—</div><div style="font-size:9px;color:#888">m</div></div>
+  <div style="text-align:center"><div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">From Tee</div><div id="ydFromTee" style="font-size:26px;font-weight:900;color:#c9a84c">—</div><div style="font-size:9px;color:#888">m</div></div>
+</div>`;
+  document.body.appendChild(modal);
+
+  setTimeout(function(){
+    const mapEl=document.getElementById('yardageMapEl');
+    if(!mapEl)return;
+    const centre=gps?[gps.tee.lat,gps.tee.lng]:(c?[c.lat,c.lng]:[0,0]);
+    const ydMap=L.map('yardageMapEl',{center:centre,zoom:16,zoomControl:true,attributionControl:false});
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19}).addTo(ydMap);
+
+    if(!gps)return;
+
+    // Frame
+    ydMap.fitBounds([[gps.frameTee.lat,gps.frameTee.lng],[gps.frameGreen.lat,gps.frameGreen.lng]],{padding:[30,20]});
+
+    // Markers
+    const pinIcon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#c9a84c;border-radius:50%;border:2px solid #fff"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+    L.marker([gps.green.lat,gps.green.lng],{icon:pinIcon,interactive:false}).addTo(ydMap);
+    L.marker([gps.tee.lat,gps.tee.lng],{icon:L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#fff;border-radius:50%;border:2px solid #2d5a3d"></div>',iconSize:[10,10],iconAnchor:[5,5]}),interactive:false}).addTo(ydMap);
+    L.polyline([[gps.tee.lat,gps.tee.lng],[gps.green.lat,gps.green.lng]],{color:'rgba(255,255,255,0.6)',weight:1.5,dashArray:'6,4'}).addTo(ydMap);
+
+    // Crosshair
+    const crossIcon=L.divIcon({className:'',html:'<div style="width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;background:rgba(255,255,255,0.1);position:relative"><div style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#fff;margin-top:-.75px"></div><div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#fff;margin-left:-.75px"></div></div>',iconSize:[32,32],iconAnchor:[16,16]});
+    const cross=L.marker([gps.green.lat,gps.green.lng],{icon:crossIcon,draggable:true,zIndexOffset:1000}).addTo(ydMap);
+    cross.on('drag',function(e){
+      const pos={lat:e.latlng.lat,lng:e.latlng.lng};
+      document.getElementById('ydToPin').textContent=Math.round(hav(pos,gps.green));
+      document.getElementById('ydFromTee').textContent=Math.round(hav(pos,gps.tee));
+    });
+  },100);
+}
+
+
+
 // ── INLINE HOLE MAP ──
 let _inlineMap=null, _inlineCrosshair=null, _inlineTeeMarker=null;
 let _inlinePinMarker=null, _inlineLayupMarker=null;
 let _inlineMode='yardage'; // 'yardage' or 'mark'
 let _inlineTeePos=null, _inlinePinPos=null, _inlineLayupPos=null;
 let _inlineTeeToLayupLine=null, _inlineLayupToPinLine=null;
+let _inlineFrontMarker=null, _inlineBackMarker=null;
+let _inlineFrontGreenPos=null, _inlineBackGreenPos=null;
 
 function initInlineHoleMap(courseId, holeNum, shotNum){
   const gps=getHoleGPS(courseId, holeNum);
@@ -2566,21 +2636,29 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
     _inlineMap.fitBounds([[behind.lat,behind.lng],[frameGreen.lat,frameGreen.lng]],{padding:[40,20]});
   }
 
-  // Yardage arcs
-  [50,100,150,200,250].forEach(function(m){
-    L.circle([_inlinePinPos.lat,_inlinePinPos.lng],{radius:m,color:'rgba(255,255,255,0.3)',weight:1,fill:false,dashArray:'3,4'}).addTo(_inlineMap);
-    const arcPt=offsetCoord(_inlinePinPos,90,m);
-    L.marker([arcPt.lat,arcPt.lng],{icon:L.divIcon({className:'',html:'<div style="background:rgba(0,0,0,0.55);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px">'+m+'m</div>',iconAnchor:[12,6]}),interactive:false}).addTo(_inlineMap);
-  });
 
-  // Front/back green labels
+
+  // Front/back green markers - draggable, reset per hole, distance from ball/tee
+  const ballOrigin=_prevBallGPS||_inlineTeePos;
   if(gps.frontGreen){
-    const fd=Math.round(hav(_inlineTeePos,gps.frontGreen));
-    L.marker([gps.frontGreen.lat,gps.frontGreen.lng],{icon:L.divIcon({className:'',html:'<div style="background:rgba(0,100,0,0.85);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px">F '+fd+'m</div>',iconAnchor:[20,8]}),interactive:false}).addTo(_inlineMap);
+    _inlineFrontGreenPos={lat:gps.frontGreen.lat,lng:gps.frontGreen.lng};
+    const fd=ballOrigin?Math.round(hav(ballOrigin,_inlineFrontGreenPos)):0;
+    const fIcon=L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #ccc;cursor:move">F '+fd+'m</div>',iconAnchor:[24,10]});
+    _inlineFrontMarker=L.marker([_inlineFrontGreenPos.lat,_inlineFrontGreenPos.lng],{icon:fIcon,draggable:true,zIndexOffset:700}).addTo(_inlineMap);
+    _inlineFrontMarker.on('drag',function(e){
+      _inlineFrontGreenPos={lat:e.latlng.lat,lng:e.latlng.lng};
+      updateFrontBackLabels();
+    });
   }
   if(gps.backGreen){
-    const bd=Math.round(hav(_inlineTeePos,gps.backGreen));
-    L.marker([gps.backGreen.lat,gps.backGreen.lng],{icon:L.divIcon({className:'',html:'<div style="background:rgba(150,0,0,0.85);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px">B '+bd+'m</div>',iconAnchor:[20,8]}),interactive:false}).addTo(_inlineMap);
+    _inlineBackGreenPos={lat:gps.backGreen.lat,lng:gps.backGreen.lng};
+    const bd=ballOrigin?Math.round(hav(ballOrigin,_inlineBackGreenPos)):0;
+    const bIcon=L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #ccc;cursor:move">B '+bd+'m</div>',iconAnchor:[24,10]});
+    _inlineBackMarker=L.marker([_inlineBackGreenPos.lat,_inlineBackGreenPos.lng],{icon:bIcon,draggable:true,zIndexOffset:700}).addTo(_inlineMap);
+    _inlineBackMarker.on('drag',function(e){
+      _inlineBackGreenPos={lat:e.latlng.lat,lng:e.latlng.lng};
+      updateFrontBackLabels();
+    });
   }
 
   // Draw the tee->layup->pin line system
@@ -2589,7 +2667,7 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
   // TEE marker (draggable - player sets their tee position)
   const teeIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;box-shadow:0 0 6px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[14,14],iconAnchor:[7,7]});
   _inlineTeeMarker=L.marker([_inlineTeePos.lat,_inlineTeePos.lng],{icon:teeIcon,draggable:true,zIndexOffset:900}).addTo(_inlineMap);
-  _inlineTeeMarker.bindTooltip('T',{permanent:true,direction:'top',className:'map-lbl',offset:[0,-10]});
+
   _inlineTeeMarker.on('drag',function(e){
     _inlineTeePos={lat:e.latlng.lat,lng:e.latlng.lng};
     drawInlineLines();
@@ -2599,7 +2677,7 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
   // PIN marker (draggable - player can move to pin position)
   const pinIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#c9a84c;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[14,14],iconAnchor:[7,7]});
   _inlinePinMarker=L.marker([_inlinePinPos.lat,_inlinePinPos.lng],{icon:pinIcon,draggable:true,zIndexOffset:900}).addTo(_inlineMap);
-  _inlinePinMarker.bindTooltip('📍',{permanent:true,direction:'top',offset:[0,-10]});
+  _inlinePinMarker.bindTooltip('pin',{permanent:true,direction:'top',offset:[0,-8],className:'map-lbl'});
   _inlinePinMarker.on('drag',function(e){
     _inlinePinPos={lat:e.latlng.lat,lng:e.latlng.lng};
     drawInlineLines();
@@ -2639,6 +2717,19 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
   updateInlineDistances();
 }
 
+function updateFrontBackLabels(){
+  const origin=_prevBallGPS||_inlineTeePos;
+  if(!origin)return;
+  if(_inlineFrontMarker&&_inlineFrontGreenPos){
+    const fd=Math.round(hav(origin,_inlineFrontGreenPos));
+    _inlineFrontMarker.setIcon(L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #ccc;cursor:move">F '+fd+'m</div>',iconAnchor:[24,10]}));
+  }
+  if(_inlineBackMarker&&_inlineBackGreenPos){
+    const bd=Math.round(hav(origin,_inlineBackGreenPos));
+    _inlineBackMarker.setIcon(L.divIcon({className:'',html:'<div style="background:#fff;color:#000;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #ccc;cursor:move">B '+bd+'m</div>',iconAnchor:[24,10]}));
+  }
+}
+
 function drawInlineLines(){
   if(!_inlineMap)return;
   if(_inlineTeeToLayupLine){_inlineTeeToLayupLine.remove();_inlineTeeToLayupLine=null;}
@@ -2654,7 +2745,7 @@ function drawInlineLines(){
     // Target circle → pin (gold line)
     _inlineLayupToPinLine=L.polyline(
       [[_inlineLayupPos.lat,_inlineLayupPos.lng],[_inlinePinPos.lat,_inlinePinPos.lng]],
-      {color:'rgba(201,168,76,0.85)',weight:2.5,dashArray:'6,3'}
+      {color:'rgba(255,255,255,0.85)',weight:2.5,dashArray:'6,3'}
     ).addTo(_inlineMap);
   } else {
     // Direct tee → pin line (no layup)
