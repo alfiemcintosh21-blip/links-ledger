@@ -961,6 +961,8 @@ function launch(){
   document.getElementById('rptBtn').style.display='flex';
   // Retry any pending Supabase syncs
   setTimeout(retrySyncQueue, 2000);
+  // Check for old data to migrate
+  setTimeout(migrateOldData, 3000);
   // Cleanup: remove any non-seed Otago rounds for Alfie every login
   if(CU&&CU.uid==='alfie'){
     const d=GUD('alfie');
@@ -4564,7 +4566,10 @@ function rProfile(){
   document.getElementById('pg-profile').innerHTML=
     (CU.role==='admin'?'<button class="btn" onclick="SP(\'admin\')" style="width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px">⚙️ Admin Panel</button>':'')+
     '<div class="pav">'+initials+'</div>'+
-    '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:2px">'+(fullName||CU.email)+'</div>'+
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:2px">'+
+      '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700">'+(fullName||CU.email)+'</div>'+
+      '<button onclick="openEditProfile()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;line-height:1" title="Edit profile">✏️</button>'+
+    '</div>'+
     '<div style="text-align:center;font-size:13px;color:var(--txt3);margin-bottom:4px">'+CU.email+'</div>'+
     '<div style="text-align:center;font-size:13px;color:var(--txt3);margin-bottom:14px">🏌️ '+homeCourseName+'</div>'+
     '<div class="sg3">'+
@@ -4588,6 +4593,114 @@ function rProfile(){
     '</div>'+
     '<button class="btn bo" style="color:var(--red);border-color:var(--red);margin-top:8px" onclick="delTestData()">🗑 Delete all test data</button>'+
     '<button class="btn bo" onclick="logout()" style="margin-top:4px">Sign out</button>';
+}
+
+function openEditProfile(){
+  // Remove existing modal if any
+  const existing=document.getElementById('editProfileModal');
+  if(existing)existing.remove();
+
+  const modal=document.createElement('div');
+  modal.id='editProfileModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1200;display:flex;align-items:flex-end;justify-content:center';
+
+  modal.innerHTML=
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:420px">'+
+      '<div style="font-size:18px;font-weight:800;margin-bottom:16px">Edit Profile</div>'+
+      '<div class="fi" style="margin-bottom:10px">'+
+        '<label style="font-size:12px;font-weight:700;color:var(--txt3)">First name</label>'+
+        '<input type="text" id="ep-fn" value="'+(CU.firstName||'')+'" placeholder="First name" '+
+          'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit;box-sizing:border-box">'+
+      '</div>'+
+      '<div class="fi" style="margin-bottom:10px">'+
+        '<label style="font-size:12px;font-weight:700;color:var(--txt3)">Last name</label>'+
+        '<input type="text" id="ep-ln" value="'+(CU.lastName||'')+'" placeholder="Last name" '+
+          'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit;box-sizing:border-box">'+
+      '</div>'+
+      '<div class="fi" style="margin-bottom:10px">'+
+        '<label style="font-size:12px;font-weight:700;color:var(--txt3)">Email</label>'+
+        '<input type="email" id="ep-em" value="'+(CU.email||'')+'" placeholder="Email" '+
+          'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit;box-sizing:border-box">'+
+      '</div>'+
+      '<div class="fi" style="margin-bottom:16px">'+
+        '<label style="font-size:12px;font-weight:700;color:var(--txt3)">Phone number</label>'+
+        '<input type="tel" id="ep-ph" value="'+(CU.phone||'')+'" placeholder="+64 21 123 4567" '+
+          'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit;box-sizing:border-box">'+
+      '</div>'+
+      '<div id="ep-err" style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px"></div>'+
+      '<div style="display:flex;gap:10px">'+
+        '<button onclick="saveEditProfile()" id="ep-save-btn" '+
+          'style="flex:2;padding:14px;background:var(--g);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">'+
+          'Save changes</button>'+
+        '<button onclick="closeEditProfile()" '+
+          'style="flex:1;padding:14px;background:var(--bg2);border:1.5px solid var(--bdr);border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">'+
+          'Cancel</button>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click',function(e){if(e.target===modal)closeEditProfile();});
+}
+function closeEditProfile(){var m=document.getElementById('editProfileModal');if(m)m.remove();}
+
+async function saveEditProfile(){
+  const fn=document.getElementById('ep-fn').value.trim();
+  const ln=document.getElementById('ep-ln').value.trim();
+  const em=document.getElementById('ep-em').value.trim().toLowerCase();
+  const ph=document.getElementById('ep-ph').value.trim();
+  const errEl=document.getElementById('ep-err');
+  const btn=document.getElementById('ep-save-btn');
+
+  if(!fn||!ln){errEl.textContent='First and last name are required';return;}
+  if(!em||!em.includes('@')){errEl.textContent='Valid email required';return;}
+
+  btn.textContent='Saving...';btn.disabled=true;
+  errEl.textContent='';
+
+  try{
+    // Build update object
+    const metaUpdate={
+      first_name:fn,
+      last_name:ln,
+      full_name:fn+' '+ln,
+      phone:ph
+    };
+
+    // Update Supabase Auth metadata
+    const updateObj={data:metaUpdate};
+    // Only update email if changed (triggers re-verification)
+    if(em!==CU.email){
+      updateObj.email=em;
+    }
+
+    const {data,error}=await sb.auth.updateUser(updateObj);
+
+    if(error){
+      errEl.textContent=error.message;
+      btn.textContent='Save changes';btn.disabled=false;
+      return;
+    }
+
+    // Update local CU object
+    CU.firstName=fn;
+    CU.lastName=ln;
+    CU.name=fn+' '+ln;
+    CU.phone=ph;
+    if(em!==CU.email){
+      CU.email=em;
+      // Email change requires re-verification — warn user
+      toast('Verification email sent to '+em+' — please verify to complete change');
+    } else {
+      toast('Profile updated ✓');
+    }
+
+    document.getElementById('editProfileModal').remove();
+    rProfile();
+
+  }catch(e){
+    errEl.textContent='Error: '+e.message;
+    btn.textContent='Save changes';btn.disabled=false;
+  }
 }
 
 async function saveHomeCourse(){
@@ -5754,6 +5867,92 @@ async function retrySyncQueue(){
       console.log('Pending sync completed ✓');
     }
   }catch(e){console.warn('Sync retry failed:',e);}
+}
+
+// ── ONE-TIME DATA MIGRATION ──
+async function migrateOldData(){
+  if(!sb||!CU||!CU.uid)return;
+  const OLD_UID='alfie';
+  const NEW_UID=CU.uid;
+
+  // Check if migration already done
+  const migrated=localStorage.getItem('ll_migrated_'+NEW_UID);
+  if(migrated)return;
+
+  // Check if old data exists
+  const oldKey='ll_d_'+OLD_UID;
+  const oldRaw=localStorage.getItem(oldKey);
+  if(!oldRaw){
+    console.log('No old data found to migrate');
+    return;
+  }
+
+  try{
+    const oldData=JSON.parse(oldRaw);
+    if(!oldData||(!oldData.rounds&&!oldData.clubStats)){
+      console.log('Old data empty, skipping migration');
+      return;
+    }
+
+    // Show migration prompt
+    const confirmed=confirm(
+      'We found your old round data from your previous account (' +
+      (oldData.rounds||[]).length + ' rounds). ' +
+      'Would you like to import it into your new account?'
+    );
+    if(!confirmed){
+      localStorage.setItem('ll_migrated_'+NEW_UID,'skipped');
+      return;
+    }
+
+    // Get current new account data
+    const newData=ud()||{};
+
+    // Merge rounds (old rounds go to end, new rounds at start)
+    const oldRounds=oldData.rounds||[];
+    const newRounds=newData.rounds||[];
+    const mergedRounds=[...newRounds,...oldRounds];
+
+    // Merge club stats
+    const mergedClubStats=Object.assign({},oldData.clubStats||{},newData.clubStats||{});
+
+    // Merge hole stats
+    const mergedHoleStats=Object.assign({},oldData.holeStats||{},newData.holeStats||{});
+
+    // Build merged data object
+    const mergedData=Object.assign({},newData,{
+      rounds:mergedRounds,
+      clubStats:mergedClubStats,
+      holeStats:mergedHoleStats,
+      bag:newData.bag||oldData.bag,
+      trackingPrefs:newData.trackingPrefs||oldData.trackingPrefs,
+      coachProfile:newData.coachProfile||oldData.coachProfile,
+      stockYardages:newData.stockYardages||oldData.stockYardages,
+    });
+
+    // Save merged data
+    SV('ll_d_'+NEW_UID, mergedData);
+
+    // Push to Supabase
+    const {error}=await sb.from('ll_userdata').upsert({
+      uid:NEW_UID,
+      data:JSON.stringify(mergedData),
+      updated_at:new Date().toISOString()
+    });
+
+    if(error){
+      toast('Migration failed: '+error.message);
+      return;
+    }
+
+    localStorage.setItem('ll_migrated_'+NEW_UID,'done');
+    toast('✓ '+oldRounds.length+' rounds imported from old account!');
+    setTimeout(function(){rStats&&rStats();SP('home');},1000);
+
+  }catch(e){
+    console.error('Migration error:',e);
+    toast('Migration error: '+e.message);
+  }
 }
 
 window.addEventListener('load',init);
