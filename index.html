@@ -2239,17 +2239,22 @@ function stepScore(pg){
   const shots=hd.shots||[];
 
   // ── AUTO-CALC SHOTS TO GREEN ──
-  // All tracked shots = shots to green (player tapped green when on the green)
-  // Putts are entered separately on score screen
-  const s2g=shots.length||1;
+  // If shots tracked: use shot count
+  // If hole mode (no shots): derive from score - putts, default to par-2
+  const s2g=shots.length>0?shots.length:Math.max(1,(hd.score||par)-(hd.putts||2));
   window._s2g=s2g;
 
   // ── AUTO-CALC PUTTS - default 2, but 1 if par 3 GIR ──
   if(!hd.putts)hd.putts=2;
 
   // ── AUTO-CALC GIR ──
-  // Non-green shots must be <= par-2
-  hd.gir=(s2g<=(par-2)&&s2g>0);
+  // Only auto-calc if we have actual tracked shots
+  // In hole mode (no shots), leave as null until manually set
+  if(shots.length>0){
+    hd.gir=(s2g<=(par-2)&&s2g>0);
+  } else if(hd.gir===null||hd.gir===undefined){
+    hd.gir=false; // default off, player can toggle
+  }
 
   // ── AUTO-CALC FAIRWAY ──
   // First shot lie = Fairway? Only for par 4+
