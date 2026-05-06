@@ -323,19 +323,66 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
       <div class="at active" id="t-in" onclick="switchTab('in')">Sign in</div>
       <div class="at" id="t-up" onclick="switchTab('up')">Create account</div>
     </div>
+
+    <!-- SIGN IN -->
     <div id="f-in">
       <div class="fi"><label>Email</label><input type="email" id="li-em" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fi"><label>Password</label><input type="password" id="li-pw" placeholder="••••••••" autocomplete="current-password"></div>
-      <button class="ba" onclick="doLogin()">Sign in</button>
+      <button class="ba" id="li-btn" onclick="doLogin()">Sign in</button>
       <div class="aerr" id="li-err"></div>
     </div>
+
+    <!-- SIGN UP - multi-step -->
     <div id="f-up" style="display:none">
-      <div class="fi"><label>Full name</label><input type="text" id="su-nm" placeholder="Jamie McIntosh" autocomplete="name"></div>
-      <div class="fi"><label>Email</label><input type="email" id="su-em" placeholder="you@example.com" autocomplete="email"></div>
-      <div class="fi"><label>Password (min 6 chars)</label><input type="password" id="su-pw" placeholder="••••••••" autocomplete="new-password"></div>
-      <button class="ba" onclick="doSignup()">Create account</button>
-      <div class="aerr" id="su-err"></div>
+      <!-- Step 1: Name -->
+      <div id="su-step1">
+        <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Step 1 of 4 — Your name</div>
+        <div class="fi"><label>First name</label><input type="text" id="su-fn" placeholder="Jamie" autocomplete="given-name"></div>
+        <div class="fi"><label>Last name</label><input type="text" id="su-ln" placeholder="McIntosh" autocomplete="family-name"></div>
+        <button class="ba" onclick="suNext(1)">Next →</button>
+        <div class="aerr" id="su-err1"></div>
+      </div>
+      <!-- Step 2: Email + Password -->
+      <div id="su-step2" style="display:none">
+        <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Step 2 of 4 — Account details</div>
+        <div class="fi"><label>Email address</label><input type="email" id="su-em" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="fi"><label>Password (min 6 chars)</label><input type="password" id="su-pw" placeholder="••••••••" autocomplete="new-password"></div>
+        <button class="ba" onclick="suNext(2)">Next →</button>
+        <button class="ba" style="background:var(--bg3);color:var(--txt);margin-top:6px" onclick="suBack(2)">← Back</button>
+        <div class="aerr" id="su-err2"></div>
+      </div>
+      <!-- Step 3: Phone (optional) -->
+      <div id="su-step3" style="display:none">
+        <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Step 3 of 4 — Phone number (optional)</div>
+        <div class="fi"><label>Phone number</label><input type="tel" id="su-ph" placeholder="+64 21 123 4567" autocomplete="tel"></div>
+        <div style="font-size:11px;color:var(--txt3);margin-bottom:10px">Used for support contact only — never shared</div>
+        <button class="ba" onclick="suNext(3)">Next →</button>
+        <button class="ba" style="background:var(--bg3);color:var(--txt);margin-top:6px" onclick="suBack(3)">← Back</button>
+        <div class="aerr" id="su-err3"></div>
+      </div>
+      <!-- Step 4: Home course -->
+      <div id="su-step4" style="display:none">
+        <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Step 4 of 4 — Home course (optional)</div>
+        <div class="fi"><label>Home golf course</label>
+          <select id="su-hc" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit">
+            <option value="">Select a course...</option>
+          </select>
+        </div>
+        <button class="ba" id="su-btn" onclick="doSignup()">Create account ⛳</button>
+        <button class="ba" style="background:var(--bg3);color:var(--txt);margin-top:6px" onclick="suBack(4)">← Back</button>
+        <div class="aerr" id="su-err4"></div>
+      </div>
     </div>
+
+    <!-- VERIFICATION PENDING -->
+    <div id="f-verify" style="display:none;text-align:center;padding:10px 0">
+      <div style="font-size:40px;margin-bottom:10px">✉️</div>
+      <div style="font-size:17px;font-weight:800;margin-bottom:8px">Check your email</div>
+      <div style="font-size:13px;color:var(--txt3);margin-bottom:16px">We sent a verification link to <strong id="verify-email"></strong>. Click it to activate your account.</div>
+      <div style="font-size:12px;color:var(--txt3)">Once verified, come back and sign in.</div>
+      <button class="ba" style="margin-top:16px;background:var(--bg3);color:var(--txt)" onclick="switchTab('in')">← Back to sign in</button>
+    </div>
+
   </div>
 </div>
 
@@ -776,34 +823,137 @@ function switchTab(t){
   });
 }
 
-function doLogin(){
+async function doLogin(){
   const em=document.getElementById('li-em').value.trim().toLowerCase();
   const pw=document.getElementById('li-pw').value;
-  const users=GU();const u=users[em];
-  if(!u){document.getElementById('li-err').textContent='Account not found';return;}
-  if(u.pass!==pw){document.getElementById('li-err').textContent='Incorrect password';return;}
-  if(u.disabled){document.getElementById('li-err').textContent='Account disabled — contact admin';return;}
-  u.lastLogin=Date.now();SUs(users);CU=u;SV('ll_sess',em);
-  // Pull latest data from Supabase if available
-  if(sb){sb.from('ll_userdata').select('data').eq('uid',u.uid).single().then(({data:row})=>{if(row?.data){try{const remote=JSON.parse(row.data);SV('ll_d_'+u.uid,remote);}catch(e){}}launch();}).catch(()=>launch());}else{launch();}
+  const errEl=document.getElementById('li-err');
+  const btn=document.getElementById('li-btn');
+  errEl.textContent='';
+  if(!em||!pw){errEl.textContent='Please enter email and password';return;}
+  btn.textContent='Signing in...';btn.disabled=true;
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email:em,password:pw});
+    if(error){
+      btn.textContent='Sign in';btn.disabled=false;
+      if(error.message.includes('Email not confirmed')){
+        errEl.textContent='Please verify your email first — check your inbox';
+      } else if(error.message.includes('Invalid login')){
+        errEl.textContent='Incorrect email or password';
+      } else {
+        errEl.textContent=error.message;
+      }
+      return;
+    }
+    const user=data.user;
+    CU={uid:user.id,email:user.email,name:user.user_metadata?.full_name||user.email,
+        firstName:user.user_metadata?.first_name||'',
+        lastName:user.user_metadata?.last_name||'',
+        phone:user.user_metadata?.phone||'',
+        homeCourse:user.user_metadata?.home_course||'',
+        role:user.user_metadata?.role||'user'};
+    // Load user data from Supabase
+    const {data:row}=await sb.from('ll_userdata').select('data').eq('uid',user.id).single();
+    if(row?.data){try{const remote=typeof row.data==='string'?JSON.parse(row.data):row.data;SV('ll_d_'+user.id,remote);}catch(e){}}
+    SV('ll_sess',user.id);
+    btn.textContent='Sign in';btn.disabled=false;
+    launch();
+  }catch(e){
+    btn.textContent='Sign in';btn.disabled=false;
+    errEl.textContent='Connection error — please try again';
+  }
 }
 
-function doSignup(){
-  const nm=document.getElementById('su-nm').value.trim();
-  const em=document.getElementById('su-em').value.trim().toLowerCase();
-  const pw=document.getElementById('su-pw').value;
-  if(!nm||!em||!pw){document.getElementById('su-err').textContent='All fields required';return;}
-  if(pw.length<6){document.getElementById('su-err').textContent='Password min 6 characters';return;}
-  const users=GU();
-  if(users[em]){document.getElementById('su-err').textContent='Email already registered';return;}
-  const uid='u_'+Date.now();
-  users[em]={uid,name:nm,email:em,pass:pw,phone:'',role:'user',created:Date.now(),lastLogin:Date.now(),disabled:false};
-  SUs(users);
-  const d=GUD(uid);d.bag=['Dr','3W','5W','Hy','6i','7i','8i','9i','PW','GW','SW','Pu'];SUD(uid,d);
-  CU=users[em];SV('ll_sess',em);launch();
+// Multi-step signup state
+let _suData={};
+function suNext(step){
+  if(step===1){
+    const fn=document.getElementById('su-fn').value.trim();
+    const ln=document.getElementById('su-ln').value.trim();
+    if(!fn||!ln){document.getElementById('su-err1').textContent='Both names required';return;}
+    _suData.firstName=fn;_suData.lastName=ln;_suData.fullName=fn+' '+ln;
+    document.getElementById('su-step1').style.display='none';
+    document.getElementById('su-step2').style.display='block';
+  } else if(step===2){
+    const em=document.getElementById('su-em').value.trim().toLowerCase();
+    const pw=document.getElementById('su-pw').value;
+    if(!em||!pw){document.getElementById('su-err2').textContent='Email and password required';return;}
+    if(pw.length<6){document.getElementById('su-err2').textContent='Password must be at least 6 characters';return;}
+    if(!em.includes('@')){document.getElementById('su-err2').textContent='Enter a valid email address';return;}
+    _suData.email=em;_suData.password=pw;
+    document.getElementById('su-step2').style.display='none';
+    document.getElementById('su-step3').style.display='block';
+  } else if(step===3){
+    _suData.phone=document.getElementById('su-ph').value.trim();
+    document.getElementById('su-step3').style.display='none';
+    document.getElementById('su-step4').style.display='block';
+    // Populate home course dropdown
+    const sel=document.getElementById('su-hc');
+    if(sel.options.length<=1){
+      Object.entries(CDB).forEach(function([id,c]){
+        const opt=document.createElement('option');
+        opt.value=id;opt.textContent=c.name+' ('+c.loc+')';
+        sel.appendChild(opt);
+      });
+    }
+  }
+}
+function suBack(step){
+  document.getElementById('su-step'+step).style.display='none';
+  document.getElementById('su-step'+(step-1)).style.display='block';
 }
 
-function logout(){SV('ll_sess',null);CU=null;document.getElementById('app').classList.add('gone');document.getElementById('auth').style.display='flex';document.getElementById('rptBtn').style.display='none';}
+async function doSignup(){
+  const errEl=document.getElementById('su-err4');
+  const btn=document.getElementById('su-btn');
+  errEl.textContent='';
+  _suData.homeCourse=document.getElementById('su-hc').value||'';
+  btn.textContent='Creating account...';btn.disabled=true;
+  try{
+    const {data,error}=await sb.auth.signUp({
+      email:_suData.email,
+      password:_suData.password,
+      options:{
+        data:{
+          first_name:_suData.firstName,
+          last_name:_suData.lastName,
+          full_name:_suData.fullName,
+          phone:_suData.phone||'',
+          home_course:_suData.homeCourse||'',
+          role:'user'
+        }
+      }
+    });
+    btn.textContent='Create account ⛳';btn.disabled=false;
+    if(error){errEl.textContent=error.message;return;}
+    // Show verification pending screen
+    document.getElementById('f-up').style.display='none';
+    document.getElementById('f-verify').style.display='block';
+    document.getElementById('verify-email').textContent=_suData.email;
+    // Create initial user data row in Supabase
+    if(data.user){
+      const uid=data.user.id;
+      const initData={bag:['Dr','3W','5W','Hy','4i','5i','6i','7i','8i','9i','Pw','Sw','Pu'],rounds:[],clubStats:{},holeStats:{},trackingPrefs:{shape:true,direction:true,contact:true,lie:true}};
+      await sb.from('ll_userdata').upsert({uid:uid,data:JSON.stringify(initData)});
+    }
+    _suData={};
+  }catch(e){
+    btn.textContent='Create account ⛳';btn.disabled=false;
+    errEl.textContent='Connection error — please try again';
+  }
+}
+
+async function logout(){
+  if(sb)await sb.auth.signOut();
+  SV('ll_sess',null);CU=null;
+  document.getElementById('app').classList.add('gone');
+  document.getElementById('auth').style.display='flex';
+  document.getElementById('rptBtn').style.display='none';
+  // Reset signup form
+  document.getElementById('f-in').style.display='block';
+  document.getElementById('f-up').style.display='none';
+  document.getElementById('f-verify').style.display='none';
+  switchTab('in');
+}
 
 function launch(){
   document.getElementById('auth').style.display='none';
@@ -4180,71 +4330,115 @@ function buildGMapsUrl(played){
 // ── PROFILE ──
 function rProfile(){
   const d=ud();const rr=realR();
-  document.getElementById('pg-profile').innerHTML=`
-${CU.role==='admin'?`<button class="btn" onclick="SP('admin')" style="width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px">⚙️ Admin Panel</button>`:''}
-<div class="pav">${CU.name.charAt(0)}</div>
-<div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;text-align:center;margin-bottom:2px">${CU.name}</div>
-<div style="text-align:center;font-size:14px;color:var(--txt3);margin-bottom:15px">${CU.email} · Member since ${new Date(CU.created).toLocaleDateString('en-NZ')}</div>
-<div class="sg3">
-  <div class="sc"><div class="sv">${rr.length}</div><div class="sl">Rounds</div></div>
-  <div class="sc"><div class="sv">${[...new Set(rr.map(r=>r.courseId))].length}</div><div class="sl">Courses</div></div>
-  <div class="sc"><div class="sv">${rr.length?Math.round(rr.reduce((s,r)=>s+r.total,0)/rr.length):'—'}</div><div class="sl">Avg score</div></div>
-</div>
-<div class="sec">Settings</div>
-<div class="card" style="padding:10px 13px">
-  <div class="tr"><div><div class="tl">Private rounds by default</div><div class="ts">Stats hidden from leaderboard</div></div>
-  <button class="tog ${d.settings?.privateRounds?'on':''}" id="psTog" onclick="togPrivSetting()"></button></div>
-</div>
-<button class="btn bo" style="color:var(--red);border-color:var(--red)" onclick="delTestData()">🗑 Delete all test data</button>
-<button class="btn bo" onclick="logout()" style="margin-top:4px">Sign out</button>`;
+  const fullName=(CU.firstName&&CU.lastName)?(CU.firstName+' '+CU.lastName):(CU.name||'');
+  const initials=fullName?fullName.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase():'?';
+  const homeCourse=CU.homeCourse||d.homeCourse||'';
+  const homeCourseName=homeCourse&&CDB[homeCourse]?CDB[homeCourse].name:homeCourse||'Not set';
+  const courseOpts=Object.entries(CDB).map(function(entry){var id=entry[0],c=entry[1];return '<option value="'+id+'"'+(homeCourse===id?' selected':'')+'>'+c.name+' ('+c.loc+')</option>';}).join('');
+
+  document.getElementById('pg-profile').innerHTML=
+    (CU.role==='admin'?'<button class="btn" onclick="SP(\'admin\')" style="width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px">⚙️ Admin Panel</button>':'')+
+    '<div class="pav">'+initials+'</div>'+
+    '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:2px">'+(fullName||CU.email)+'</div>'+
+    '<div style="text-align:center;font-size:13px;color:var(--txt3);margin-bottom:4px">'+CU.email+'</div>'+
+    '<div style="text-align:center;font-size:13px;color:var(--txt3);margin-bottom:14px">🏌️ '+homeCourseName+'</div>'+
+    '<div class="sg3">'+
+      '<div class="sc"><div class="sv">'+rr.length+'</div><div class="sl">Rounds</div></div>'+
+      '<div class="sc"><div class="sv">'+([...new Set(rr.map(function(r){return r.courseId;}))].length)+'</div><div class="sl">Courses</div></div>'+
+      '<div class="sc"><div class="sv">'+(rr.length?Math.round(rr.reduce(function(s,r){return s+r.total;},0)/rr.length):'—')+'</div><div class="sl">Avg score</div></div>'+
+    '</div>'+
+    '<div class="sec">Profile</div>'+
+    '<div class="card" style="padding:12px 14px;margin-bottom:10px">'+
+      '<div class="fi" style="margin-bottom:8px"><label style="font-size:12px;font-weight:700">Home course</label>'+
+        '<select id="homeCourseSelect" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit">'+
+          '<option value="">Select your home course...</option>'+courseOpts+
+        '</select>'+
+      '</div>'+
+      '<button class="btn bg" onclick="saveHomeCourse()" style="padding:10px">Save home course</button>'+
+    '</div>'+
+    '<div class="sec">Settings</div>'+
+    '<div class="card" style="padding:10px 13px">'+
+      '<div class="tr"><div><div class="tl">Private rounds by default</div><div class="ts">Stats hidden from leaderboard</div></div>'+
+      '<button class="tog '+(d.settings&&d.settings.privateRounds?'on':'')+'" id="psTog" onclick="togPrivSetting()"></button></div>'+
+    '</div>'+
+    '<button class="btn bo" style="color:var(--red);border-color:var(--red);margin-top:8px" onclick="delTestData()">🗑 Delete all test data</button>'+
+    '<button class="btn bo" onclick="logout()" style="margin-top:4px">Sign out</button>';
+}
+
+async function saveHomeCourse(){
+  const sel=document.getElementById('homeCourseSelect');
+  if(!sel)return;
+  const courseId=sel.value;
+  if(sb)await sb.auth.updateUser({data:{home_course:courseId}});
+  CU.homeCourse=courseId;
+  const d=ud(); d.homeCourse=courseId; sud(d);
+  toast('Home course saved ✓');
+  rProfile();
 }
 
 function togPrivSetting(){const d=ud();d.settings=d.settings||{};d.settings.privateRounds=!d.settings.privateRounds;sud(d);document.getElementById('psTog')?.classList.toggle('on',d.settings.privateRounds);}
 function delTestData(){if(!confirm('Delete all test data?'))return;const d=ud();d.rounds=d.rounds.filter(r=>!r.testMode);sud(d);toast('Test data deleted');rProfile();}
 
 // ── ADMIN ──
-function rAdmin(){
+async function rAdmin(){
   const pg=document.getElementById('pg-admin');
-  const users=GU();
-  const allUsers=Object.values(users).filter(u=>u.role!=='admin');
+  if(!pg)return;
+  pg.innerHTML='<div style="padding:20px;text-align:center;color:var(--txt3)">Loading users...</div>';
+
+  // Fetch ALL users from Supabase
+  let allRows=[];
+  if(sb){
+    try{
+      const {data,error}=await sb.from('ll_userdata').select('uid,data,updated_at').order('updated_at',{ascending:false});
+      if(!error&&data)allRows=data;
+    }catch(e){console.warn('Admin fetch error',e);}
+  }
+
+  // Also fetch auth users metadata via admin API (if available)
+  // For now, show what we have from ll_userdata
+
+  const userCards=allRows.map(function(row){
+    let d={};
+    try{d=typeof row.data==='string'?JSON.parse(row.data):row.data;}catch(e){}
+    const rounds=d.rounds||[];
+    const uid=row.uid;
+    const displayName=d.profile?.fullName||d.profile?.name||uid;
+    const email=d.profile?.email||'';
+    const phone=d.profile?.phone||'';
+    const homeCourse=d.profile?.homeCourse||'';
+    const lastUpdated=row.updated_at?new Date(row.updated_at).toLocaleDateString():'—';
+    return `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-weight:800;font-size:15px">${displayName}</div>
+          <div style="font-size:11px;color:var(--txt3)">${email} ${phone?'· '+phone:''}</div>
+          <div style="font-size:11px;color:var(--txt3)">Home: ${homeCourse||'—'} · Last active: ${lastUpdated}</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--g)">${rounds.length} round${rounds.length!==1?'s':''}</div>
+      </div>
+      ${rounds.length?rounds.slice().reverse().slice(0,3).map(function(r,i){return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--bdr)">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700">${r.courseName||r.courseId} <span style="font-weight:400;color:var(--txt3)">${r.date||''}</span></div>
+          <div style="font-size:11px;color:var(--txt3)">${r.totalHoles||18}H · ${r.mode||'hole'} mode</div>
+        </div>
+      </div>`;}).join(''):'<div style="font-size:12px;color:var(--txt3)">No rounds yet</div>'}
+      <button class="bsm" onclick="adminResetUser('${uid}')" style="margin-top:8px;color:var(--red);font-size:11px">Reset data</button>
+    </div>`;
+  }).join('');
 
   pg.innerHTML=`
-<div class="sec" style="margin-top:0">Admin Panel</div>
-
-<!-- USER MANAGEMENT -->
-<div class="sec" style="font-size:13px">Users (${allUsers.length})</div>
-${allUsers.map(u=>{
-  const d=GUD(u.uid);
-  const rounds=d.rounds||[];
-  return`<div class="card" style="padding:12px;margin-bottom:8px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div>
-        <div style="font-weight:800">${u.name}</div>
-        <div style="font-size:12px;color:var(--txt3)">${u.email} · ${rounds.length} rounds</div>
-      </div>
-      <button class="bsm" onclick="adminToggleUser('${u.uid}','${u.email}')" style="color:${u.disabled?'var(--g)':'var(--red)'}">
-        ${u.disabled?'Enable':'Disable'}
-      </button>
-    </div>
-    <div style="font-size:12px;font-weight:700;color:var(--txt3);margin-bottom:6px">Rounds:</div>
-    ${rounds.length?rounds.map((r,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--bdr)">
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700">${r.courseName} <span style="font-weight:400;color:var(--txt3)">${r.date}</span></div>
-        <div style="font-size:11px;color:var(--txt3)">${r.totalHoles}H · Score ${r.total} · ${r.mode} mode${r.testMode?' · TEST':''}</div>
-      </div>
-      <button class="bsm" onclick="adminEditRound('${u.uid}',${i})" style="font-size:11px">Edit</button>
-      <button class="bsm" onclick="adminDeleteRound('${u.uid}',${i})" style="font-size:11px;color:var(--red)">Delete</button>
-    </div>`).join(''):'<div style="font-size:12px;color:var(--txt3);padding:6px 0">No rounds</div>'}
-    <button class="bsm" onclick="adminResetUser('${u.uid}')" style="margin-top:8px;color:var(--red);font-size:11px">Reset all data</button>
-  </div>`;}).join('')}
-
-<!-- SYSTEM -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <h2 style="font-size:20px">⚙ Admin Panel</h2>
+  <div style="font-size:13px;color:var(--txt3)">${allRows.length} user${allRows.length!==1?'s':''}</div>
+</div>
+${userCards||'<div style="color:var(--txt3);font-size:14px">No users found</div>'}
 <div class="sec" style="font-size:13px;margin-top:8px">System</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
   <button class="btn bo" onclick="adminExportAll()" style="flex:1;padding:10px;font-size:13px">Export all data</button>
-  <button class="btn bo" onclick="adminClearTestData()" style="flex:1;padding:10px;font-size:13px;color:var(--red)">Clear all test rounds</button>
+  <button class="btn bo" onclick="rAdmin()" style="flex:1;padding:10px;font-size:13px">↻ Refresh</button>
 </div>`;
 }
+
 
 function adminToggleUser(uid, email){
   const users=GU();
@@ -4388,20 +4582,30 @@ function init(){
   const touchIcon=document.getElementById('appTouchIcon');
   if(touchIcon)touchIcon.href=LOGO;
   seedData();
-  const sess=LD('ll_sess',null);
-  if(sess){
-    const u=GU()[sess];
-    if(u&&!u.disabled){
-      CU=u;
-      u.lastLogin=Date.now();
-      const all=GU();all[sess]=u;SUs(all);
-      setTimeout(function(){
-        document.getElementById('splash').classList.add('out');
-        setTimeout(launch,600);
-      },1400);
-      return;
+  // Use Supabase Auth session
+  (async function(){
+    if(!sb){document.getElementById('auth').style.display='flex';return;}
+    const {data:{session}}=await sb.auth.getSession();
+    if(session&&session.user){
+      const user=session.user;
+      CU={uid:user.id,email:user.email,
+          name:user.user_metadata?.full_name||user.email,
+          firstName:user.user_metadata?.first_name||'',
+          lastName:user.user_metadata?.last_name||'',
+          phone:user.user_metadata?.phone||'',
+          homeCourse:user.user_metadata?.home_course||'',
+          role:user.user_metadata?.role||'user'};
+      // Load data from Supabase
+      try{
+        const {data:row}=await sb.from('ll_userdata').select('data').eq('uid',user.id).single();
+        if(row?.data){const remote=typeof row.data==='string'?JSON.parse(row.data):row.data;SV('ll_d_'+user.id,remote);}
+      }catch(e){}
+      SV('ll_sess',user.id);
+      setTimeout(function(){launch();},200);
+    } else {
+      document.getElementById('auth').style.display='flex';
     }
-  }
+  })();
   setTimeout(function(){
     document.getElementById('splash').classList.add('out');
     setTimeout(function(){document.getElementById('auth').style.display='flex';},600);
