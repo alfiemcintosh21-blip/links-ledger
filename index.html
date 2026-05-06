@@ -1099,8 +1099,21 @@ function getInProgressRounds(){
 }
 // Only holes with actually known values for averages
 const knownGIR=holes=>holes.filter(h=>h.gir!==null&&h.gir!==undefined);
-const knownFW=holes=>holes.filter(h=>h.fairway!==null&&h.fairway!==undefined);
-const knownUD=holes=>holes.filter(h=>h.updown!==null&&h.updown!==undefined);
+const knownFW=function(holes){
+  // Only count par 4+ holes where fairway was explicitly recorded
+  // holePar is stored on the hole data from shot tracking
+  return holes.filter(function(h){
+    const par=h.holePar||h.par||4;
+    return par>=4&&h.fairway!==null&&h.fairway!==undefined;
+  });
+};
+const knownUD=function(holes){
+  // Return holes where player indicated an up&down attempt
+  return holes.filter(function(h){
+    return h.updown==='attempt'||h.updown==='made'||h.updown==='missed'||h.updown===true||h.updown===false;
+  });
+};
+const udMade=function(h){return h.updown==='made'||h.updown===true;};
 
 // ── WEATHER ──
 async function fetchWx(lat,lng){
@@ -1308,7 +1321,7 @@ function rHome(){
   const fwH=knownFW(ah);
   const fwPct=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
   const udH=knownUD(ah.filter(h=>h.gir===false));
-  const udPct=udH.length?Math.round(udH.filter(h=>h.updown).length/udH.length*100):null;
+  const udPct=udH.length?Math.round(udH.filter(function(h){return udMade(h);}).length/udH.length*100):null;
   const best18=rr.length?Math.min(...rr.map(r=>Math.round(to18(r.toPar,r.totalHoles||9)))):null;
   const thisMonth=rr.filter(r=>{try{const d=new Date(r.date.split('/').reverse().join('-'));return d.getMonth()===new Date().getMonth()&&d.getFullYear()===new Date().getFullYear();}catch(e){return false;}}).length;
   const hcp=calcWHSHandicap(rr);
@@ -1332,7 +1345,7 @@ function rHome(){
   <div class="sc"><div class="sv">${gir!=null?gir+'%':'—'}</div><div class="sl">GIR %</div></div>
   <div class="sc"><div class="sv">${fwPct!=null?fwPct+'%':'—'}</div><div class="sl">Driving acc.</div></div>
   <div class="sc"><div class="sv">${putts18||'—'}</div><div class="sl">Putts/hole</div></div>
-  <div class="sc"><div class="sv">${udPct!=null?udPct+'%':'—'}</div><div class="sl">Up & down</div></div>
+  <div class="sc"><div class="sv">${udH.length?udH.filter(function(h){return udMade(h);}).length+'/'+udH.length:'—'}</div><div class="sl">Up & down</div></div>
   <div class="sc"><div class="sv">${thisMonth}</div><div class="sl">Rounds this month</div></div>
 </div>
 
@@ -2262,9 +2275,9 @@ function stepScore(pg){
     hd.fairway=(shots[0].lie==='Fairway');
   }
 
-  // ── AUTO-CALC UP & DOWN ──
-  // Only if GIR missed + exactly 1 putt
-  hd.updown=(!hd.gir&&hd.putts===1);
+  // Up & Down: NOT auto-calculated - player must indicate attempt
+  // Preserve existing value, default to null (no attempt recorded)
+  if(hd.updown===undefined)hd.updown=null;
 
   // ── TOTAL SCORE ──
   hd.score=s2g+hd.putts;
@@ -2360,9 +2373,24 @@ function stepScore(pg){
     <div style="font-weight:600;font-size:14px">GIR</div>
     <button class="tog ${hd.gir?'on':''}" id="girT" onclick="togHoleStat('gir','girT')"></button>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between">
-    <div style="font-weight:600;font-size:14px">Up & down</div>
-    <button class="tog ${hd.updown?'on':''}" id="udT" onclick="togHoleStat('updown','udT')"></button>
+  <!-- Up & Down - manual attempt tracking -->
+  <div style="margin-top:4px;padding-top:8px;border-top:1px solid var(--bdr)">
+    <div style="font-size:11px;text-transform:uppercase;color:var(--txt3);font-weight:700;margin-bottom:8px">Up & Down</div>
+    <div style="display:flex;gap:8px">
+      <button id="udAttemptBtn" onclick="setUpDown('attempt')"
+        style="flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--bdr);background:${hd.updown==='attempt'?'#f97316':hd.updown==='made'||hd.updown===true?'var(--bg3)':hd.updown==='missed'?'var(--bg3)':'var(--bg3)'};color:${hd.updown==='attempt'?'#fff':'var(--txt)'}">
+        🎯 Attempt
+      </button>
+      <button id="udMadeBtn" onclick="setUpDown('made')"
+        style="flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--bdr);background:${hd.updown==='made'||hd.updown===true?'var(--g)':'var(--bg3)'};color:${hd.updown==='made'||hd.updown===true?'#fff':'var(--txt)'}">
+        ✓ Made it
+      </button>
+      <button id="udMissedBtn" onclick="setUpDown('missed')"
+        style="flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--bdr);background:${hd.updown==='missed'?'var(--red)':'var(--bg3)'};color:${hd.updown==='missed'?'#fff':'var(--txt)'}">
+        ✗ Missed
+      </button>
+    </div>
+    <div style="font-size:11px;color:var(--txt3);margin-top:4px">Only tap if you had a genuine up & down chance</div>
   </div>
 </div>
 
@@ -2393,6 +2421,22 @@ function togHoleStat(stat,btnId){
   updateAutoStats();
 }
 
+function setUpDown(val){
+  if(!window._hd)return;
+  // Toggle: clicking same state clears it
+  window._hd.updown=window._hd.updown===val?null:val;
+  // Update buttons
+  const btns={attempt:'udAttemptBtn',made:'udMadeBtn',missed:'udMissedBtn'};
+  const colors={attempt:'#f97316',made:'var(--g)',missed:'var(--red)'};
+  Object.keys(btns).forEach(function(k){
+    const btn=document.getElementById(btns[k]);
+    if(!btn)return;
+    const active=window._hd.updown===k||(k==='made'&&window._hd.updown===true);
+    btn.style.background=active?colors[k]:'var(--bg3)';
+    btn.style.color=active?'#fff':'var(--txt)';
+  });
+}
+
 function updateAutoStats(){
   const hd=window._hd;
   const gEl=document.getElementById('girT');if(gEl)gEl.classList.toggle('on',hd.gir);
@@ -2414,7 +2458,7 @@ function adjS2G(d){
   if(svEl){svEl.textContent=hd.score;svEl.style.color=hd.score<par?'var(--g)':hd.score===par?'var(--txt)':'var(--red)';}
   const lbl=document.getElementById('scoreLbl');if(lbl)lbl.innerHTML=getBdg(hd.score,par);
   const as=document.getElementById('autoStats');
-  if(as)as.textContent='GIR: '+(hd.gir?'✓ Yes':'✗ No')+' · Fairway: '+(hd.fairway===true?'✓ Yes':hd.fairway===false?'✗ No':'—')+' · Up&Down: '+(hd.updown?'✓ Yes':'—');
+  if(as)as.textContent='GIR: '+(hd.gir?'✓ Yes':'✗ No')+' · Fairway: '+(hd.fairway===true?'✓ Yes':hd.fairway===false?'✗ No':'—');
 }
 
 function togHoleStat(stat,btnId){
@@ -2423,7 +2467,7 @@ function togHoleStat(stat,btnId){
   const btn=document.getElementById(btnId);
   if(btn)btn.classList.toggle('on',hd[stat]);
   const as=document.getElementById('autoStats');
-  if(as)as.textContent='GIR: '+(hd.gir?'✓ Yes':'✗ No')+' · Fairway: '+(hd.fairway===true?'✓ Yes':hd.fairway===false?'✗ No':'—')+' · Up&Down: '+(hd.updown?'✓ Yes':'—');
+  if(as)as.textContent='GIR: '+(hd.gir?'✓ Yes':'✗ No')+' · Fairway: '+(hd.fairway===true?'✓ Yes':hd.fairway===false?'✗ No':'—');
 }
 
 
@@ -2478,6 +2522,8 @@ function saveHole(){
   AR.holes[cHole]=window._hd;
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const hole=holes[cHole];
+  // Store par on hole data so fairway/GIR calcs work correctly later
+  if(window._hd&&hole)window._hd.par=hole.par;
   const d=ud();if(!d.holeStats)d.holeStats={};
   const key=`${AR.courseId}_h${hole.h}`;
   if(!d.holeStats[key])d.holeStats[key]={scores:[],gir:[],putts:[],fairways:[],updowns:[],shots:[]};
@@ -2761,7 +2807,7 @@ function stepSummary(pg){
   const girH=knownGIR(ph);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
   const putts=ph.reduce((s,h)=>s+h.putts,0);
   const fwH=knownFW(ph);const fw=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
-  const udH=knownUD(ph.filter(h=>h.gir===false));const udOK=udH.length?Math.round(udH.filter(h=>h.updown).length/udH.length*100):null;
+  const udH=knownUD(ph.filter(h=>h.gir===false));const udOK=udH.length?Math.round(udH.filter(function(h){return udMade(h);}).length/udH.length*100):null;
   const drives=ph.flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist)).map(s=>s.dist);
   const pace=null;
 
@@ -2777,7 +2823,7 @@ function stepSummary(pg){
     <div class="sg-box"><div class="v">${pace?pace+' min/km':'—'}</div><div class="l">Pace</div></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
-    ${[['Putts',putts],[`GIR`,gir!=null?gir+'%':'—'],[`Fairways`,fw!=null?fw+'%':'—'],[`Up&Down`,udOK!=null?udOK+'%':'—'],[`Avg shot`,allSh.length?Math.round(allSh.reduce((a,s)=>a+s.dist,0)/allSh.length)+'m':'—'],[`Long drv`,drives.length?Math.max(...drives)+'m':'—']].map(([l,v])=>`<div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:9px;text-align:center"><div style="font-size:19px;font-weight:900">${v}</div><div style="font-size:9px;opacity:0.8;text-transform:uppercase;margin-top:1px">${l}</div></div>`).join('')}
+    ${[['Putts',putts],[`GIR`,gir!=null?gir+'%':'—'],[`Fairways`,fw!=null?fw+'%':'—'],[`Up&Down`,udH.length?udH.filter(function(h){return udMade(h);}).length+'/'+udH.length:'—'],[`Avg shot`,allSh.length?Math.round(allSh.reduce((a,s)=>a+s.dist,0)/allSh.length)+'m':'—'],[`Long drv`,drives.length?Math.max(...drives)+'m':'—']].map(([l,v])=>`<div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:9px;text-align:center"><div style="font-size:19px;font-weight:900">${v}</div><div style="font-size:9px;opacity:0.8;text-transform:uppercase;margin-top:1px">${l}</div></div>`).join('')}
   </div>
 </div>
 <div class="sec">Score breakdown</div>
@@ -3618,7 +3664,7 @@ function rStats(){
   const ptH=ah.filter(h=>h.putts>0);
   const pt=ptH.length?(ptH.reduce((s,h)=>s+h.putts,0)/ptH.length).toFixed(1):null;
   const fwH=knownFW(ah);const fw=fwH.length?Math.round(fwH.filter(h=>h.fairway).length/fwH.length*100):null;
-  const udH=knownUD(ah.filter(h=>h.gir===false));const udP=udH.length?Math.round(udH.filter(h=>h.updown).length/udH.length*100):null;
+  const udH=knownUD(ah.filter(h=>h.gir===false));const udP=udH.length?Math.round(udH.filter(function(h){return udMade(h);}).length/udH.length*100):null;
   const avg18=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
   const best18=rr.length?Math.min(...rr.map(r=>Math.round(to18(r.toPar,r.totalHoles||9)))):null;
   const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
@@ -3646,7 +3692,7 @@ function rStats(){
   <div class="sc"><div class="sv">${pt||'—'}</div><div class="sl">Putts/hole</div></div>
   <div class="sc"><div class="sv">${rr.length?(rr.reduce((s,r)=>s+to18((r.holes||[]).reduce((a,h)=>a+(h?.putts||0),0),r.totalHoles||9),0)/rr.length).toFixed(1):'—'}</div><div class="sl">Putts/round<br><span style="font-size:9px;font-weight:500;opacity:0.7">(18H adj)</span></div></div>
   <div class="sc"><div class="sv">${fw!=null?fw+'%':'—'}</div><div class="sl">Fairways${fw===null?'<br>'+na:''}</div></div>
-  <div class="sc"><div class="sv">${udP!=null?udP+'%':'—'}</div><div class="sl">Up & down${udP===null?'<br>'+na:''}</div></div>
+  <div class="sc"><div class="sv">${udH.length?udH.filter(function(h){return udMade(h);}).length+'/'+udH.length:'—'}</div><div class="sl">Up & down${udP===null?'<br>'+na:''}</div></div>
 </div>
 
 <!-- WHS HANDICAP CARD -->
@@ -3725,7 +3771,7 @@ ${allShD.length?`<div class="sec">Shot direction</div>
 ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
 <div class="card" style="padding:0 13px"><table class="ctbl">
 <thead><tr><th>Club</th><th>Shots</th><th>Avg</th><th>Max</th><th>Min</th></tr></thead>
-<tbody>${ALL_CLUBS.filter(c=>d.clubStats?.[c]?.shots?.length).map(c=>`<tr><td style="font-weight:800">${c}</td><td>${d.clubStats[c].shots.length}</td><td style="color:var(--g);font-weight:700">${d.clubStats[c].avg}y</td><td>${d.clubStats[c].max}y</td><td>${d.clubStats[c].min}y</td></tr>`).join('')}</tbody></table></div>`:''}
+<tbody>${ALL_CLUBS.filter(c=>d.clubStats?.[c]?.shots?.length).map(c=>`<tr><td style="font-weight:800">${c}</td><td>${d.clubStats[c].shots.length}</td><td style="color:var(--g);font-weight:700">${d.clubStats[c].avg}m</td><td>${d.clubStats[c].max}m</td><td>${d.clubStats[c].min}m</td></tr>`).join('')}</tbody></table></div>`:''}
 
 <!-- PUTTING STATS -->
 <div class="sec" style="margin-top:14px">Putting</div>
@@ -3736,14 +3782,14 @@ ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
   <div style="margin-top:10px" id="puttDistrib"></div>
 </div>
 <!-- STOCK YARDAGES -->
-<div class="sec" style="margin-top:14px">Stock Yardages</div>
+<div class="sec" style="margin-top:14px">Stock Distances (metres)</div>
 <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
-  <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your stock yardages · App calculates from tracked shots</div>
+  <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your stock distances in metres · App estimates from tracked shots</div>
   <table style="width:100%;border-collapse:collapse;font-size:13px">
     <thead><tr>
       <th style="text-align:left;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Club</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">My Stock</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">App Est.</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">My Stock (m)</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Est. (m)</th>
       <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Best</th>
     </tr></thead>
     <tbody id="stockYdBody"></tbody>
@@ -3792,7 +3838,7 @@ function buildPuttingStatsUI(){
       var barW=pct!==null?pct:0;
       var col=pct===null?'var(--txt3)':pct>=70?'var(--g)':pct>=40?'var(--gold)':'var(--red)';
       rows+='<tr style="border-top:1px solid var(--bdr)">'+
-        '<td style="padding:5px 6px;font-weight:700">'+rng+'m</td>'+
+        '<td style="padding:5px 6px;font-weight:700">'+(ftLabels[rng]||rng)+'</td>'+
         '<td style="padding:5px 6px">'+
           '<div style="display:flex;align-items:center;gap:4px">'+
             '<div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">'+
@@ -4079,7 +4125,7 @@ function buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm){
   rr.forEach(r=>{const hs=getH(r.courseId,r.type==='custom'?'18':r.type);(r.holes||[]).forEach((h,i)=>{if(!h||!hs[i])return;const d=h.score-hs[i].par;if(d<=-2)eagles++;else if(d===-1)birdies++;else if(d===0)pars++;else if(d===1)bogeys++;else if(d===2)doubles++;else worse++;});});
   const totalHoles=eagles+birdies+pars+bogeys+doubles+worse;
   const udH=ah.filter(h=>h.gir===false);
-  const udPct=udH.length?Math.round(udH.filter(h=>h.updown).length/udH.length*100):null;
+  const udPct=udH.length?Math.round(udH.filter(function(h){return udMade(h);}).length/udH.length*100):null;
   const allShots=ah.flatMap(h=>h.shots||[]).filter(Boolean);
   const dirCounts={};allShots.filter(s=>s.dir).forEach(s=>{dirCounts[s.dir]=(dirCounts[s.dir]||0)+1;});
   const conCounts={};allShots.filter(s=>s.con&&s.con!=='Unknown').forEach(s=>{conCounts[s.con]=(conCounts[s.con]||0)+1;});
@@ -4096,7 +4142,7 @@ function buildStatsContext(avg,gir,pt,fw,drives,topMiss,clubSumm){
     gir!==null?'GIR%: '+gir+'% (tour avg 65%, 18hcp avg ~35%)':null,
     fw!==null?'Fairways hit%: '+fw+'% (tour avg 60%)':null,
     pt?'Putts per hole: '+pt:null,
-    udPct!==null?'Up & down%: '+udPct+'%':null,
+    udH.length?'Up & down: '+udH.filter(function(h){return udMade(h);}).length+'/'+udH.length+' attempts':null,
     drives.length?'Avg drive: '+Math.round(drives.reduce((a,b)=>a+b,0)/drives.length)+'m (max '+Math.max(...drives)+'m)':null,
     totalHoles>0?'Score breakdown: '+eagles+' eagles, '+birdies+' birdies, '+pars+' pars, '+bogeys+' bogeys, '+doubles+' doubles, '+worse+' triple+':null,
     topMiss?'Most common miss: '+topMiss[0]+' ('+topMiss[1]+' shots)':null,
@@ -5765,15 +5811,15 @@ function buildPuttingGreenSvg(stats){
 
     // 3-putt ring (red)
     '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r3+'" ry="'+(r3*0.72)+'" fill="none" stroke="#e74c3c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>'+
-    '<text x="'+(cx+r3+2)+'" y="'+cy+'" dominant-baseline="central" fill="#e74c3c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg3?stats.avg3+'m':'—'))+'</text>'+
+    '<text x="'+(cx+r3+2)+'" y="'+cy+'" dominant-baseline="central" fill="#e74c3c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg3?Math.round(stats.avg3*3.281)+"'":"—"))+'</text>'+
 
     // 2-putt ring (gold)
     '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r2+'" ry="'+(r2*0.72)+'" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.9"/>'+
-    '<text x="'+(cx+r2+2)+'" y="'+cy+'" dominant-baseline="central" fill="#c9a84c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg2?stats.avg2+'m':'—'))+'</text>'+
+    '<text x="'+(cx+r2+2)+'" y="'+cy+'" dominant-baseline="central" fill="#c9a84c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg2?Math.round(stats.avg2*3.281)+"'":"—"))+'</text>'+
 
     // 1-putt ring (green)
     '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r1+'" ry="'+(r1*0.72)+'" fill="none" stroke="#2ecc71" stroke-width="2" opacity="0.95"/>'+
-    '<text x="'+(cx+r1+2)+'" y="'+cy+'" dominant-baseline="central" fill="#2ecc71" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg1?stats.avg1+'m':'—'))+'</text>'+
+    '<text x="'+(cx+r1+2)+'" y="'+cy+'" dominant-baseline="central" fill="#2ecc71" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg1?Math.round(stats.avg1*3.281)+"'":"—"))+'</text>'+
 
     // Flag pole
     '<line x1="'+cx+'" y1="'+(cy-ry+10)+'" x2="'+cx+'" y2="'+(cy+10)+'" stroke="#fff" stroke-width="1.5"/>'+
