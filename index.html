@@ -3646,7 +3646,149 @@ ${allShD.length?`<div class="sec">Shot direction</div>
 ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
 <div class="card" style="padding:0 13px"><table class="ctbl">
 <thead><tr><th>Club</th><th>Shots</th><th>Avg</th><th>Max</th><th>Min</th></tr></thead>
-<tbody>${ALL_CLUBS.filter(c=>d.clubStats?.[c]?.shots?.length).map(c=>`<tr><td style="font-weight:800">${c}</td><td>${d.clubStats[c].shots.length}</td><td style="color:var(--g);font-weight:700">${d.clubStats[c].avg}y</td><td>${d.clubStats[c].max}y</td><td>${d.clubStats[c].min}y</td></tr>`).join('')}</tbody></table></div>`:''}`;
+<tbody>${ALL_CLUBS.filter(c=>d.clubStats?.[c]?.shots?.length).map(c=>`<tr><td style="font-weight:800">${c}</td><td>${d.clubStats[c].shots.length}</td><td style="color:var(--g);font-weight:700">${d.clubStats[c].avg}y</td><td>${d.clubStats[c].max}y</td><td>${d.clubStats[c].min}y</td></tr>`).join('')}</tbody></table></div>`:''}
+
+<!-- PUTTING STATS -->
+<div class="sec" style="margin-top:14px">Putting</div>
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
+  <div id="puttGreenSvg"></div>
+  <div style="margin-top:10px" id="overUnderBar"></div>
+  <div style="margin-top:10px" id="makePctTable"></div>
+  <div style="margin-top:10px" id="puttDistrib"></div>
+</div>
+<!-- STOCK YARDAGES -->
+<div class="sec" style="margin-top:14px">Stock Yardages</div>
+<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
+  <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your stock yardages · App calculates from tracked shots</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="text-align:left;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Club</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">My Stock</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">App Est.</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Best</th>
+    </tr></thead>
+    <tbody id="stockYdBody"></tbody>
+  </table>
+</div>`;
+  setTimeout(function(){buildPuttingStatsUI();buildStockYdTable();},80);
+}
+
+// ── PUTTING STATS UI BUILDER ──
+function buildPuttingStatsUI(){
+  const ps=getPuttingStats();
+  const noData=!ps||ps.totalPutts===0;
+
+  // Green SVG
+  const svgEl=document.getElementById('puttGreenSvg');
+  if(svgEl)svgEl.innerHTML=buildPuttingGreenSvg(ps);
+
+  // Over/under bar
+  const ouEl=document.getElementById('overUnderBar');
+  if(ouEl){
+    const total=ps?ps.totalMissed:0;
+    const overPct=total>0?Math.round(ps.overHit/total*100):null;
+    const underPct=total>0?Math.round(ps.underHit/total*100):null;
+    ouEl.innerHTML='<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:6px;text-align:center">Over/Under Hit</div>'+
+      (total>0?
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<div style="font-size:11px;color:#3b82f6;width:48px;text-align:right">Short<br>'+underPct+'%</div>'+
+          '<div style="flex:1;height:14px;background:var(--bg3);border-radius:7px;overflow:hidden;display:flex">'+
+            '<div style="width:'+underPct+'%;background:#3b82f6;border-radius:7px 0 0 7px"></div>'+
+            '<div style="width:'+overPct+'%;background:#e74c3c;border-radius:0 7px 7px 0"></div>'+
+          '</div>'+
+          '<div style="font-size:11px;color:#e74c3c;width:48px">Long<br>'+overPct+'%</div>'+
+        '</div>':
+        '<div style="font-size:12px;color:var(--txt3);text-align:center">No missed putt data yet</div>');
+  }
+
+  // Make % table
+  const mpEl=document.getElementById('makePctTable');
+  if(mpEl){
+    const bins=ps?ps.bins:{'0-1':[],'1-2':[],'2-3':[],'3-5':[],'5-10':[],'10+':[]};
+    var rows='';
+    Object.keys(bins).forEach(function(rng){
+      var arr=bins[rng];
+      var made=arr.filter(function(m){return m;}).length;
+      var pct=arr.length?Math.round(made/arr.length*100):null;
+      var barW=pct!==null?pct:0;
+      var col=pct===null?'var(--txt3)':pct>=70?'var(--g)':pct>=40?'var(--gold)':'var(--red)';
+      rows+='<tr style="border-top:1px solid var(--bdr)">'+
+        '<td style="padding:5px 6px;font-weight:700">'+rng+'m</td>'+
+        '<td style="padding:5px 6px">'+
+          '<div style="display:flex;align-items:center;gap:4px">'+
+            '<div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">'+
+              '<div style="width:'+barW+'%;height:100%;background:'+col+';border-radius:3px"></div>'+
+            '</div>'+
+            '<span style="font-weight:700;color:'+col+';min-width:28px;text-align:right">'+(pct!==null?pct+'%':'—')+'</span>'+
+          '</div>'+
+        '</td>'+
+        '<td style="padding:5px 6px;text-align:center;color:var(--txt3)">'+(arr.length||'—')+'</td>'+
+      '</tr>';
+    });
+    mpEl.innerHTML='<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:8px;text-align:center">Make % by Distance</div>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+        '<thead><tr>'+
+          '<th style="text-align:left;padding:3px 6px;color:var(--txt3);font-size:11px">Dist</th>'+
+          '<th style="padding:3px 6px;color:var(--txt3);font-size:11px">Make %</th>'+
+          '<th style="text-align:center;padding:3px 6px;color:var(--txt3);font-size:11px">Putts</th>'+
+        '</tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table>';
+  }
+
+  // Putt distribution
+  const pdEl=document.getElementById('puttDistrib');
+  if(pdEl&&ps&&ps.totalPutts>0){
+    var total2=Object.values(ps.puttCounts).reduce(function(s,v){return s+v;},0);
+    var cells='';
+    [1,2,3,4].forEach(function(n){
+      var cnt=ps.puttCounts[n]||0;
+      var pct2=total2?Math.round(cnt/total2*100):0;
+      var col2=n===1?'var(--g)':n===2?'var(--gold)':n===3?'var(--txt)':'var(--red)';
+      cells+='<div style="background:var(--bg3);border-radius:8px;padding:8px 4px;text-align:center">'+
+        '<div style="font-size:20px;font-weight:900;color:'+col2+'">'+pct2+'%</div>'+
+        '<div style="font-size:10px;color:var(--txt3);font-weight:700">'+(n===4?'4+':n)+'-putt</div>'+
+        '<div style="font-size:9px;color:var(--txt3)">'+cnt+'</div>'+
+      '</div>';
+    });
+    pdEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+cells+'</div>';
+  }
+}
+
+// ── STOCK YARDAGES TABLE BUILDER ──
+function buildStockYdTable(){
+  const tbody=document.getElementById('stockYdBody');
+  if(!tbody)return;
+  const manual=getManualStockYardages();
+  const appEst=getStockYardages();
+  const clubs=myBag();
+  var rows='';
+  clubs.forEach(function(club){
+    var m=manual[club]||'';
+    var est=appEst[club]||{};
+    var estVal=est.est;
+    var bestVal=est.best;
+    var method=est.method;
+    var methodLabel=method==='centre'?'★':method==='limited'?'~':'';
+    var estColor=estVal?'var(--g)':'var(--txt3)';
+    rows+='<tr style="border-top:1px solid var(--bdr)">'+
+      '<td style="padding:6px 6px;font-weight:800">'+club+'</td>'+
+      '<td style="padding:6px 4px;text-align:center">'+
+        '<input type="number" value="'+m+'" placeholder="—" '+
+          'style="width:54px;padding:4px 6px;border:1.5px solid var(--bdr);border-radius:6px;font-size:13px;font-weight:700;text-align:center;font-family:inherit;background:var(--bg3)" '+
+          'data-club="'+club+'" onchange="saveStockYardage(this.dataset.club,this.value)" '+
+          'onblur="saveStockYardage(this.dataset.club,this.value)">'+
+      '</td>'+
+      '<td style="padding:6px 4px;text-align:center;font-weight:700;color:'+estColor+'">'+
+        (estVal?estVal+'m '+methodLabel:'—')+
+        (est.count?'<div style="font-size:9px;color:var(--txt3)">'+est.count+' shots</div>':'')+ 
+      '</td>'+
+      '<td style="padding:6px 4px;text-align:center;font-weight:700;color:var(--gold)">'+
+        (bestVal?bestVal+'m':'—')+
+      '</td>'+
+    '</tr>';
+  });
+  tbody.innerHTML=rows;
 }
 
 // ── SPARKLINE GRAPH BUILDER ──
@@ -5243,6 +5385,210 @@ function getPuttMakePct(distMetres){
   const s=stats[bin];
   if(!s||s.attempts<3)return null; // Not enough data
   return s.pct;
+}
+
+
+// ── STOCK YARDAGE HYBRID MODEL ──
+function getStockYardages(){
+  const d=ud();
+  const rr=realR();
+  const allShots=rr.flatMap(function(r){return(r.holes||[]).flatMap(function(h){return h?h.shots||[]:[]; });}).filter(function(s){return s&&s.club&&s.dist&&s.dist>0;});
+  const clubs=myBag();
+  const result={};
+
+  clubs.forEach(function(club){
+    const shots=allShots.filter(function(s){return s.club===club;});
+    if(shots.length===0){result[club]={est:null,best:null,count:0,method:null};return;}
+
+    const best=Math.max.apply(null,shots.map(function(s){return s.dist;}));
+
+    // Method 1: Centre contact shots
+    const centrShots=shots.filter(function(s){
+      return s.con&&(s.con.toLowerCase().includes('centre')||s.con.toLowerCase().includes('center'));
+    });
+
+    let est=null, method=null;
+    if(centrShots.length>=3){
+      // Enough centre-contact data
+      const dists=centrShots.map(function(s){return s.dist;}).sort(function(a,b){return a-b;});
+      est=Math.round(dists.reduce(function(s,v){return s+v;},0)/dists.length);
+      method='centre';
+    } else if(shots.length>=3){
+      // Not enough centre data — use all shots, remove outliers (IQR method)
+      const dists=shots.map(function(s){return s.dist;}).sort(function(a,b){return a-b;});
+      const q1=dists[Math.floor(dists.length*0.25)];
+      const q3=dists[Math.floor(dists.length*0.75)];
+      const iqr=q3-q1;
+      const filtered=dists.filter(function(v){return v>=q1-1.5*iqr&&v<=q3+1.5*iqr;});
+      if(filtered.length>=2){
+        // Use median of filtered set
+        const mid=Math.floor(filtered.length/2);
+        est=filtered.length%2===0?Math.round((filtered[mid-1]+filtered[mid])/2):filtered[mid];
+        method=centrShots.length>0?'all+centre':'median';
+      }
+    } else if(shots.length>0){
+      // Less than 3 shots — just use median
+      const dists=shots.map(function(s){return s.dist;}).sort(function(a,b){return a-b;});
+      const mid=Math.floor(dists.length/2);
+      est=dists.length%2===0?Math.round((dists[mid-1]+dists[mid])/2):dists[mid];
+      method='limited';
+    }
+
+    result[club]={est:est,best:best,count:shots.length,method:method};
+  });
+  return result;
+}
+
+function getManualStockYardages(){
+  const d=ud();
+  return d.stockYardages||{};
+}
+
+async function saveStockYardage(club, val){
+  const d=ud();
+  if(!d.stockYardages)d.stockYardages={};
+  d.stockYardages[club]=val?parseInt(val):null;
+  sud(d);
+}
+
+// ── PUTTING STATS ──
+function getPuttingStats(){
+  const d=ud();
+  const rr=realR();
+  const allHoles=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
+  const puttData=allHoles.flatMap(function(h){return h.puttsData||[];}).filter(Boolean);
+
+  if(puttData.length===0)return null;
+
+  // Average putts per hole
+  const holesWithPutts=allHoles.filter(function(h){return h.putts>0;});
+  const avgPutts=holesWithPutts.length?Math.round(holesWithPutts.reduce(function(s,h){return s+(h.putts||0);},0)/holesWithPutts.length*10)/10:null;
+
+  // 1-putt, 2-putt, 3-putt counts
+  const puttCounts={1:0,2:0,3:0,4:0};
+  holesWithPutts.forEach(function(h){
+    const p=Math.min(4,h.putts||0);
+    if(p>0)puttCounts[p]=(puttCounts[p]||0)+1;
+  });
+
+  // Make % by distance
+  const bins={'0-1':[],'1-2':[],'2-3':[],'3-5':[],'5-10':[],'10+':[]} ;
+  puttData.forEach(function(p){
+    const dist=p.distToPin||0;
+    const bin=dist<1?'0-1':dist<2?'1-2':dist<3?'2-3':dist<5?'3-5':dist<10?'5-10':'10+';
+    bins[bin].push(p.made);
+  });
+
+  // Average 1/2/3 putt distances
+  const onePuttDists=[], twoPuttDists=[], threePuttDists=[];
+  holesWithPutts.forEach(function(h){
+    const hp=h.puttsData||[];
+    if(hp.length>=1&&hp[0].distToPin)onePuttDists.push(hp[0].distToPin);
+  });
+  holesWithPutts.forEach(function(h){
+    if(h.putts===1&&h.puttsData&&h.puttsData[0])onePuttDists.push(h.puttsData[0].distToPin);
+  });
+
+  // Recalculate properly per hole
+  const avg1Dist=[], avg2Dist=[], avg3Dist=[];
+  holesWithPutts.forEach(function(h){
+    const pd=h.puttsData||[];
+    if(pd.length>0&&pd[0].distToPin){
+      if(h.putts===1)avg1Dist.push(pd[0].distToPin);
+      else if(h.putts===2)avg2Dist.push(pd[0].distToPin);
+      else if(h.putts>=3)avg3Dist.push(pd[0].distToPin);
+    }
+  });
+
+  const avgDist=function(arr){return arr.length?Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length*10)/10:null;};
+
+  // Over/under hit analysis
+  let overHit=0, underHit=0;
+  for(var i=0;i<puttData.length-1;i++){
+    const curr=puttData[i], next=puttData[i+1];
+    if(curr.made||!curr.ballPos||!next.ballPos||!curr.pinPos)continue;
+    // Is next ball position on same hole?
+    if(curr.holeNum!==next.holeNum)continue;
+    // Check which side of pin next ball is on relative to current ball
+    // Bearing from curr ball through pin
+    const ballToPin=getBearing(curr.ballPos,curr.pinPos);
+    const ballToNext=getBearing(curr.ballPos,next.ballPos);
+    const angleDiff=((ballToNext-ballToPin+540)%360)-180;
+    // If ball went past pin (next is further in direction of original ball-to-pin)
+    const distCurr=hav(curr.ballPos,curr.pinPos);
+    const distNext=hav(next.ballPos,curr.pinPos);
+    if(distNext<distCurr*0.3){
+      // Made it effectively
+    } else {
+      // Check if ball ended up past pin
+      const bearingDiff=Math.abs(angleDiff);
+      if(bearingDiff<90){overHit++;}else{underHit++;}
+    }
+  }
+  const totalMissed=overHit+underHit;
+
+  return{
+    avgPutts:avgPutts,
+    puttCounts:puttCounts,
+    bins:bins,
+    avg1:avgDist(avg1Dist),
+    avg2:avgDist(avg2Dist),
+    avg3:avgDist(avg3Dist),
+    overHit:overHit,
+    underHit:underHit,
+    totalMissed:totalMissed,
+    totalPutts:puttData.length
+  };
+}
+
+// ── BUILD PUTTING STATS SVG GREEN ──
+function buildPuttingGreenSvg(stats){
+  const W=260,H=200;
+  const cx=W/2,cy=H/2+10;
+  const rx=110,ry=80;
+
+  // Ring radii — scaled to SVG
+  // Assume green visual = 15m radius max
+  const scale=Math.min(rx,ry)/15;
+  const r1=stats&&stats.avg1?Math.min(stats.avg1*scale*3,rx*0.3):15;
+  const r2=stats&&stats.avg2?Math.min(stats.avg2*scale*2,rx*0.65):40;
+  const r3=stats&&stats.avg3?Math.min(stats.avg3*scale*1.5,rx*0.9):65;
+
+  const noData=!stats||stats.totalPutts===0;
+
+  return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;width:100%;max-width:280px">'+
+    // Green surface
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="#2d6a3f" opacity="0.9"/>'+
+    // Fringe
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx+6)+'" ry="'+(ry+6)+'" fill="#3d8a4f" opacity="0.4"/>'+
+
+    // 3-putt ring (red)
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r3+'" ry="'+(r3*0.72)+'" fill="none" stroke="#e74c3c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>'+
+    '<text x="'+(cx+r3+2)+'" y="'+cy+'" dominant-baseline="central" fill="#e74c3c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg3?stats.avg3+'m':'—'))+'</text>'+
+
+    // 2-putt ring (gold)
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r2+'" ry="'+(r2*0.72)+'" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.9"/>'+
+    '<text x="'+(cx+r2+2)+'" y="'+cy+'" dominant-baseline="central" fill="#c9a84c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg2?stats.avg2+'m':'—'))+'</text>'+
+
+    // 1-putt ring (green)
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r1+'" ry="'+(r1*0.72)+'" fill="none" stroke="#2ecc71" stroke-width="2" opacity="0.95"/>'+
+    '<text x="'+(cx+r1+2)+'" y="'+cy+'" dominant-baseline="central" fill="#2ecc71" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg1?stats.avg1+'m':'—'))+'</text>'+
+
+    // Flag pole
+    '<line x1="'+cx+'" y1="'+(cy-ry+10)+'" x2="'+cx+'" y2="'+(cy+10)+'" stroke="#fff" stroke-width="1.5"/>'+
+    // Flag
+    '<polygon points="'+cx+','+(cy-ry+10)+' '+(cx+14)+','+(cy-ry+17)+' '+cx+','+(cy-ry+24)+'" fill="#e74c3c"/>'+
+    // Hole
+    '<ellipse cx="'+cx+'" cy="'+(cy+10)+'" rx="4" ry="2.5" fill="#1a1a1a"/>'+
+
+    // Legend
+    '<text x="8" y="16" fill="#2ecc71" font-size="9" font-weight="700" font-family="sans-serif">● 1-putt</text>'+
+    '<text x="8" y="28" fill="#c9a84c" font-size="9" font-weight="700" font-family="sans-serif">● 2-putt</text>'+
+    '<text x="8" y="40" fill="#e74c3c" font-size="9" font-weight="700" font-family="sans-serif">● 3-putt</text>'+
+
+    // No data message
+    (noData?'<text x="'+cx+'" y="'+(cy+ry-10)+'" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10" font-family="sans-serif">Play rounds to see your data</text>':'')+
+    '</svg>';
 }
 
 window.addEventListener('load',init);
