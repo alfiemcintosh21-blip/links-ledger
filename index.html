@@ -959,6 +959,8 @@ function launch(){
   document.getElementById('auth').style.display='none';
   document.getElementById('app').classList.remove('gone');
   document.getElementById('rptBtn').style.display='flex';
+  // Retry any pending Supabase syncs
+  setTimeout(retrySyncQueue, 2000);
   // Cleanup: remove any non-seed Otago rounds for Alfie every login
   if(CU&&CU.uid==='alfie'){
     const d=GUD('alfie');
@@ -2525,20 +2527,42 @@ function finishRound(){
     }catch(e2){console.error('Layer 2 save failed:',e2);}
   }
 
-  // Verify save worked
+  // Layer 3: Supabase save (most important for data safety)
+  if(sb&&CU&&CU.uid){
+    const d=ud();
+    sb.from('ll_userdata').upsert({
+      uid:CU.uid,
+      data:JSON.stringify(d),
+      updated_at:new Date().toISOString()
+    }).then(function(result){
+      if(result.error){
+        console.error('Supabase round save failed:',result.error);
+        toast('⚠️ Round saved locally but cloud sync failed — connect to internet and reload');
+      } else {
+        toast('Round saved ✓ ☁️');
+        setSyncStatus('synced');
+      }
+    }).catch(function(e){
+      console.error('Supabase save exception:',e);
+      toast('⚠️ Saved locally — cloud sync pending');
+    });
+  }
+
+  // Verify local save
   try{
     const verify=ud();
-    const found=(verify.rounds||[]).find(r=>r.id===AR.id);
-    if(found){
-      toast('Round saved ✓');
-    }else if(saved){
-      toast('Round saved ✓ (verify pending)');
-    }else{
+    const found=(verify.rounds||[]).find(function(r){return r.id===AR.id;});
+    if(!found&&!saved){
       toast('⚠️ Save may have failed — screenshot your score!');
+    } else if(!sb){
+      toast('Round saved ✓ (local)');
     }
   }catch(e){
-    toast(saved?'Round saved ✓':'⚠️ Save may have failed!');
+    if(!sb)toast(saved?'Round saved ✓':'⚠️ Save may have failed!');
   }
+  // Stop heartbeat
+  if(window._heartbeatInterval){clearInterval(window._heartbeatInterval);window._heartbeatInterval=null;}
+  const syncEl=document.getElementById('syncIndicator');if(syncEl)syncEl.remove();
   WF.step='summary';renderWF();
 }
 
@@ -3330,12 +3354,55 @@ function togBag(c){
 
 function autoSaveRound(){
   if(!AR||!CU)return;
+  // Layer 1: localStorage (instant, always works)
   try{
     const d=ud();
     if(!d.roundsInProgress)d.roundsInProgress={};
-    d.roundsInProgress[AR.id]={...AR,savedAt:Date.now(),currentHoleIdx:cHole};
+    d.roundsInProgress[AR.id]=Object.assign({},AR,{savedAt:Date.now(),currentHoleIdx:cHole});
+    // Direct localStorage write as backup
+    try{localStorage.setItem('ll_inprogress_'+CU.uid, JSON.stringify(d.roundsInProgress[AR.id]));}catch(e2){}
     sud(d);
-  }catch(e){console.warn('Autosave failed:',e);}
+  }catch(e){console.warn('Autosave localStorage failed:',e);}
+
+  // Layer 2: Supabase background sync (non-blocking)
+  if(sb&&CU&&CU.uid){
+    const snapshot=Object.assign({},AR,{savedAt:Date.now(),currentHoleIdx:cHole,inProgress:true});
+    sb.from('ll_userdata').upsert({
+      uid:CU.uid,
+      data:JSON.stringify(Object.assign(ud(),{lastInProgress:snapshot})),
+      updated_at:new Date().toISOString()
+    }).then(function(result){
+      if(result.error){
+        console.warn('Supabase autosave failed:',result.error);
+        setSyncStatus('pending');
+      } else {
+        setSyncStatus('synced');
+      }
+    }).catch(function(e){
+      console.warn('Supabase autosave exception:',e);
+      setSyncStatus('pending');
+    });
+  }
+}
+
+// ── SYNC STATUS INDICATOR ──
+function setSyncStatus(status){
+  // Show sync status in header during a round
+  let indicator=document.getElementById('syncIndicator');
+  if(!indicator){
+    const hdr=document.querySelector('.app-hdr .hdr-acts');
+    if(hdr){
+      indicator=document.createElement('span');
+      indicator.id='syncIndicator';
+      indicator.style.cssText='font-size:16px;cursor:default;transition:all 0.3s';
+      hdr.insertBefore(indicator,hdr.firstChild);
+    }
+  }
+  if(!indicator)return;
+  const icons={synced:'☁️',pending:'🟡',failed:'🔴'};
+  const tips={synced:'Data saved to cloud',pending:'Saving...',failed:'Save failed — check connection'};
+  indicator.textContent=icons[status]||'';
+  indicator.title=tips[status]||'';
 }
 
 function nextHole(){
@@ -3376,6 +3443,11 @@ function beginRound(){
   WF.step='play';
   SP('round');
   renderWF();
+  // Start heartbeat save every 60 seconds
+  if(window._heartbeatInterval)clearInterval(window._heartbeatInterval);
+  window._heartbeatInterval=setInterval(function(){
+    if(AR&&CU)autoSaveRound();
+  },60000);
 }
 
 function stepPlay(pg){
@@ -4133,6 +4205,15 @@ async function sendChat(){const input=document.getElementById('chatIn');const ms
 async function askCoach(q){
   addChat('user',q);
 
+  // Check usage limits BEFORE onboarding or API calls
+  if(!window._coachOnboarding){
+    const limitCheck=await checkCoachLimit();
+    if(!limitCheck.ok){
+      addChat('ai',limitCheck.msg);
+      return;
+    }
+  }
+
   // Onboarding flow
   if(window._coachOnboarding){
     const stage=window._coachOnboarding;
@@ -4204,6 +4285,8 @@ async function askCoach(q){
     const data=await res.json();
     const txt=(data.content||[]).map(function(i){return i.text||'';}).join('').trim();
     replaceBubble(txt||'No text in response');
+    // Increment usage counter after successful response
+    incrementCoachUsage();
 
   }catch(e){
     replaceBubble(e.name==='AbortError'?'Timed out — try again mate':'Error: '+e.message);
@@ -5589,6 +5672,88 @@ function buildPuttingGreenSvg(stats){
     // No data message
     (noData?'<text x="'+cx+'" y="'+(cy+ry-10)+'" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10" font-family="sans-serif">Play rounds to see your data</text>':'')+
     '</svg>';
+}
+
+// ── COACH USAGE LIMITS ──
+// Per-user: 10 questions per 24 hours
+// Global: 250 questions per day (tracked in Supabase)
+
+async function checkCoachLimit(){
+  if(!CU)return{ok:false,msg:'Please sign in to use Coach Foxy.'};
+
+  // Per-user check (localStorage)
+  const today=new Date().toISOString().slice(0,10);
+  const d=ud();
+  if(!d.coachUsage||d.coachUsage.date!==today){
+    d.coachUsage={date:today,count:0};
+  }
+  if(d.coachUsage.count>=10){
+    const hrs=new Date();
+    const resetHrs=24-hrs.getHours();
+    return{ok:false,msg:'You have used your 10 daily questions with Coach Foxy. Resets in ~'+resetHrs+' hours. Come back tomorrow mate! 🏌️'};
+  }
+
+  // Global check via Supabase
+  if(sb){
+    try{
+      const {data,error}=await sb.from('coach_usage').select('count').eq('date',today).single();
+      if(!error&&data&&data.count>=250){
+        return{ok:false,msg:'Coach Foxy has had a busy day \u2014 250 questions answered! He\'ll be back tomorrow. \uD83C\uDDF3\uD83C\uDDFF'};
+      }
+    }catch(e){
+      // If table doesn't exist yet, allow through
+      console.warn('coach_usage check failed:',e);
+    }
+  }
+
+  return{ok:true};
+}
+
+async function incrementCoachUsage(){
+  const today=new Date().toISOString().slice(0,10);
+
+  // Increment per-user count
+  const d=ud();
+  if(!d.coachUsage||d.coachUsage.date!==today)d.coachUsage={date:today,count:0};
+  d.coachUsage.count++;
+  sud(d);
+
+  // Increment global count in Supabase
+  if(sb){
+    try{
+      // Upsert: increment if exists, create if not
+      const {data}=await sb.from('coach_usage').select('count').eq('date',today).single();
+      if(data){
+        await sb.from('coach_usage').update({count:data.count+1}).eq('date',today);
+      } else {
+        await sb.from('coach_usage').insert({date:today,count:1});
+      }
+    }catch(e){console.warn('coach_usage increment failed:',e);}
+  }
+}
+
+// ── SYNC RETRY QUEUE ──
+async function retrySyncQueue(){
+  if(!sb||!CU||!CU.uid)return;
+  try{
+    const d=ud();
+    // Check if local data is newer than Supabase
+    const {data:row,error}=await sb.from('ll_userdata').select('updated_at').eq('uid',CU.uid).single();
+    if(error)return;
+    const localUpdated=d._lastSaved||0;
+    const cloudUpdated=row?new Date(row.updated_at).getTime():0;
+    if(localUpdated>cloudUpdated){
+      // Local is newer - push to cloud
+      console.log('Syncing newer local data to Supabase...');
+      d._lastSaved=Date.now();
+      await sb.from('ll_userdata').upsert({
+        uid:CU.uid,
+        data:JSON.stringify(d),
+        updated_at:new Date().toISOString()
+      });
+      console.log('Pending sync completed ✓');
+    }
+  }catch(e){console.warn('Sync retry failed:',e);}
 }
 
 window.addEventListener('load',init);
