@@ -3256,7 +3256,7 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
   if(gps.frontGreen){
     _inlineFrontGreenPos={lat:gps.frontGreen.lat,lng:gps.frontGreen.lng};
     const fd=ballOrigin?Math.round(hav(ballOrigin,_inlineFrontGreenPos)):0;
-    const fIcon=L.divIcon({className:'',html:'<div style="display:table;background:#fff;color:#000;font-size:11px;font-weight:800;padding:3px 8px;border-radius:4px;border:1px solid #999;white-space:nowrap;cursor:move">F '+fd+'m</div>',iconSize:[80,24],iconAnchor:[0,12]});
+    const fIcon=L.divIcon({className:'',html:'<div style="display:table;background:#fff;color:#000;font-size:8px;font-weight:800;padding:2px 5px;border-radius:3px;border:1px solid #999;white-space:nowrap;cursor:move">F '+fd+'m</div>',iconSize:[60,18],iconAnchor:[0,9]});
     _inlineFrontMarker=L.marker([_inlineFrontGreenPos.lat,_inlineFrontGreenPos.lng],{icon:fIcon,draggable:true,zIndexOffset:700}).addTo(_inlineMap);
     _inlineFrontMarker.on('drag',function(e){
       _inlineFrontGreenPos={lat:e.latlng.lat,lng:e.latlng.lng};
@@ -3266,7 +3266,7 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
   if(gps.backGreen){
     _inlineBackGreenPos={lat:gps.backGreen.lat,lng:gps.backGreen.lng};
     const bd=ballOrigin?Math.round(hav(ballOrigin,_inlineBackGreenPos)):0;
-    const bIcon=L.divIcon({className:'',html:'<div style="display:table;background:#fff;color:#000;font-size:11px;font-weight:800;padding:3px 8px;border-radius:4px;border:1px solid #999;white-space:nowrap;cursor:move">B '+bd+'m</div>',iconSize:[80,24],iconAnchor:[0,12]});
+    const bIcon=L.divIcon({className:'',html:'<div style="display:table;background:#fff;color:#000;font-size:8px;font-weight:800;padding:2px 5px;border-radius:3px;border:1px solid #999;white-space:nowrap;cursor:move">B '+bd+'m</div>',iconSize:[60,18],iconAnchor:[0,9]});
     _inlineBackMarker=L.marker([_inlineBackGreenPos.lat,_inlineBackGreenPos.lng],{icon:bIcon,draggable:true,zIndexOffset:700}).addTo(_inlineMap);
     _inlineBackMarker.on('drag',function(e){
       _inlineBackGreenPos={lat:e.latlng.lat,lng:e.latlng.lng};
@@ -3279,13 +3279,26 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
 
   // TEE marker (draggable - player sets their tee position)
   const teeIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;box-shadow:0 0 6px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[14,14],iconAnchor:[7,7]});
-  _inlineTeeMarker=L.marker([_inlineTeePos.lat,_inlineTeePos.lng],{icon:teeIcon,draggable:true,zIndexOffset:900}).addTo(_inlineMap);
+  // Large T marker for easy grabbing
+  const teeBigIcon=L.divIcon({className:'',html:
+    '<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center">'+
+    '<div style="width:24px;height:24px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;box-shadow:0 0 0 3px rgba(45,90,61,0.3),0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:grab">'+
+    '<div style="font-size:10px;font-weight:900;color:#2d5a3d;line-height:1">T</div></div></div>',
+    iconSize:[36,36],iconAnchor:[18,18]});
+  _inlineTeeMarker=L.marker([_inlineTeePos.lat,_inlineTeePos.lng],{icon:teeBigIcon,draggable:true,zIndexOffset:950}).addTo(_inlineMap);
 
   _inlineTeeMarker.on('drag',function(e){
     _inlineTeePos={lat:e.latlng.lat,lng:e.latlng.lng};
     drawInlineLines();
     updateInlineDistances();
     updateWindAnalysis();
+    updateFrontBackFromTee();
+  });
+  _inlineTeeMarker.on('dragend',function(){
+    const btn=document.getElementById('confirmTeeBtn');
+    if(btn)btn.style.display='block';
+    const hint=document.getElementById('teeHint');
+    if(hint)hint.textContent='Tap "Set tee" to lock it in';
   });
 
   // PIN marker (draggable - player can move to pin position)
@@ -3539,7 +3552,22 @@ function beginRound(){
   cHole=0;
   roundStart=Date.now();
   wxData=null;
-  if(c)fetchWx(c.lat,c.lng).then(function(w){wxData=w;if(WF.step==='play')renderWF();});
+  if(c)fetchWx(c.lat,c.lng).then(function(w){
+    wxData=w;
+    // Update weather strip in place without full re-render
+    const strip=document.getElementById('wxStrip');
+    if(strip&&WF.step==='play'){
+      const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+      const hole=holes[cHole];
+      const newWx=wxHTML(cHole,hole?hole.y||hole.metres||0:0);
+      const tmp=document.createElement('div');
+      tmp.innerHTML=newWx;
+      strip.parentNode.replaceChild(tmp.firstChild,strip);
+    } else if(WF.step==='play'){
+      renderWF();
+    }
+    updateWindAnalysis();
+  });
   WF.step='play';
   SP('round');
   renderWF();
@@ -3581,28 +3609,37 @@ ${wxHTML(cHole,hole.y||hole.metres||0)}
 <!-- Inline GPS Map -->
 <div id="holeMapInlineWrap" style="border-radius:12px;overflow:hidden;background:#111;margin-bottom:8px;max-width:420px;margin-left:auto;margin-right:auto">
   <div id="holeMapInlineEl" style="height:260px;width:100%"></div>
-  <div style="background:#111;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
-    <div style="display:flex;gap:14px">
-      <div style="text-align:center">
-        <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">To Pin</div>
-        <div id="inlineToPin" style="font-size:24px;font-weight:900;color:#fff">—</div>
-        <div style="font-size:9px;color:#888">m</div>
+  <div style="background:#111;padding:8px 12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;gap:14px">
+        <div style="text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700">To Pin</div>
+          <div id="inlineToPin" style="font-size:22px;font-weight:900;color:#fff">—</div>
+          <div style="font-size:9px;color:#888">m</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700" id="inlineFromLabel">${isFirstShot?'From Tee':'Shot dist'}</div>
+          <div id="inlineFromTee" style="font-size:22px;font-weight:900;color:#c9a84c">—</div>
+          <div style="font-size:9px;color:#888">m</div>
+        </div>
       </div>
-      <div style="text-align:center">
-        <div style="font-size:9px;text-transform:uppercase;color:#888;font-weight:700" id="inlineFromLabel">${isFirstShot?'From Tee':'Shot dist'}</div>
-        <div id="inlineFromTee" style="font-size:24px;font-weight:900;color:#c9a84c">—</div>
-        <div style="font-size:9px;color:#888">m</div>
-      </div>
+      ${waitingForBall?`
+      <div style="display:flex;gap:6px">
+        <select id="lieSel" style="padding:7px 10px;border-radius:10px;border:1px solid var(--bdr);font-size:13px;font-weight:700;font-family:inherit;background:#fff">
+          <option value="">Select lie...</option>
+          ${LIES.map(function(l){return'<option value="'+l+'">'+l+'</option>';}).join('')}
+        </select>
+        <button onclick="confirmBallAndLie()" style="padding:8px 14px;background:#c9a84c;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">✓ Confirm</button>
+      </div>`:`
+      <button onclick="playerHitShot()" style="padding:10px 16px;background:#2d5a3d;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">I've hit →</button>`}
     </div>
-    ${waitingForBall?`
-    <div style="display:flex;gap:6px">
-      <select id="lieSel" style="padding:7px 10px;border-radius:10px;border:1px solid var(--bdr);font-size:13px;font-weight:700;font-family:inherit;background:#fff">
-        <option value="">Select lie...</option>
-        ${LIES.map(function(l){return'<option value="'+l+'">'+l+'</option>';}).join('')}
-      </select>
-      <button onclick="confirmBallAndLie()" style="padding:8px 14px;background:#c9a84c;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">✓ Confirm</button>
-    </div>`:`
-    <button onclick="playerHitShot()" style="padding:10px 16px;background:#2d5a3d;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">I've hit →</button>`}
+    <!-- Tee control bar - always visible on first shot -->
+    ${!waitingForBall?`
+    <div style="display:flex;gap:6px;align-items:center" id="teeControlBar">
+      <div style="font-size:11px;color:#888;flex:1" id="teeHint">⬆ Drag the T marker to your tee box</div>
+      <button id="confirmTeeBtn" onclick="confirmTeePosition()" style="display:none;padding:6px 12px;background:#2d5a3d;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ Set tee</button>
+      <button onclick="unlockTeeAndPin()" style="padding:6px 10px;background:#333;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Edit tee/pin</button>
+    </div>`:''}
   </div>
 </div>
 
@@ -3693,6 +3730,66 @@ function unlockPin(){
   _puttPinMarker.once('dragend',function(){});
   const hint=document.getElementById('puttHint');
   if(hint)hint.innerHTML='Drag pin to correct position, then tap <button onclick="puttPinSet()" style="background:none;border:none;color:var(--gold);font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">Save pin ✓</button>';
+}
+
+function confirmTeePosition(){
+  if(!_inlineTeeMarker)return;
+  const latlng=_inlineTeeMarker.getLatLng();
+  _inlineTeePos={lat:latlng.lat,lng:latlng.lng};
+  _playerTee=_inlineTeePos;
+  // Lock tee marker
+  _inlineTeeMarker.dragging.disable();
+  _inlineTeeMarker.setIcon(L.divIcon({className:'',html:
+    '<div style="width:26px;height:26px;display:flex;align-items:center;justify-content:center">'+
+    '<div style="width:18px;height:18px;background:#fff;border-radius:50%;border:2.5px solid #2d5a3d;display:flex;align-items:center;justify-content:center">'+
+    '<div style="font-size:8px;font-weight:900;color:#2d5a3d">T</div></div></div>',
+    iconSize:[26,26],iconAnchor:[13,13]}));
+  // Update all distances and wind from new tee
+  drawInlineLines();
+  updateInlineDistances();
+  updateFrontBackFromTee();
+  updateWindAnalysis();
+  // Update UI
+  const btn=document.getElementById('confirmTeeBtn');
+  if(btn)btn.style.display='none';
+  const hint=document.getElementById('teeHint');
+  if(hint)hint.textContent='✓ Tee set · Tap ✏️ to edit';
+}
+
+function unlockTeeAndPin(){
+  // Unlock tee
+  if(_inlineTeeMarker){
+    _inlineTeeMarker.dragging.enable();
+    _inlineTeeMarker.setIcon(L.divIcon({className:'',html:
+      '<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center">'+
+      '<div style="width:24px;height:24px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;box-shadow:0 0 0 3px rgba(45,90,61,0.4),0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:grab">'+
+      '<div style="font-size:10px;font-weight:900;color:#2d5a3d">T</div></div></div>',
+      iconSize:[36,36],iconAnchor:[18,18]}));
+  }
+  // Unlock pin
+  if(_inlinePinMarker){
+    _inlinePinMarker.dragging.enable();
+  }
+  const hint=document.getElementById('teeHint');
+  if(hint)hint.textContent='Drag T to move tee · Drag pin to adjust ·';
+  const btn=document.getElementById('confirmTeeBtn');
+  if(btn)btn.style.display='block';
+}
+
+function updateFrontBackFromTee(){
+  // Recalculate F/B distances from current tee/ball position
+  const origin=_prevBallGPS||_inlineTeePos;
+  if(!origin)return;
+  const gps=AR?getHoleGPS(AR.courseId,cHole+1):null;
+  if(!gps)return;
+  if(_inlineFrontMarker&&_inlineFrontGreenPos){
+    const fd=Math.round(hav(origin,_inlineFrontGreenPos));
+    _inlineFrontMarker.setIcon(L.divIcon({className:'',html:'<div style="display:table;background:#fff;color:#000;font-size:8px;font-weight:800;padding:2px 5px;border-radius:3px;border:1px solid #999;white-space:nowrap;cursor:move">F '+fd+'m</div>',iconSize:[60,18],iconAnchor:[0,9]}));
+  }
+  if(_inlineBackMarker&&_inlineBackGreenPos){
+    const bd=Math.round(hav(origin,_inlineBackGreenPos));
+    _inlineBackMarker.setIcon(L.divIcon({className:'',html:'<div style="display:table;background:#fff;color:#000;font-size:8px;font-weight:800;padding:2px 5px;border-radius:3px;border:1px solid #999;white-space:nowrap;cursor:move">B '+bd+'m</div>',iconSize:[60,18],iconAnchor:[0,9]}));
+  }
 }
 
 function drawBallHistory(hd){
@@ -5479,7 +5576,14 @@ function puttPinSet(){
   // Lock pin marker
   if(_puttPinMarker){
     _puttPinMarker.dragging.disable();
-    _puttPinMarker.setIcon(L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#c9a84c;border-radius:50%;border:2px solid #fff"></div>',iconSize:[14,14],iconAnchor:[7,7]}));
+    // Pin = flag shape, clearly distinct from crosshair
+    _puttPinMarker.setIcon(L.divIcon({className:'',html:
+      '<div style="position:relative;width:16px;height:20px">'+
+      '<div style="position:absolute;bottom:0;left:7px;width:2px;height:16px;background:#c9a84c"></div>'+
+      '<div style="position:absolute;top:0;left:7px;width:10px;height:7px;background:#e74c3c;clip-path:polygon(0 0,100% 50%,0 100%)"></div>'+
+      '<div style="position:absolute;bottom:0;left:3px;width:10px;height:2px;background:#c9a84c;border-radius:1px"></div>'+
+      '</div>',
+      iconSize:[16,20],iconAnchor:[8,20]}));
   }
   // Update hint
   const hint=document.getElementById('puttHint');
@@ -5491,9 +5595,22 @@ function puttPinSet(){
   if(actionsEl)actionsEl.innerHTML='<button class="btn bg" id="placeBallBtn" onclick="puttPlaceBall()">📍 Place ball here</button><button class="btn bg" id="puttHoleBtn" onclick="puttInHole()" style="display:none;background:var(--g)">⛳ In the hole!</button>';
   document.getElementById('placeBallBtn').style.display='block';
 
-  // Add draggable crosshair for ball placement
-  const crossIco=L.divIcon({className:'',html:'<div style="width:28px;height:28px;border:2.5px solid rgba(255,255,255,0.9);border-radius:50%;background:rgba(255,255,255,0.1);cursor:move"><div style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#fff;margin-top:-.75px"></div><div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#fff;margin-left:-.75px"></div></div>',iconSize:[28,28],iconAnchor:[14,14]});
-  _puttBallMarker=L.marker([_puttPinPos.lat,_puttPinPos.lng],{icon:crossIco,draggable:true,zIndexOffset:1000}).addTo(_puttMap);
+  // Place crosshair offset from pin - toward tee so it's clearly separate
+  // Offset ~6m in direction away from green centre (toward player)
+  let crossStart=_puttPinPos;
+  try{
+    const bearing=getBearing(_puttPinPos,_playerTee||_inlineTeePos||_puttPinPos);
+    crossStart=offsetCoord(_puttPinPos,bearing,6);
+  }catch(e){}
+
+  const crossIco=L.divIcon({className:'',html:
+    '<div style="width:32px;height:32px;border:2.5px solid #3b82f6;border-radius:50%;background:rgba(59,130,246,0.15);cursor:move;position:relative">'+
+    '<div style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#3b82f6;margin-top:-.75px"></div>'+
+    '<div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#3b82f6;margin-left:-.75px"></div>'+
+    '<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#3b82f6;white-space:nowrap">Your ball</div>'+
+    '</div>',
+    iconSize:[32,32],iconAnchor:[16,16]});
+  _puttBallMarker=L.marker([crossStart.lat,crossStart.lng],{icon:crossIco,draggable:true,zIndexOffset:1000}).addTo(_puttMap);
 }
 
 function puttPlaceBall(){
