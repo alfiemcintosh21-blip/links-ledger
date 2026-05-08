@@ -3285,6 +3285,7 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
     _inlineTeePos={lat:e.latlng.lat,lng:e.latlng.lng};
     drawInlineLines();
     updateInlineDistances();
+    updateWindAnalysis();
   });
 
   // PIN marker (draggable - player can move to pin position)
@@ -3313,6 +3314,7 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
       _inlineLayupPos={lat:e.latlng.lat,lng:e.latlng.lng};
       drawInlineLines();
       updateInlineDistances();
+      updateWindAnalysis();
     });
     _inlineLayupMarker.on('dragend',function(e){
       _inlineLayupPos={lat:e.target.getLatLng().lat,lng:e.target.getLatLng().lng};
@@ -3348,6 +3350,8 @@ function drawInlineLines(){
   if(_inlineTeeToLayupLine){_inlineTeeToLayupLine.remove();_inlineTeeToLayupLine=null;}
   if(_inlineLayupToPinLine){_inlineLayupToPinLine.remove();_inlineLayupToPinLine=null;}
   if(!_inlineTeePos||!_inlinePinPos)return;
+  // Update wind analysis whenever lines change
+  setTimeout(updateWindAnalysis, 50);
 
   if(_inlineLayupPos){
     // Tee → target circle (white line)
@@ -3571,6 +3575,9 @@ function stepPlay(pg){
   </div>
 </div>
 
+${wxHTML(cHole,hole.y||hole.metres||0)}
+<div id="windAnalysisStrip" style="display:none;background:rgba(0,0,0,0.5);border-radius:10px;padding:8px 12px;margin-bottom:6px;align-items:center"></div>
+
 <!-- Inline GPS Map -->
 <div id="holeMapInlineWrap" style="border-radius:12px;overflow:hidden;background:#111;margin-bottom:8px;max-width:420px;margin-left:auto;margin-right:auto">
   <div id="holeMapInlineEl" style="height:260px;width:100%"></div>
@@ -3637,6 +3644,7 @@ function playerHitShot(){
 
 // Player confirms ball position + lie from map
 function confirmBallAndLie(){
+  setTimeout(updateWindAnalysis, 100);
   const lieSel=document.getElementById('lieSel');
   const lie=lieSel?lieSel.value:'';
   if(!lie){toast('Select your lie first');return;}
@@ -6103,6 +6111,95 @@ function wipeBadFairwayData(){
   });
   if(changed){sud(d);console.log('Bad fairway data wiped');}
   localStorage.setItem(k,'1');
+}
+
+// ── HOLE DIRECTION & WIND ANALYSIS ──
+
+function bearingToCompass(deg){
+  const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(((deg%360)+360)%360/22.5)%16];
+}
+
+function getWindRelativeToHole(holeBearing, windFromDeg){
+  // Angle between wind and hole direction
+  // windFromDeg = direction wind is coming FROM
+  // holeBearing = direction hole plays toward (tee -> target)
+  const windToDeg = (windFromDeg + 180) % 360; // convert "from" to "toward"
+  let diff = ((windToDeg - holeBearing) + 360) % 360;
+  // diff = 0 means wind blowing same direction as hole = tailwind
+  // diff = 180 means wind blowing into player = headwind
+  if(diff > 180) diff = diff - 360; // -180 to 180
+
+  const absDiff = Math.abs(diff);
+  let windType, windLabel, windEmoji;
+
+  if(absDiff <= 45){
+    windType = 'tailwind';
+    windLabel = 'Tailwind';
+    windEmoji = '🌬️→';
+  } else if(absDiff >= 135){
+    windType = 'headwind';
+    windLabel = 'Headwind';
+    windEmoji = '🌬️←';
+  } else if(diff > 0){
+    // Wind from left relative to player facing hole
+    windType = 'crosswind-left';
+    windLabel = 'Left→Right';
+    windEmoji = '💨';
+  } else {
+    windType = 'crosswind-right';
+    windLabel = 'Right→Left';
+    windEmoji = '💨';
+  }
+
+  // Strength component along hole axis
+  const component = Math.round(Math.cos(absDiff * Math.PI / 180) * (wxData?wxData.speed:0));
+
+  return {type:windType, label:windLabel, emoji:windEmoji, diff:diff, component:component};
+}
+
+function getHoleBearing(){
+  // Get bearing based on current positions: tee -> ball pos -> target -> pin
+  // Use most relevant pair for current shot
+  const from = _playerTee || _inlineTeePos;
+  const to = _prevBallGPS || _inlineLayupPos || _inlinePinPos;
+  if(!from || !to) return null;
+  return getBearing(from, to);
+}
+
+function updateWindAnalysis(){
+  const el = document.getElementById('windAnalysisStrip');
+  if(!el) return;
+  if(!wxData || !wxData.speed){el.style.display='none';return;}
+
+  const bearing = getHoleBearing();
+  if(bearing === null){el.style.display='none';return;}
+
+  const compass = bearingToCompass(bearing);
+  const wind = getWindRelativeToHole(bearing, wxData.dir);
+  const speed = wxData.speed;
+
+  // Colour coding
+  const col = wind.type==='tailwind'?'#2ecc71':wind.type==='headwind'?'#e74c3c':'#c9a84c';
+
+  el.style.display='flex';
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex:1">' +
+      '<div style="text-align:center;min-width:40px">' +
+        '<div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">Hole</div>' +
+        '<div style="font-size:14px;font-weight:900;color:#fff">'+compass+'</div>' +
+      '</div>' +
+      '<div style="width:1px;height:28px;background:rgba(255,255,255,0.2)"></div>' +
+      '<div style="text-align:center;min-width:40px">' +
+        '<div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">Wind</div>' +
+        '<div style="font-size:14px;font-weight:900;color:'+col+'">'+wind.emoji+' '+wind.label+'</div>' +
+      '</div>' +
+      '<div style="width:1px;height:28px;background:rgba(255,255,255,0.2)"></div>' +
+      '<div style="text-align:center;min-width:40px">' +
+        '<div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">'+speed+'km/h</div>' +
+        '<div style="font-size:12px;font-weight:700;color:'+col+'">'+(wind.component>0?'+':'')+wind.component+'m effect</div>' +
+      '</div>' +
+    '</div>';
 }
 
 window.addEventListener('load',init);
