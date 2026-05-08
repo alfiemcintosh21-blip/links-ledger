@@ -1165,9 +1165,22 @@ async function fetchWx(lat,lng){
 }
 function wxDesc(code){if(code===0)return'Clear ☀️';if(code<=3)return'Partly cloudy ⛅';if(code<=48)return'Foggy 🌫️';if(code<=67)return'Rainy 🌧️';if(code<=82)return'Showers 🌦️';return'Stormy ⛈️';}
 function playsLike(yds,windDeg,holeIdx){
-  const headings=[180,0,90,270,180,0,90,180,270,0,180,90,270,0,90,180,0,270];
-  const heading=headings[holeIdx]||180;
-  const diff=((windDeg-heading+360)%360);
+  // Use actual GPS bearing if available, else fall back to 180
+  let heading=180;
+  const from=_playerTee||_inlineTeePos;
+  const to=_inlineLayupPos||_inlinePinPos;
+  if(from&&to){
+    heading=getBearing(from,to);
+  } else if(AR&&AR.courseId){
+    // Try to get from GPS data
+    const gps=getHoleGPS(AR.courseId,holeIdx+1);
+    if(gps&&gps.tee&&gps.green)heading=getBearing(gps.tee,gps.green);
+  }
+  // Wind direction: windDeg is where wind comes FROM
+  // Convert to direction wind blows TOWARD
+  const windToward=(windDeg+180)%360;
+  const diff=((windToward-heading+360)%360);
+  // diff=0: tailwind, diff=180: headwind
   const factor=-Math.cos(diff*Math.PI/180);
   const adj=wxData?Math.round(wxData.speed*factor*0.4):0;
   return{yds:yds+adj,adj};
@@ -1176,7 +1189,7 @@ function playsLike(yds,windDeg,holeIdx){
 function wxHTML(holeIdx,holeYds){
   if(!wxData)return`<div class="wx" id="wxStrip" style="opacity:0.7"><span style="font-size:14px;opacity:0.8">🌤 Fetching weather...</span></div>`;
   const pl=playsLike(holeYds,wxData.dir,holeIdx);
-  const adjStr=pl.adj>0?`+${pl.adj} (headwind)`:pl.adj<0?`${pl.adj} (tailwind)`:'Neutral wind';
+  const adjStr=pl.adj>0?`+${pl.adj}m`:pl.adj<0?`${pl.adj}m`:'';
   return`<div class="wx" id="wxStrip">
     <svg width="52" height="52" viewBox="0 0 52 52" style="flex-shrink:0">
       <circle cx="26" cy="26" r="24" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
