@@ -3317,7 +3317,7 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
   // PIN marker (draggable - player can move to pin position)
   const pinIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#c9a84c;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[14,14],iconAnchor:[7,7]});
   _inlinePinMarker=L.marker([_inlinePinPos.lat,_inlinePinPos.lng],{icon:pinIcon,draggable:true,zIndexOffset:900}).addTo(_inlineMap);
-  _inlinePinMarker.bindTooltip('pin',{permanent:true,direction:'top',offset:[0,-8],className:'map-lbl'});
+  
   _inlinePinMarker.on('drag',function(e){
     _inlinePinPos={lat:e.latlng.lat,lng:e.latlng.lng};
     drawInlineLines();
@@ -3376,8 +3376,8 @@ function drawInlineLines(){
   if(_inlineTeeToLayupLine){_inlineTeeToLayupLine.remove();_inlineTeeToLayupLine=null;}
   if(_inlineLayupToPinLine){_inlineLayupToPinLine.remove();_inlineLayupToPinLine=null;}
   if(!_inlineTeePos||!_inlinePinPos)return;
-  // Update wind analysis whenever lines change
   setTimeout(updateWindAnalysis, 50);
+  setTimeout(updatePlaysLike, 200);
 
   if(_inlineLayupPos){
     // Tee → target circle (white line)
@@ -3617,7 +3617,32 @@ function stepPlay(pg){
 </div>
 
 ${wxHTML(cHole,hole.y||hole.metres||0)}
-<div id="windAnalysisStrip" style="display:none;background:rgba(0,0,0,0.5);border-radius:10px;padding:8px 12px;margin-bottom:6px;align-items:center"></div>
+<div id="windAnalysisStrip" style="display:none;background:rgba(0,0,0,0.5);border-radius:10px;padding:8px 12px;margin-bottom:4px;align-items:center"></div>
+<div id="playsLikeEnhanced" style="background:rgba(0,0,0,0.4);border-radius:10px;padding:8px 12px;margin-bottom:4px;min-height:20px"></div>
+<div style="display:flex;align-items:center;gap:12px;padding:4px 8px;font-size:11px;color:var(--txt3)">
+  <div style="display:flex;align-items:center;gap:5px">
+    <div style="width:14px;height:14px;background:#fff;border-radius:50%;border:2.5px solid #2d5a3d;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:7px;font-weight:900;color:#2d5a3d">T</span></div>
+    <span>Tee</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:5px">
+    <div style="width:12px;height:12px;background:#c9a84c;border-radius:50%;border:2px solid #fff;flex-shrink:0"></div>
+    <span>Pin</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:5px">
+    <div style="width:20px;height:20px;border:2px solid rgba(255,255,255,0.8);border-radius:50%;position:relative;flex-shrink:0">
+      <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.8);margin-top:-.5px"></div>
+      <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.8);margin-left:-.5px"></div>
+    </div>
+    <span>Target</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:5px">
+    <div style="display:flex;gap:1px">
+      <div style="width:6px;height:6px;background:#2d5a3d;border-radius:50%;border:1px solid #fff"></div>
+      <div style="width:6px;height:6px;background:#c9a84c;border-radius:50%;border:1px solid #fff"></div>
+    </div>
+    <span>Front/Back</span>
+  </div>
+</div>
 
 <!-- Inline GPS Map -->
 <div id="holeMapInlineWrap" style="border-radius:12px;overflow:hidden;background:#111;margin-bottom:8px;max-width:420px;margin-left:auto;margin-right:auto">
@@ -3695,6 +3720,7 @@ function playerHitShot(){
 // Player confirms ball position + lie from map
 function confirmBallAndLie(){
   setTimeout(updateWindAnalysis, 100);
+  setTimeout(updatePlaysLike, 300);
   const lieSel=document.getElementById('lieSel');
   const lie=lieSel?lieSel.value:'';
   if(!lie){toast('Select your lie first');return;}
@@ -3762,6 +3788,7 @@ function confirmTeePosition(){
   updateInlineDistances();
   updateFrontBackFromTee();
   updateWindAnalysis();
+  setTimeout(updatePlaysLike, 300);
   // Update UI
   const btn=document.getElementById('confirmTeeBtn');
   if(btn)btn.style.display='none';
@@ -6329,6 +6356,99 @@ function updateWindAnalysis(){
         '<div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">'+speed+'km/h</div>' +
         '<div style="font-size:12px;font-weight:700;color:'+col+'">'+(wind.component>0?'+':'')+wind.component+'m effect</div>' +
       '</div>' +
+    '</div>';
+}
+
+
+// ── ELEVATION & ENHANCED PLAYS LIKE ──
+let _elevationCache = {}; // key: 'lat1,lng1->lat2,lng2'
+
+async function fetchElevation(from, to){
+  const key = `${from.lat.toFixed(4)},${from.lng.toFixed(4)}->${to.lat.toFixed(4)},${to.lng.toFixed(4)}`;
+  if(_elevationCache[key] !== undefined) return _elevationCache[key];
+  
+  try {
+    const url = `https://api.open-elevation.com/api/v1/lookup?locations=${from.lat},${from.lng}|${to.lat},${to.lng}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if(d.results && d.results.length >= 2){
+      const elev = d.results[1].elevation - d.results[0].elevation;
+      _elevationCache[key] = Math.round(elev * 10) / 10;
+      return _elevationCache[key];
+    }
+  } catch(e){ console.warn('Elevation fetch failed:', e); }
+  
+  _elevationCache[key] = null;
+  return null;
+}
+
+function calcSlopeEffect(elevationChange, distanceM){
+  if(elevationChange === null || !distanceM) return 0;
+  // Every 3m elevation change ≈ 1% distance effect
+  // Uphill = negative (shorter), downhill = positive (longer)
+  const pct = elevationChange / 3; // e.g. 9m up = -3%
+  return -Math.round(distanceM * pct / 100);
+}
+
+function calcWindEffect(distanceM){
+  if(!wxData || !wxData.speed) return 0;
+  const bearing = getHoleBearing();
+  if(bearing === null) return 0;
+  const windToward = (wxData.dir + 180) % 360;
+  const diff = ((windToward - bearing + 360) % 360);
+  const factor = -Math.cos(diff * Math.PI / 180);
+  return Math.round(wxData.speed * factor * 0.4);
+}
+
+async function updatePlaysLike(){
+  const el = document.getElementById('playsLikeEnhanced');
+  if(!el) return;
+
+  const from = _prevBallGPS || _playerTee || _inlineTeePos;
+  const to = _inlineLayupPos || _inlinePinPos;
+  if(!from || !to){ el.innerHTML = ''; return; }
+
+  const dist = Math.round(hav(from, to));
+  const windEffect = calcWindEffect(dist);
+
+  // Fetch elevation (async, cached)
+  el.innerHTML = '<span style="opacity:0.6">Calculating...</span>';
+  const elevChange = await fetchElevation(from, to);
+  const slopeEffect = calcSlopeEffect(elevChange, dist);
+  const totalEffect = windEffect + slopeEffect;
+  const playsLike = dist + totalEffect;
+
+  const windCol = windEffect > 0 ? '#2ecc71' : windEffect < 0 ? '#e74c3c' : '#888';
+  const slopeCol = slopeEffect > 0 ? '#2ecc71' : slopeEffect < 0 ? '#e74c3c' : '#888';
+  const totalCol = totalEffect > 0 ? '#2ecc71' : totalEffect < 0 ? '#e74c3c' : '#888';
+
+  const elevStr = elevChange !== null
+    ? (elevChange > 0 ? '↑' : elevChange < 0 ? '↓' : '→') + ' ' + Math.abs(elevChange) + 'm ' + (elevChange > 0 ? 'uphill' : elevChange < 0 ? 'downhill' : 'flat')
+    : '';
+
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<div style="width:100%;font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:2px">Slope est. accurate for big elevation changes (15m+) only · Less reliable on subtle or short slopes</div>' +
+      '<div style="text-align:center;min-width:50px">' +
+        '<div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">Plays like</div>' +
+        '<div style="font-size:20px;font-weight:900;color:#fff">' + playsLike + 'm</div>' +
+      '</div>' +
+      '<div style="width:1px;height:28px;background:rgba(255,255,255,0.2)"></div>' +
+      (wxData && wxData.speed ? 
+        '<div style="text-align:center">' +
+          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Wind</div>' +
+          '<div style="font-size:13px;font-weight:700;color:' + windCol + '">' + (windEffect > 0 ? '+' : '') + windEffect + 'm</div>' +
+        '</div>' : '') +
+      (elevChange !== null ?
+        '<div style="text-align:center">' +
+          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">' + elevStr + '</div>' +
+          '<div style="font-size:13px;font-weight:700;color:' + slopeCol + '">' + (slopeEffect > 0 ? '+' : '') + slopeEffect + 'm</div>' +
+        '</div>' : '') +
+      (totalEffect !== 0 ?
+        '<div style="text-align:center">' +
+          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Total effect</div>' +
+          '<div style="font-size:13px;font-weight:700;color:' + totalCol + '">' + (totalEffect > 0 ? '+' : '') + totalEffect + 'm</div>' +
+        '</div>' : '') +
     '</div>';
 }
 
