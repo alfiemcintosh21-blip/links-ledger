@@ -2996,6 +2996,7 @@ function openYardageMap(holeNum){
           '<button onclick="ydClearAll()" style="padding:5px 9px;background:#7f1d1d;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">\ud83d\uddd1 Clear</button>'+
         '</div>'+
       '</div>'+
+      '<div id="ydPlaysLike" style="min-height:16px;margin-bottom:4px"></div>'+
       '<div id="ydHint" style="font-size:11px;color:#888;text-align:center">Drag target circle \u00b7 Drag tee dot \u00b7 Use tools above</div>'+
     '</div>';
   document.body.appendChild(modal);
@@ -3014,7 +3015,46 @@ function openYardageMap(holeNum){
 
   function ydOrigin(){return ydBallPos||ydTeePos;}
 
+  async function updateYdPlaysLike(){
+    const el=document.getElementById('ydPlaysLike');
+    if(!el)return;
+    if(!ydTarget||!ydPinMarker){el.innerHTML='';return;}
+    const tLatLng=ydTarget.getLatLng();
+    const org=ydOrigin?ydOrigin():{lat:ydTeeMarker?ydTeeMarker.getLatLng().lat:0,lng:ydTeeMarker?ydTeeMarker.getLatLng().lng:0};
+    const distToTarget=Math.round(hav(org,{lat:tLatLng.lat,lng:tLatLng.lng}));
+    // Wind
+    let windEffect=0;
+    if(wxData&&wxData.speed){
+      const bearing=getBearing(org,{lat:tLatLng.lat,lng:tLatLng.lng});
+      const windToward=(wxData.dir+180)%360;
+      const diff=((windToward-bearing+360)%360);
+      windEffect=Math.round(wxData.speed*(-Math.cos(diff*Math.PI/180))*0.4);
+    }
+    // Elevation
+    el.innerHTML='<span style="font-size:9px;color:rgba(255,255,255,0.4)">Calculating elevation...</span>';
+    let elevChange=null,slopeEffect=0;
+    try{
+      elevChange=await fetchElevation(org,{lat:tLatLng.lat,lng:tLatLng.lng});
+      slopeEffect=calcSlopeEffect(elevChange,distToTarget);
+    }catch(e){}
+    const totalEffect=windEffect+slopeEffect;
+    const playsLike=distToTarget+totalEffect;
+    const wc=windEffect>0?'#2ecc71':windEffect<0?'#e74c3c':'#888';
+    const sc=slopeEffect>0?'#2ecc71':slopeEffect<0?'#e74c3c':'#888';
+    const tc=totalEffect>0?'#2ecc71':totalEffect<0?'#e74c3c':'#888';
+    const ev=elevChange!==null?(elevChange>0?'↑ ':'↓ ')+Math.abs(elevChange)+'m':null;
+    el.innerHTML=
+      '<div style="font-size:9px;color:rgba(255,255,255,0.35);margin-bottom:3px">Slope est. accurate for big elevation changes (15m+) only · Less reliable on subtle slopes</div>'+
+      '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+        '<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700;text-transform:uppercase">Plays like</div><div style="font-size:18px;font-weight:900;color:#fff">'+playsLike+'m</div></div>'+
+        (wxData&&wxData.speed?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Wind</div><div style="font-size:12px;font-weight:700;color:'+wc+'">'+(windEffect>0?'+':'')+windEffect+'m</div></div>':'')+
+        (ev?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">'+ev+'</div><div style="font-size:12px;font-weight:700;color:'+sc+'">'+(slopeEffect>0?'+':'')+slopeEffect+'m</div></div>':'')+
+        (totalEffect!==0?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Total</div><div style="font-size:12px;font-weight:700;color:'+tc+'">'+(totalEffect>0?'+':'')+totalEffect+'m</div></div>':'')+
+      '</div>';
+  }
+
   function ydUpdateAll(){
+    updateYdPlaysLike();
     // Lines
     if(ydTeeLine){ydTeeLine.remove();ydTeeLine=null;}
     if(ydTargetLine){ydTargetLine.remove();ydTargetLine=null;}
