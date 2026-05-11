@@ -89,6 +89,8 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .tr{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--bdr)}
 .tr:last-child{border-bottom:none}
 .tl{font-size:15px;font-weight:600}.ts{font-size:12px;color:var(--txt3);margin-top:1px}
+.dir-btn{display:block;width:100%;padding:10px 4px;border:1.5px solid var(--bdr);border-radius:10px;background:var(--bg2);color:var(--txt);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;transition:background 0.15s,color 0.15s}
+.dir-btn.sel,.dir-btn:active{background:var(--g);color:#fff;border-color:var(--g)}
 .tog{width:49px;height:27px;border-radius:14px;background:var(--bdr);border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
 .tog.on{background:var(--g)}
 .tog::after{content:'';position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
@@ -1929,20 +1931,21 @@ function stepPreshot(pg){
 <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin-bottom:8px">Club</div>
 <div class="club-grid" id="clubGridPS"></div>
 
-${trk.direction?`
-<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 6px">Shot Direction</div>
-<div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Lateral</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px" id="dirHGrid">
-  <button class="dir-btn${sfb.dirH==='left'?' sel':''}" onclick="togDirH(this,'left')">◀ Left</button>
-  <button class="dir-btn${sfb.dirH===''?' sel':''}" onclick="togDirH(this,'')">🎯 Straight</button>
-  <button class="dir-btn${sfb.dirH==='right'?' sel':''}" onclick="togDirH(this,'right')">▶ Right</button>
-</div>
-<div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Distance</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:4px" id="dirVGrid">
-  <button class="dir-btn${sfb.dirV==='short'?' sel':''}" onclick="togDirV(this,'short')">⬇ Short</button>
-  <button class="dir-btn${sfb.dirV===''?' sel':''}" onclick="togDirV(this,'')">✓ On target</button>
-  <button class="dir-btn${sfb.dirV==='long'?' sel':''}" onclick="togDirV(this,'long')">⬆ Long</button>
-</div>`:''}
+${trk.direction?(
+'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 6px">Shot Direction</div>'+
+'<div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Lateral</div>'+
+'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px" id="dirHGrid">'+
+  '<button class="dir-btn'+(sfb.dirH==='left'?' sel':'')+'" onclick="togDirH(this,&quot;left&quot;)">◀ Left</button>'+
+  '<button class="dir-btn'+(sfb.dirH===''?' sel':'')+'" onclick="togDirH(this,&quot;&quot;)">🎯 Straight</button>'+
+  '<button class="dir-btn'+(sfb.dirH==='right'?' sel':'')+'" onclick="togDirH(this,&quot;right&quot;)">▶ Right</button>'+
+'</div>'+
+'<div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Distance</div>'+
+'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:4px" id="dirVGrid">'+
+  '<button class="dir-btn'+(sfb.dirV==='short'?' sel':'')+'" onclick="togDirV(this,&quot;short&quot;)">⬇ Short</button>'+
+  '<button class="dir-btn'+(sfb.dirV===''?' sel':'')+'" onclick="togDirV(this,&quot;&quot;)">✓ On target</button>'+
+  '<button class="dir-btn'+(sfb.dirV==='long'?' sel':'')+'" onclick="togDirV(this,&quot;long&quot;)">⬆ Long</button>'+
+'</div>'
+):''}
 
 ${trk.shape?`
 <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--txt3);margin:12px 0 8px">Shape</div>
@@ -2152,7 +2155,7 @@ function openShotMod(){
     renderWF();
     return;
   }
-  sfb={shape:null,dir:null,con:null};
+  sfb={shape:null,dir:null,con:null,dirH:undefined,dirV:undefined};
   const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
   const hole=holes[cHole];
   const shotNum=(window._hd.shots||[]).length+1;
