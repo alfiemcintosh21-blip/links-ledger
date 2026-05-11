@@ -3728,23 +3728,16 @@ function beginRound(){
   if(c)fetchWx(c.lat,c.lng).then(function(w){
     wxData=w;
     // Update weather strip in place without full re-render
-    // Update weather strip - try in-place first, fall back to renderWF
-    try{
-      const strip=document.getElementById('wxStrip');
-      if(strip&&WF.step==='play'){
-        const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
-        const hole=holes[cHole];
-        const newWx=wxHTML(cHole,hole?hole.y||hole.metres||0:0);
-        const tmp=document.createElement('div');
-        tmp.innerHTML=newWx;
-        if(tmp.firstChild)strip.parentNode.replaceChild(tmp.firstChild,strip);
-        else strip.outerHTML=newWx;
-      } else if(WF.step==='play'){
-        renderWF();
+    // Update weather strip using wrapper div
+    if(WF.step==='play'){
+      const wrap=document.getElementById('wxStripWrap');
+      if(wrap){
+        try{
+          const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+          const hole=holes[cHole];
+          wrap.innerHTML=wxHTML(cHole,hole?hole.y||hole.metres||0:0);
+        }catch(e){console.warn('wx update error:',e);}
       }
-    }catch(e){
-      console.warn('wx strip update error:',e);
-      if(WF.step==='play')renderWF();
     }
     updateWindAnalysis();
     setTimeout(updatePlaysLike,300);
@@ -3784,7 +3777,7 @@ function stepPlay(pg){
   </div>
 </div>
 
-${(function(){try{return wxHTML(cHole,hole.y||hole.metres||0);}catch(e){console.warn("wxHTML error:",e);return "";}})()}
+<div id="wxStripWrap"></div>
 <div id="windAnalysisStrip" style="display:none;background:rgba(0,0,0,0.5);border-radius:10px;padding:8px 12px;margin-bottom:4px;align-items:center"></div>
 <div id="playsLikeEnhanced" style="background:rgba(0,0,0,0.4);border-radius:10px;padding:8px 12px;margin-bottom:4px;min-height:20px"></div>
 <div style="display:flex;align-items:center;gap:12px;padding:4px 8px;font-size:11px;color:var(--txt3)">
@@ -3871,6 +3864,12 @@ ${AR.mode==='hole'?`<button class="btn bg" style="margin-top:4px" onclick="WF.st
     _shotNum=sn;
     initInlineHoleMap(AR.courseId,cHole+1,sn);
     drawBallHistory(hd);
+    // Render weather
+    setTimeout(function(){
+      const wrap=document.getElementById('wxStripWrap');
+      if(wrap&&wxData){try{const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);const hole=holes[cHole];wrap.innerHTML=wxHTML(cHole,hole?hole.y||hole.metres||0:0);}catch(e){}}
+      else if(wrap&&!wxData){wrap.innerHTML='<div class="wx" id="wxStrip" style="opacity:0.7"><span style="font-size:14px;opacity:0.8">🌤 Loading weather...</span></div>';}
+    },150);
   },80);
 }
 
