@@ -1294,7 +1294,10 @@ function playsLike(yds,windDeg,holeIdx){
 function wxHTML(holeIdx,holeYds){
   if(!wxData)return`<div class="wx" id="wxStrip" style="opacity:0.7"><span style="font-size:14px;opacity:0.8">🌤 Fetching weather...</span></div>`;
   const pl=playsLike(holeYds,wxData.dir,holeIdx);
-  const adjStr=pl.adj>0?`+${pl.adj}m`:pl.adj<0?`${pl.adj}m`:'';
+  // Use new formula for plays like in weather strip
+  const plResult=calcPlaysLike(yds||150, null, null);
+  const plAdj=plResult?plResult.wind+plResult.temp:0;
+  const adjStr=plAdj>0?`+${plAdj}m`:plAdj<0?`${plAdj}m`:'';
   return`<div class="wx" id="wxStrip">
     <svg width="52" height="52" viewBox="0 0 52 52" style="flex-shrink:0">
       <circle cx="26" cy="26" r="24" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
@@ -1625,6 +1628,9 @@ function stepCourse(pg){
   const all={...CDB,...(GG().courses||{})};
   const dunedin=Object.entries(all).filter(([,c])=>['Dunedin','Mosgiel'].includes(c.loc));
   const mast=Object.entries(all).filter(([,c])=>['Masterton','Wairarapa'].includes(c.loc));
+  const newplymouth=Object.entries(all).filter(([,c])=>['New Plymouth','Taranaki'].includes(c.loc));
+  const auckland=Object.entries(all).filter(([,c])=>['Auckland'].includes(c.loc));
+  const other=Object.entries(all).filter(([,c])=>!['Dunedin','Mosgiel','Masterton','Wairarapa','New Plymouth','Taranaki','Auckland'].includes(c.loc));
   const custom=Object.entries(GG().courses||{});
 
   pg.innerHTML=`
@@ -1635,6 +1641,9 @@ function stepCourse(pg){
   <option value="">— Choose course —</option>
   <optgroup label="Dunedin & Mosgiel">${dunedin.map(([id,c])=>`<option value="${id}">${c.name}</option>`).join('')}</optgroup>
   <optgroup label="Masterton & Wairarapa">${mast.map(([id,c])=>`<option value="${id}">${c.name}</option>`).join('')}</optgroup>
+  ${newplymouth.length?`<optgroup label="New Plymouth">${newplymouth.map(([id,c])=>`<option value="${id}">${c.name}</option>`).join('')}</optgroup>`:''}
+  ${auckland.length?`<optgroup label="Auckland">${auckland.map(([id,c])=>`<option value="${id}">${c.name}</option>`).join('')}</optgroup>`:''}
+  ${other.length?`<optgroup label="Other">${other.map(([id,c])=>`<option value="${id}">${c.name}</option>`).join('')}</optgroup>`:''}
   ${custom.length?`<optgroup label="User added">${custom.map(([id,c])=>`<option value="${id}">${c.name}</option>`).join('')}</optgroup>`:''}
 </select></div>
 <div class="field"><label>Holes</label>
@@ -2412,8 +2421,15 @@ function stepScore(pg){
   // ── AUTO-CALC SHOTS TO GREEN ──
   // If shots tracked: use shot count
   // If hole mode (no shots): derive from score - putts, default to par-2
-  // Use putt-tracking derived s2g if available, else count shots
-  const s2g=hd._s2gFromPutting||( shots.length>0?shots.filter(function(s){return s.lie!=='Green';}).length||shots.length:Math.max(1,(hd.score||par)-(hd.putts||2)) );
+  // Use putt-tracking derived s2g if available, else count shots (include penalty shots)
+  const penaltyStrokes=hd.penaltyStrokes||0;
+  const nonGreenShots=shots.filter(function(s){return s.lie!=='Green';});
+  const s2g=hd._s2gFromPutting||(shots.length>0?nonGreenShots.length||shots.length:Math.max(1,(hd.score||par)-(hd.putts||2)));
+  // Auto-increment score for penalties if not already set
+  if(penaltyStrokes>0&&(!hd._penaltiesApplied)){
+    hd.score=(hd.score||par)+penaltyStrokes;
+    hd._penaltiesApplied=true;
+  }
   window._s2g=s2g;
 
   // ── AUTO-CALC PUTTS - default 2, but 1 if par 3 GIR ──
@@ -3123,38 +3139,27 @@ function openYardageMap(holeNum){
   async function updateYdPlaysLike(){
     const el=document.getElementById('ydPlaysLike');
     if(!el)return;
-    if(!ydTarget||!ydPinMarker){el.innerHTML='';return;}
+    if(!ydTarget){el.innerHTML='';return;}
     const tLatLng=ydTarget.getLatLng();
-    const org=ydOrigin?ydOrigin():{lat:ydTeeMarker?ydTeeMarker.getLatLng().lat:0,lng:ydTeeMarker?ydTeeMarker.getLatLng().lng:0};
-    const distToTarget=Math.round(hav(org,{lat:tLatLng.lat,lng:tLatLng.lng}));
-    // Wind
-    let windEffect=0;
-    if(wxData&&wxData.speed){
-      const bearing=getBearing(org,{lat:tLatLng.lat,lng:tLatLng.lng});
-      const windToward=(wxData.dir+180)%360;
-      const diff=((windToward-bearing+360)%360);
-      windEffect=Math.round(wxData.speed*(-Math.cos(diff*Math.PI/180))*0.4);
-    }
-    // Elevation
-    el.innerHTML='<span style="font-size:9px;color:rgba(255,255,255,0.4)">Calculating elevation...</span>';
-    let elevChange=null,slopeEffect=0;
-    try{
-      elevChange=await fetchElevation(org,{lat:tLatLng.lat,lng:tLatLng.lng});
-      slopeEffect=calcSlopeEffect(elevChange,distToTarget);
-    }catch(e){}
-    const totalEffect=windEffect+slopeEffect;
-    const playsLike=distToTarget+totalEffect;
-    const wc=windEffect>0?'#2ecc71':windEffect<0?'#e74c3c':'#888';
-    const sc=slopeEffect>0?'#2ecc71':slopeEffect<0?'#e74c3c':'#888';
-    const tc=totalEffect>0?'#2ecc71':totalEffect<0?'#e74c3c':'#888';
-    const ev=elevChange!==null?(elevChange>0?'↑ ':'↓ ')+Math.abs(elevChange)+'m':null;
+    const org=typeof ydOrigin==='function'?ydOrigin():{lat:0,lng:0};
+    const dist=Math.round(hav(org,{lat:tLatLng.lat,lng:tLatLng.lng}));
+    const club=(window._hd&&window._hd.currentClub)||null;
+    el.innerHTML='<span style="font-size:9px;color:rgba(255,255,255,0.4)">Calculating...</span>';
+    let elevChange=null;
+    try{elevChange=await fetchElevation(org,{lat:tLatLng.lat,lng:tLatLng.lng});}catch(e){}
+    const res=calcPlaysLike(dist,elevChange,club);
+    const{playsLike,elev,wind,temp,total}=res;
+    const s=function(v){return v>0?'+'+v:''+v;};
+    const col=function(v){return v>0?'#e74c3c':v<0?'#2ecc71':'#888';};
+    const ev=elevChange!==null?(elevChange>0?'↑':'↓')+Math.abs(Math.round(elevChange))+'m':null;
     el.innerHTML=
       '<div style="font-size:9px;color:rgba(255,255,255,0.35);margin-bottom:3px">Slope est. accurate for big elevation changes (15m+) only · Less reliable on subtle slopes</div>'+
       '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
-        '<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700;text-transform:uppercase">Plays like</div><div style="font-size:18px;font-weight:900;color:#fff">'+playsLike+'m</div></div>'+
-        (wxData&&wxData.speed?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Wind</div><div style="font-size:12px;font-weight:700;color:'+wc+'">'+(windEffect>0?'+':'')+windEffect+'m</div></div>':'')+
-        (ev?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">'+ev+'</div><div style="font-size:12px;font-weight:700;color:'+sc+'">'+(slopeEffect>0?'+':'')+slopeEffect+'m</div></div>':'')+
-        (totalEffect!==0?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Total</div><div style="font-size:12px;font-weight:700;color:'+tc+'">'+(totalEffect>0?'+':'')+totalEffect+'m</div></div>':'')+
+        '<div><div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">Plays like</div><div style="font-size:18px;font-weight:900;color:#fff">'+playsLike+'m</div></div>'+
+        (wxData&&wxData.speed?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Wind</div><div style="font-size:12px;font-weight:700;color:'+col(wind)+'">'+s(wind)+'m</div></div>':'')+
+        (ev?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">'+ev+'</div><div style="font-size:12px;font-weight:700;color:'+col(elev)+'">'+s(elev)+'m</div></div>':'')+
+        (wxData&&wxData.temp!==undefined?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Temp</div><div style="font-size:12px;font-weight:700;color:'+col(temp)+'">'+s(temp)+'m</div></div>':'')+
+        (total!==0?'<div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Total</div><div style="font-size:12px;font-weight:800;color:'+col(total)+'">'+s(total)+'m</div></div>':'')+
       '</div>';
   }
 
@@ -3810,12 +3815,15 @@ ${wxHTML(cHole,hole.y||hole.metres||0)}
         </div>
       </div>
       ${waitingForBall?`
-      <div style="display:flex;gap:6px">
-        <select id="lieSel" style="padding:7px 10px;border-radius:10px;border:1px solid var(--bdr);font-size:13px;font-weight:700;font-family:inherit;background:#fff">
-          <option value="">Select lie...</option>
-          ${LIES.map(function(l){return'<option value="'+l+'">'+l+'</option>';}).join('')}
-        </select>
-        <button onclick="confirmBallAndLie()" style="padding:8px 14px;background:#c9a84c;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">✓ Confirm</button>
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+        <div style="display:flex;gap:6px">
+          <select id="lieSel" style="padding:7px 10px;border-radius:10px;border:1px solid var(--bdr);font-size:13px;font-weight:700;font-family:inherit;background:#fff">
+            <option value="">Select lie...</option>
+            ${LIES.map(function(l){return'<option value="'+l+'">'+l+'</option>';}).join('')}
+          </select>
+          <button onclick="confirmBallAndLie()" style="padding:8px 14px;background:#c9a84c;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">✓</button>
+        </div>
+        <button onclick="openPenaltyFlow()" style="padding:5px 10px;background:#e74c3c;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">⚠️ Penalty stroke</button>
       </div>`:`
       <button onclick="playerHitShot()" style="padding:10px 16px;background:#2d5a3d;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">I've hit →</button>`}
     </div>
@@ -3906,6 +3914,88 @@ function confirmBallAndLie(){
     WF.step='play';
   }
   renderWF();
+}
+
+// ── PENALTY STROKE WORKFLOW ──
+function openPenaltyFlow(){
+  // Step 1: mark where ball went (crosshair already placed)
+  // Record the out-of-bounds/lost position
+  const lostPos=_inlineCrosshair?_inlineCrosshair.getLatLng():null;
+  if(!lostPos){alert('Drag the crosshair to where the ball went first');return;}
+
+  // Record penalty shot
+  if(!window._hd.shots)window._hd.shots=[];
+  window._hd.shots.push({
+    shotNum:window._hd.shots.length+1,
+    club:window._sfb?window._sfb.club:'?',
+    lie:'OOB',
+    ballPos:{lat:lostPos.lat,lng:lostPos.lng,gps:true},
+    penalty:true,
+    dir:window._sfb?window._sfb.dir:null,
+    shape:window._sfb?window._sfb.shape:null
+  });
+
+  // Draw red penalty dot on map
+  if(_inlineMap){
+    L.circleMarker([lostPos.lat,lostPos.lng],{
+      radius:7,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.9,weight:2
+    }).bindTooltip('Penalty',{permanent:true,direction:'top',className:'map-lbl',offset:[0,-8]}).addTo(_inlineMap);
+  }
+
+  // Show penalty choice popup
+  const popup=document.createElement('div');
+  popup.id='penaltyPopup';
+  popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1200;display:flex;align-items:flex-end;justify-content:center';
+  popup.innerHTML=
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:420px">'+
+      '<div style="font-size:18px;font-weight:800;margin-bottom:4px">⚠️ Penalty stroke</div>'+
+      '<div style="font-size:13px;color:var(--txt3);margin-bottom:20px">+1 stroke added. Where will you play from?</div>'+
+      '<div style="display:flex;flex-direction:column;gap:10px">'+
+        '<button onclick="penaltyReturnToPrevious()" style="padding:14px;background:var(--g);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;text-align:left">'+
+          '↩ Return to previous position<div style="font-size:11px;font-weight:400;opacity:0.8">Stroke & distance — play again from where you last hit</div>'+
+        '</button>'+
+        '<button onclick="penaltyTakeDrop()" style="padding:14px;background:var(--bg2);border:1.5px solid var(--bdr);color:var(--txt);border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;text-align:left">'+
+          '📍 Take a drop<div style="font-size:11px;font-weight:400;color:var(--txt3)">Unplayable or hazard — drag to set your drop position</div>'+
+        '</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(popup);
+}
+
+function penaltyReturnToPrevious(){
+  const popup=document.getElementById('penaltyPopup');
+  if(popup)popup.remove();
+
+  // Add 1 penalty stroke to shot count
+  if(!window._hd.penaltyStrokes)window._hd.penaltyStrokes=0;
+  window._hd.penaltyStrokes++;
+
+  // Move crosshair back to previous ball position or tee
+  const prevPos=_prevBallGPS||_playerTee||_inlineTeePos;
+  if(prevPos&&_inlineCrosshair){
+    _inlineCrosshair.setLatLng([prevPos.lat,prevPos.lng]);
+    _inlineMap.panTo([prevPos.lat,prevPos.lng]);
+  }
+
+  // Update hint
+  const hint=document.querySelector('#holeMapInlineWrap .map-hint')||document.getElementById('teeHint');
+  toast('↩ Returned to previous position · +1 penalty stroke');
+}
+
+function penaltyTakeDrop(){
+  const popup=document.getElementById('penaltyPopup');
+  if(popup)popup.remove();
+
+  // Add 1 penalty stroke
+  if(!window._hd.penaltyStrokes)window._hd.penaltyStrokes=0;
+  window._hd.penaltyStrokes++;
+
+  // Keep crosshair where it is - player drags to drop zone
+  toast('📍 Drag crosshair to your drop position then confirm lie');
+  // Ensure crosshair is visible and draggable
+  if(_inlineCrosshair){
+    _inlineMap.panTo(_inlineCrosshair.getLatLng());
+  }
 }
 
 function unlockPin(){
@@ -6426,10 +6516,7 @@ function getWindRelativeToHole(holeBearing, windFromDeg){
   // holeBearing = direction hole plays toward (tee -> target)
   const windToDeg = (windFromDeg + 180) % 360; // convert "from" to "toward"
   let diff = ((windToDeg - holeBearing) + 360) % 360;
-  // diff = 0 means wind blowing same direction as hole = tailwind
-  // diff = 180 means wind blowing into player = headwind
   if(diff > 180) diff = diff - 360; // -180 to 180
-
   const absDiff = Math.abs(diff);
   let windType, windLabel, windEmoji;
 
@@ -6453,7 +6540,9 @@ function getWindRelativeToHole(holeBearing, windFromDeg){
   }
 
   // Strength component along hole axis
-  const component = Math.round(Math.cos(absDiff * Math.PI / 180) * (wxData?wxData.speed:0));
+  // Use calcPlaysLike for consistent wind component (use 150m as reference)
+  const windOnlyResult = calcPlaysLike(150, null, null);
+  const component = windOnlyResult ? windOnlyResult.wind : 0;
 
   return {type:windType, label:windLabel, emoji:windEmoji, diff:diff, component:component};
 }
@@ -6525,23 +6614,90 @@ async function fetchElevation(from, to){
   return null;
 }
 
-function calcSlopeEffect(elevationChange, distanceM){
-  if(elevationChange === null || !distanceM) return 0;
-  // Every 3m elevation change ≈ 1% distance effect
-  // Uphill = negative (shorter), downhill = positive (longer)
-  const pct = elevationChange / 3; // e.g. 9m up = -3%
-  return -Math.round(distanceM * pct / 100);
+// ── CLUB WIND SENSITIVITY FACTORS ──
+const CLUB_WIND_FACTORS = {
+  'Lw':1.35,'Sw':1.30,'Gw':1.25,'Pw':1.20,
+  '9i':1.15,'8i':1.10,'7i':1.00,'6i':0.95,'5i':0.90,'4i':0.85,'3i':0.80,
+  'Hy':0.85,'5W':0.80,'3W':0.75,'Dr':0.70
+};
+
+// ── CLUB DEFAULT DISTANCES (metres) ──
+const CLUB_DEFAULTS = {
+  'Pw':110,'9i':120,'8i':130,'7i':140,'6i':150,'5i':160,'4i':170,
+  '3W':210,'Dr':230
+};
+
+function getClubDistance(club){
+  if(!club)return null;
+  const d=ud();
+  const manual=d.stockYardages&&d.stockYardages[club];
+  if(manual)return manual;
+  const est=getStockYardages&&getStockYardages()[club];
+  if(est&&est.est)return est.est;
+  return CLUB_DEFAULTS[club]||null;
 }
 
-function calcWindEffect(distanceM){
-  if(!wxData || !wxData.speed) return 0;
-  const bearing = getHoleBearing();
-  if(bearing === null) return 0;
-  const windToward = (wxData.dir + 180) % 360;
-  const diff = ((windToward - bearing + 360) % 360);
-  const factor = -Math.cos(diff * Math.PI / 180);
-  return Math.round(wxData.speed * factor * 0.4);
+function calcPlaysLike(horizontalDist, elevChange, club){
+  // ── 1. BASE DISTANCE (true 3D if elevation available) ──
+  let D_base = horizontalDist;
+  if(elevChange !== null && elevChange !== undefined){
+    D_base = Math.round(Math.sqrt(horizontalDist*horizontalDist + elevChange*elevChange));
+  }
+
+  // ── 2. ELEVATION ADJUSTMENT ──
+  let A_elev = 0;
+  if(elevChange !== null && elevChange !== undefined){
+    A_elev = elevChange * 1.1;
+    A_elev = Math.max(-30, Math.min(30, A_elev));
+    A_elev = Math.round(A_elev);
+  }
+
+  // ── 3. WIND CALCULATION ──
+  let A_wind = 0;
+  if(wxData && wxData.speed){
+    const bearing = getHoleBearing();
+    if(bearing !== null){
+      // Shot direction vs wind direction
+      const shotDir = (bearing + 360) % 360;
+      const windFrom = (wxData.dir + 360) % 360;
+      // Angle between shot direction and wind-from direction
+      let theta = Math.abs(shotDir - windFrom);
+      if(theta > 180) theta = 360 - theta;
+      const thetaRad = theta * (Math.PI / 180);
+      // W_aligned: positive = headwind, negative = tailwind
+      const W_aligned = wxData.speed * Math.cos(thetaRad);
+      // Club wind factor
+      const F_club = CLUB_WIND_FACTORS[club] || 1.0;
+      A_wind = W_aligned * 0.35 * F_club;
+      A_wind = Math.max(-25, Math.min(25, A_wind));
+      A_wind = Math.round(A_wind);
+    }
+  }
+
+  // ── 4. TEMPERATURE ADJUSTMENT ──
+  let A_temp = 0;
+  if(wxData && wxData.temp !== undefined){
+    A_temp = (20 - wxData.temp) * 0.15;
+    A_temp = Math.max(-5, Math.min(5, A_temp));
+    A_temp = Math.round(A_temp * 10) / 10;
+  }
+
+  // ── 5. FINAL PLAYS LIKE ──
+  const D_plays = Math.round(D_base + A_elev + A_wind + A_temp);
+
+  return {
+    playsLike: D_plays,
+    base: D_base,
+    elev: A_elev,
+    wind: A_wind,
+    temp: A_temp,
+    total: Math.round(A_elev + A_wind + A_temp)
+  };
 }
+
+// Legacy shims so old calls don't break
+function calcSlopeEffect(elevChange, dist){ return calcPlaysLike(dist||0, elevChange, null).elev; }
+function calcWindEffect(dist){ return calcPlaysLike(dist||0, null, null).wind; }
 
 async function updatePlaysLike(){
   const el = document.getElementById('playsLikeEnhanced');
@@ -6552,46 +6708,49 @@ async function updatePlaysLike(){
   if(!from || !to){ el.innerHTML = ''; return; }
 
   const dist = Math.round(hav(from, to));
-  const windEffect = calcWindEffect(dist);
+  const club = (window._sfb && window._sfb.club) || (window._hd && window._hd.currentClub) || null;
 
-  // Fetch elevation (async, cached)
-  el.innerHTML = '<span style="opacity:0.6">Calculating...</span>';
+  el.innerHTML = '<span style="opacity:0.6;font-size:11px">Calculating...</span>';
   const elevChange = await fetchElevation(from, to);
-  const slopeEffect = calcSlopeEffect(elevChange, dist);
-  const totalEffect = windEffect + slopeEffect;
-  const playsLike = dist + totalEffect;
 
-  const windCol = windEffect > 0 ? '#2ecc71' : windEffect < 0 ? '#e74c3c' : '#888';
-  const slopeCol = slopeEffect > 0 ? '#2ecc71' : slopeEffect < 0 ? '#e74c3c' : '#888';
-  const totalCol = totalEffect > 0 ? '#2ecc71' : totalEffect < 0 ? '#e74c3c' : '#888';
+  const result = calcPlaysLike(dist, elevChange, club);
+  const {playsLike, base, elev, wind, temp, total} = result;
 
+  const s = function(v){ return v > 0 ? '+'+v : ''+v; };
+  const col = function(v){ return v > 0 ? '#e74c3c' : v < 0 ? '#2ecc71' : '#888'; };
   const elevStr = elevChange !== null
-    ? (elevChange > 0 ? '↑' : elevChange < 0 ? '↓' : '→') + ' ' + Math.abs(elevChange) + 'm ' + (elevChange > 0 ? 'uphill' : elevChange < 0 ? 'downhill' : 'flat')
-    : '';
+    ? (elevChange > 0 ? '↑' : elevChange < 0 ? '↓' : '→') + Math.abs(Math.round(elevChange)) + 'm'
+    : null;
 
   el.innerHTML =
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-      '<div style="width:100%;font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:2px">Slope est. accurate for big elevation changes (15m+) only · Less reliable on subtle or short slopes</div>' +
-      '<div style="text-align:center;min-width:50px">' +
-        '<div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">Plays like</div>' +
-        '<div style="font-size:20px;font-weight:900;color:#fff">' + playsLike + 'm</div>' +
-      '</div>' +
-      '<div style="width:1px;height:28px;background:rgba(255,255,255,0.2)"></div>' +
-      (wxData && wxData.speed ? 
-        '<div style="text-align:center">' +
-          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Wind</div>' +
-          '<div style="font-size:13px;font-weight:700;color:' + windCol + '">' + (windEffect > 0 ? '+' : '') + windEffect + 'm</div>' +
-        '</div>' : '') +
-      (elevChange !== null ?
-        '<div style="text-align:center">' +
-          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">' + elevStr + '</div>' +
-          '<div style="font-size:13px;font-weight:700;color:' + slopeCol + '">' + (slopeEffect > 0 ? '+' : '') + slopeEffect + 'm</div>' +
-        '</div>' : '') +
-      (totalEffect !== 0 ?
-        '<div style="text-align:center">' +
-          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Total effect</div>' +
-          '<div style="font-size:13px;font-weight:700;color:' + totalCol + '">' + (totalEffect > 0 ? '+' : '') + totalEffect + 'm</div>' +
-        '</div>' : '') +
+    '<div style="font-size:9px;color:rgba(255,255,255,0.35);margin-bottom:4px">Slope est. accurate for big elevation changes (15m+) only · Less reliable on subtle slopes</div>'+
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<div style="text-align:center;min-width:52px">'+
+        '<div style="font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.6);font-weight:700">Plays like</div>'+
+        '<div style="font-size:22px;font-weight:900;color:#fff">'+playsLike+'m</div>'+
+        (club?'<div style="font-size:9px;color:rgba(255,255,255,0.4)">'+club+'</div>':'') +
+      '</div>'+
+      '<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'+
+      (wxData&&wxData.speed?
+        '<div style="text-align:center">'+
+          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Wind</div>'+
+          '<div style="font-size:13px;font-weight:700;color:'+col(wind)+'">'+s(wind)+'m</div>'+
+        '</div>' : '')+
+      (elevStr?
+        '<div style="text-align:center">'+
+          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">'+elevStr+'</div>'+
+          '<div style="font-size:13px;font-weight:700;color:'+col(elev)+'">'+s(elev)+'m</div>'+
+        '</div>' : '')+
+      (wxData&&wxData.temp!==undefined?
+        '<div style="text-align:center">'+
+          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Temp</div>'+
+          '<div style="font-size:13px;font-weight:700;color:'+col(temp)+'">'+s(temp)+'m</div>'+
+        '</div>' : '')+
+      (total!==0?
+        '<div style="text-align:center">'+
+          '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-weight:700">Total</div>'+
+          '<div style="font-size:13px;font-weight:800;color:'+col(total)+'">'+s(total)+'m</div>'+
+        '</div>' : '')+
     '</div>';
 }
 
