@@ -1288,7 +1288,7 @@ function playsLike(yds,windDeg,holeIdx){
   // diff=0: tailwind, diff=180: headwind
   const factor=-Math.cos(diff*Math.PI/180);
   const adj=wxData?Math.round(wxData.speed*factor*0.4):0;
-  return{yds:yds+adj,adj};
+  return{yds:(yds||0)+adj,adj};
 }
 
 function wxHTML(holeIdx,holeYds){
@@ -1324,7 +1324,7 @@ function wxHTML(holeIdx,holeYds){
     <div class="wx-div"></div>
     <div>
       <div class="wx-lbl">Plays like</div>
-      <div class="wx-plays">${plResult?plResult.playsLike:pl.yds}m</div>
+      <div class="wx-plays">${plResult?plResult.playsLike:(pl&&pl.yds!=null?pl.yds:"—")}m</div>
       <div class="wx-note">${adjStr}</div>
     </div>
   </div>`;
@@ -3781,7 +3781,7 @@ function stepPlay(pg){
   </div>
 </div>
 
-${wxHTML(cHole,hole.y||hole.metres||0)}
+${(function(){try{return wxHTML(cHole,hole.y||hole.metres||0);}catch(e){console.warn("wxHTML error:",e);return "";}})()}
 <div id="windAnalysisStrip" style="display:none;background:rgba(0,0,0,0.5);border-radius:10px;padding:8px 12px;margin-bottom:4px;align-items:center"></div>
 <div id="playsLikeEnhanced" style="background:rgba(0,0,0,0.4);border-radius:10px;padding:8px 12px;margin-bottom:4px;min-height:20px"></div>
 <div style="display:flex;align-items:center;gap:12px;padding:4px 8px;font-size:11px;color:var(--txt3)">
