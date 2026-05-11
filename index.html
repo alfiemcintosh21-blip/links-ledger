@@ -1294,8 +1294,7 @@ function playsLike(yds,windDeg,holeIdx){
 function wxHTML(holeIdx,holeYds){
   if(!wxData)return`<div class="wx" id="wxStrip" style="opacity:0.7"><span style="font-size:14px;opacity:0.8">🌤 Fetching weather...</span></div>`;
   const pl=playsLike(holeYds,wxData.dir,holeIdx);
-  // Use new formula for plays like in weather strip
-  const plResult=calcPlaysLike(yds||150, null, null);
+  const plResult=calcPlaysLike(holeYds||150, null, null);
   const plAdj=plResult?plResult.wind+plResult.temp:0;
   const adjStr=plAdj>0?`+${plAdj}m`:plAdj<0?`${plAdj}m`:'';
   return`<div class="wx" id="wxStrip">
@@ -1325,7 +1324,7 @@ function wxHTML(holeIdx,holeYds){
     <div class="wx-div"></div>
     <div>
       <div class="wx-lbl">Plays like</div>
-      <div class="wx-plays">${pl.yds}y</div>
+      <div class="wx-plays">${plResult?plResult.playsLike:pl.yds}m</div>
       <div class="wx-note">${adjStr}</div>
     </div>
   </div>`;
