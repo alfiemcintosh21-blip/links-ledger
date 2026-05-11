@@ -1494,6 +1494,9 @@ function rHome(){
     <div style="font-family:'Playfair Display',serif;font-size:23px;font-weight:900;color:var(--g)">${CU.name.split(' ')[0]}</div>
   </div>
 </div>
+<div id="homeWxCard" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:12px 14px;margin-bottom:12px">
+  <div style="font-size:11px;color:var(--txt3)">📍 Loading local weather...</div>
+</div>
 <button class="btn bg" onclick="startWF()" style="font-size:17px;padding:17px;font-family:'Playfair Display',serif">⛳ Start a round</button>
 <button class="btn bgold" onclick="startWF(true)" style="font-size:15px">🧪 Test mode</button>
 
@@ -1539,6 +1542,8 @@ ${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;paddi
     </div>
   </div>`;}).join('')}
 ${CU.role==='admin'?`<div class="sec"></div><button class="btn bo" onclick="SP('admin')" style="border-color:var(--gold);color:var(--gold3)">⚙ Admin panel</button>`:''}`;
+
+  setTimeout(fetchHomeWeather, 300);
 }
 
 // ── WORKFLOW STATE ──
@@ -3720,18 +3725,26 @@ function beginRound(){
   if(c)fetchWx(c.lat,c.lng).then(function(w){
     wxData=w;
     // Update weather strip in place without full re-render
-    const strip=document.getElementById('wxStrip');
-    if(strip&&WF.step==='play'){
-      const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
-      const hole=holes[cHole];
-      const newWx=wxHTML(cHole,hole?hole.y||hole.metres||0:0);
-      const tmp=document.createElement('div');
-      tmp.innerHTML=newWx;
-      strip.parentNode.replaceChild(tmp.firstChild,strip);
-    } else if(WF.step==='play'){
-      renderWF();
+    // Update weather strip - try in-place first, fall back to renderWF
+    try{
+      const strip=document.getElementById('wxStrip');
+      if(strip&&WF.step==='play'){
+        const holes=getH(AR.courseId,AR.type==='custom'?'18':AR.type);
+        const hole=holes[cHole];
+        const newWx=wxHTML(cHole,hole?hole.y||hole.metres||0:0);
+        const tmp=document.createElement('div');
+        tmp.innerHTML=newWx;
+        if(tmp.firstChild)strip.parentNode.replaceChild(tmp.firstChild,strip);
+        else strip.outerHTML=newWx;
+      } else if(WF.step==='play'){
+        renderWF();
+      }
+    }catch(e){
+      console.warn('wx strip update error:',e);
+      if(WF.step==='play')renderWF();
     }
     updateWindAnalysis();
+    setTimeout(updatePlaysLike,300);
   });
   WF.step='play';
   SP('round');
@@ -6751,6 +6764,47 @@ async function updatePlaysLike(){
           '<div style="font-size:13px;font-weight:800;color:'+col(total)+'">'+s(total)+'m</div>'+
         '</div>' : '')+
     '</div>';
+}
+
+async function fetchHomeWeather(){
+  const card=document.getElementById('homeWxCard');
+  if(!card)return;
+  // Use home course lat/lng if set, else try geolocation
+  const d=ud();
+  const homeCourseId=CU&&CU.homeCourse||d.homeCourse;
+  const homeCourse=homeCourseId&&CDB[homeCourseId];
+  let lat,lng,locName;
+  if(homeCourse){
+    lat=homeCourse.lat;lng=homeCourse.lng;locName=homeCourse.name;
+  } else {
+    // Try geolocation
+    try{
+      const pos=await new Promise(function(res,rej){
+        navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000});
+      });
+      lat=pos.coords.latitude;lng=pos.coords.longitude;locName='Current location';
+    }catch(e){
+      card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Set a home course in profile to see weather</div>';
+      return;
+    }
+  }
+  try{
+    const wx=await fetchWx(lat,lng);
+    if(!wx){card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';return;}
+    const wdesc=wxDesc(wx.code);
+    const windDir=windDirLabel(wx.dir);
+    card.innerHTML=
+      '<div style="font-size:11px;font-weight:700;color:var(--txt3);margin-bottom:6px">'+locName+' · Now</div>'+
+      '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'+
+        '<div><div style="font-size:22px;font-weight:900">'+wx.temp+'°C</div><div style="font-size:12px;color:var(--txt3)">'+wdesc+'</div></div>'+
+        '<div style="width:1px;height:32px;background:var(--bdr)"></div>'+
+        '<div><div style="font-size:18px;font-weight:800">'+wx.speed+'<span style="font-size:11px;font-weight:400"> km/h</span></div><div style="font-size:12px;color:var(--txt3)">From '+windDir+'</div></div>'+
+        (wx.speed>20?'<div style="font-size:11px;font-weight:700;color:#e74c3c;padding:3px 8px;background:rgba(231,76,60,0.1);border-radius:6px">Windy</div>':
+         wx.speed>10?'<div style="font-size:11px;font-weight:700;color:#c9a84c;padding:3px 8px;background:rgba(201,168,76,0.1);border-radius:6px">Breezy</div>':'') +
+      '</div>';
+  }catch(e){
+    card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';
+  }
 }
 
 window.addEventListener('load',init);
