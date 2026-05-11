@@ -1473,7 +1473,7 @@ ${(()=>{
 function rHome(){
   const rr=realR();
   const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
-  const avg18=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
+  const avg18=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.toPar!==undefined?r.total:r.total,r.totalHoles||18),0)/rr.length):0;
   const girH=knownGIR(ah);
   const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
   const ptH=ah.filter(h=>h.putts>0);
@@ -4114,7 +4114,7 @@ function rStats(){
   const pt=ptH.length?(ptH.reduce((s,h)=>s+h.putts,0)/ptH.length).toFixed(1):null;
   const fwH=knownFW(ah);const fw=fwH.length?Math.round(fwH.filter(function(h){return h.fairway===true;}).length/fwH.length*100):null;
   const udH=knownUD(ah.filter(h=>h.gir===false));const udP=udH.length?Math.round(udH.filter(function(h){return udMade(h);}).length/udH.length*100):null;
-  const avg18=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||9),0)/rr.length):0;
+  const avg18=rr.length?Math.round(rr.reduce((s,r)=>s+to18(r.total,r.totalHoles||18),0)/rr.length):0;
   const best18=rr.length?Math.min(...rr.map(r=>Math.round(to18(r.toPar,r.totalHoles||9)))):null;
   const drives=rr.flatMap(r=>(r.holes||[]).flatMap(h=>(h.shots||[]).filter((s,i)=>i===0&&s.club==='Dr'&&s.dist))).map(s=>s.dist);
   const sb={eagle:0,birdie:0,par:0,bogey:0,double:0,worse:0};
@@ -4343,26 +4343,33 @@ function buildStockYdTable(){
     var estVal=est.est;
     var bestVal=est.best;
     var method=est.method;
-    var methodLabel=method==='centre'?'★':method==='limited'?'~':'';
+    var methodLabel=method==='★'?'★':method==='centre'?'★':method==='limited'?'~':method==='median'?'~':'';
     var estColor=estVal?'var(--g)':'var(--txt3)';
     rows+='<tr style="border-top:1px solid var(--bdr)">'+
-      '<td style="padding:6px 6px;font-weight:800">'+club+'</td>'+
+      '<td style="padding:6px 6px;font-weight:800;font-size:14px">'+club+'</td>'+
       '<td style="padding:6px 4px;text-align:center">'+
         '<input type="number" value="'+m+'" placeholder="—" '+
-          'style="width:54px;padding:4px 6px;border:1.5px solid var(--bdr);border-radius:6px;font-size:13px;font-weight:700;text-align:center;font-family:inherit;background:var(--bg3)" '+
-          'data-club="'+club+'" onchange="saveStockYardage(this.dataset.club,this.value)" '+
-          'onblur="saveStockYardage(this.dataset.club,this.value)">'+
+          'style="width:60px;padding:6px 8px;border:1.5px solid var(--bdr);border-radius:8px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;background:var(--bg)" '+
+          'data-club="'+club+'" '+
+          'oninput="stockYdChanged()" '+
+          'id="syd-'+club+'">'+
       '</td>'+
       '<td style="padding:6px 4px;text-align:center;font-weight:700;color:'+estColor+'">'+
-        (estVal?estVal+'m '+methodLabel:'—')+
+        (estVal?estVal+'m <span style="font-size:9px;opacity:0.6">'+methodLabel+'</span>':'<span style="color:var(--txt3)">—</span>')+
         (est.count?'<div style="font-size:9px;color:var(--txt3)">'+est.count+' shots</div>':'')+ 
       '</td>'+
       '<td style="padding:6px 4px;text-align:center;font-weight:700;color:var(--gold)">'+
-        (bestVal?bestVal+'m':'—')+
+        (bestVal?bestVal+'m':'<span style="color:var(--txt3)">—</span>')+
       '</td>'+
     '</tr>';
   });
   tbody.innerHTML=rows;
+}
+
+function stockYdChanged(){
+  // Show save button when any value changes
+  const btn=document.getElementById('stockYdSaveBtn');
+  if(btn){btn.style.display='block';btn.textContent='Save distances ✓';}
 }
 
 // ── SPARKLINE GRAPH BUILDER ──
@@ -5090,7 +5097,7 @@ function rProfile(){
     '<div class="sg3">'+
       '<div class="sc"><div class="sv">'+rr.length+'</div><div class="sl">Rounds</div></div>'+
       '<div class="sc"><div class="sv">'+([...new Set(rr.map(function(r){return r.courseId;}))].length)+'</div><div class="sl">Courses</div></div>'+
-      '<div class="sc"><div class="sv">'+(rr.length?Math.round(rr.reduce(function(s,r){return s+r.total;},0)/rr.length):'—')+'</div><div class="sl">Avg score</div></div>'+
+      '<div class="sc"><div class="sv">'+(rr.length?Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length):'—')+'</div><div class="sl">Avg score</div></div>'+
     '</div>'+
     '<div class="sec">Profile</div>'+
     '<div class="card" style="padding:12px 14px;margin-bottom:10px">'+
@@ -6831,4 +6838,29 @@ function togTrk(key,btnId){
 
 </script>
 </body>
-</html>
+</htmlasync function saveAllStockYardages(){
+  const inputs=document.querySelectorAll('#stockYdBody input[data-club]');
+  if(!inputs.length){toast('No data to save');return;}
+  const d=ud();if(!d.stockYardages)d.stockYardages={};
+  inputs.forEach(function(inp){
+    const v=inp.value.trim();
+    const club=inp.dataset.club;
+    if(v&&!isNaN(parseInt(v))){d.stockYardages[club]=parseInt(v);}
+    else if(!v){d.stockYardages[club]=null;}
+  });
+  sud(d);
+  const btn=document.getElementById('stockYdSaveBtn');
+  if(sb&&CU&&CU.uid){
+    try{
+      await sb.from('ll_userdata').upsert({uid:CU.uid,data:JSON.stringify(d),updated_at:new Date().toISOString()});
+      if(btn){btn.textContent='Saved ✓ ☁️';btn.style.background='#1a5c2a';setTimeout(function(){btn.style.display='none';btn.textContent='Save distances ✓';btn.style.background='var(--g)';},2500);}
+      toast('Distances saved to cloud ✓');
+    }catch(e){
+      if(btn){btn.style.display='none';}
+      toast('Saved locally — cloud sync failed');
+    }
+  } else {
+    if(btn){btn.textContent='Saved ✓';btn.style.background='#1a5c2a';setTimeout(function(){btn.style.display='none';btn.textContent='Save distances ✓';btn.style.background='var(--g)';},2000);}
+    toast('Distances saved ✓');
+  }
+}>
