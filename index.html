@@ -330,6 +330,10 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
     <div id="f-in">
       <div class="fi"><label>Email</label><input type="email" id="li-em" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fi"><label>Password</label><input type="password" id="li-pw" placeholder="••••••••" autocomplete="current-password"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <input type="checkbox" id="li-remember" style="width:16px;height:16px;cursor:pointer" checked>
+        <label for="li-remember" style="font-size:13px;color:var(--txt3);cursor:pointer">Remember me on this device</label>
+      </div>
       <button class="ba" id="li-btn" onclick="doLogin()">Sign in</button>
       <div class="aerr" id="li-err"></div>
     </div>
@@ -604,7 +608,27 @@ h:[{h:1,par:4,y:346,si:4},{h:2,par:4,y:329,si:6},{h:3,par:4,y:423,si:2},{h:4,par
     9:'https://i.imgur.com/zRf6L7q.jpg'},       loc:'Dunedin',   lat:-45.8167,lng:170.6333,approx:true,h:[{h:1,par:4,y:320,si:4},{h:2,par:5,y:490,si:2},{h:3,par:3,y:140,si:8},{h:4,par:4,y:380,si:3},{h:5,par:4,y:350,si:5},{h:6,par:4,y:330,si:6},{h:7,par:4,y:310,si:7},{h:8,par:3,y:150,si:9},{h:9,par:4,y:360,si:1}]},
   masterton:   {name:'Masterton GC (Lansdowne)',rating:70.4,slope:124,loc:'Masterton', lat:-40.9344,lng:175.6788,h:[{h:1,par:5,y:457,si:14},{h:2,par:5,y:485,si:12},{h:3,par:3,y:216,si:6},{h:4,par:4,y:279,si:16},{h:5,par:4,y:370,si:8},{h:6,par:4,y:399,si:10},{h:7,par:4,y:450,si:2},{h:8,par:3,y:129,si:18},{h:9,par:4,y:411,si:4},{h:10,par:4,y:433,si:1},{h:11,par:3,y:191,si:11},{h:12,par:4,y:330,si:7},{h:13,par:3,y:144,si:9},{h:14,par:4,y:369,si:5},{h:15,par:4,y:371,si:3},{h:16,par:4,y:369,si:15},{h:17,par:4,y:371,si:13},{h:18,par:5,y:505,si:17}]},
   mahunga:     {name:'Mahunga GC',rating:69.2,slope:119,             loc:'Masterton', lat:-40.9329,lng:175.6603,h:[{h:1,par:4,y:306,si:9},{h:2,par:4,y:390,si:1},{h:3,par:3,y:127,si:8},{h:4,par:4,y:345,si:10},{h:5,par:4,y:366,si:4},{h:6,par:3,y:127,si:17},{h:7,par:4,y:295,si:18},{h:8,par:5,y:495,si:15},{h:9,par:4,y:393,si:6},{h:10,par:3,y:197,si:7},{h:11,par:5,y:484,si:12},{h:12,par:4,y:371,si:5},{h:13,par:4,y:388,si:3},{h:14,par:5,y:426,si:13},{h:15,par:4,y:406,si:2},{h:16,par:4,y:354,si:14},{h:17,par:3,y:153,si:16},{h:18,par:5,y:536,si:11}]},
-  islandpark: {name:'Island Park Golf Club',nineHole:true,loc:'Dunedin',lat:-45.8976,lng:170.4821,rating:69.5,slope:119,h:[
+  islandpark: {name:'Island Park Golf Club',nineHole:true,loc:'Dunedin',lat:-45.8976,lng:170.4821,rating:69.5,slope:119,gpsHoles:{
+      1:{tee:{lat:-45.921217,lng:170.403389},green:{lat:-45.918575,lng:170.402533},frameTee:{lat:-45.921322,lng:170.403423},frameGreen:{lat:-45.91847,lng:170.402499},frontGreen:{lat:-45.918672,lng:170.402586},backGreen:{lat:-45.918492,lng:170.402489},layup:{lat:-45.919156,lng:170.402681}},
+      2:{tee:{lat:-45.919106,lng:170.40355},green:{lat:-45.918161,lng:170.403036},frameTee:{lat:-45.919207,lng:170.403605},frameGreen:{lat:-45.91806,lng:170.402981},frontGreen:{lat:-45.918275,lng:170.403094},backGreen:{lat:-45.918086,lng:170.402992},layup:null},
+      3:{tee:{lat:-45.917272,lng:170.402731},green:{lat:-45.920136,lng:170.398453},frameTee:{lat:-45.917197,lng:170.402843},frameGreen:{lat:-45.920211,lng:170.398341},frontGreen:{lat:-45.920058,lng:170.398592},backGreen:{lat:-45.920228,lng:170.398333},layup:{lat:-45.919061,lng:170.400869}},
+      4:{tee:{lat:-45.919072,lng:170.399481},green:{lat:-45.923214,lng:170.398125},frameTee:{lat:-45.918967,lng:170.399515},frameGreen:{lat:-45.923319,lng:170.398091},frontGreen:{lat:-45.923125,lng:170.398214},backGreen:{lat:-45.923314,lng:170.398025},layup:{lat:-45.921233,lng:170.398908}},
+      5:{tee:{lat:-45.923325,lng:170.398375},green:{lat:-45.922372,lng:170.400358},frameTee:{lat:-45.923386,lng:170.398247},frameGreen:{lat:-45.922311,lng:170.400486},frontGreen:{lat:-45.922433,lng:170.400239},backGreen:{lat:-45.922322,lng:170.400492},layup:null},
+      6:{tee:{lat:-45.922761,lng:170.401142},green:{lat:-45.920281,lng:170.399978},frameTee:{lat:-45.922864,lng:170.40119},frameGreen:{lat:-45.920178,lng:170.39993},frontGreen:{lat:-45.9204,lng:170.400006},backGreen:{lat:-45.920189,lng:170.399931},layup:{lat:-45.92105,lng:170.399936}},
+      7:{tee:{lat:-45.919722,lng:170.400206},green:{lat:-45.922261,lng:170.402236},frameTee:{lat:-45.919628,lng:170.400131},frameGreen:{lat:-45.922355,lng:170.402311},frontGreen:{lat:-45.922283,lng:170.402069},backGreen:{lat:-45.922267,lng:170.402367},layup:{lat:-45.921775,lng:170.401225}},
+      8:{tee:{lat:-45.922267,lng:170.402367},green:{lat:-45.919803,lng:170.400808},frameTee:{lat:-45.922366,lng:170.402429},frameGreen:{lat:-45.919704,lng:170.400746},frontGreen:{lat:-45.919908,lng:170.400919},backGreen:{lat:-45.919736,lng:170.400719},layup:{lat:-45.920381,lng:170.401294}},
+      9:{tee:{lat:-45.918972,lng:170.401572},green:{lat:-45.921794,lng:170.403481},frameTee:{lat:-45.918874,lng:170.401506},frameGreen:{lat:-45.921892,lng:170.403547},frontGreen:{lat:-45.921689,lng:170.403422},backGreen:{lat:-45.921883,lng:170.403536},layup:{lat:-45.920894,lng:170.402775}},
+      10:{tee:{lat:-45.921217,lng:170.403389},green:{lat:-45.918575,lng:170.402533},frameTee:{lat:-45.921322,lng:170.403423},frameGreen:{lat:-45.91847,lng:170.402499},frontGreen:{lat:-45.918672,lng:170.402586},backGreen:{lat:-45.918492,lng:170.402489},layup:{lat:-45.919156,lng:170.402681}},
+      11:{tee:{lat:-45.919106,lng:170.40355},green:{lat:-45.918161,lng:170.403036},frameTee:{lat:-45.919207,lng:170.403605},frameGreen:{lat:-45.91806,lng:170.402981},frontGreen:{lat:-45.918275,lng:170.403094},backGreen:{lat:-45.918086,lng:170.402992},layup:null},
+      12:{tee:{lat:-45.917272,lng:170.402731},green:{lat:-45.920136,lng:170.398453},frameTee:{lat:-45.917197,lng:170.402843},frameGreen:{lat:-45.920211,lng:170.398341},frontGreen:{lat:-45.920058,lng:170.398592},backGreen:{lat:-45.920228,lng:170.398333},layup:{lat:-45.919061,lng:170.400869}},
+      13:{tee:{lat:-45.919072,lng:170.399481},green:{lat:-45.923214,lng:170.398125},frameTee:{lat:-45.918967,lng:170.399515},frameGreen:{lat:-45.923319,lng:170.398091},frontGreen:{lat:-45.923125,lng:170.398214},backGreen:{lat:-45.923314,lng:170.398025},layup:{lat:-45.921233,lng:170.398908}},
+      14:{tee:{lat:-45.923325,lng:170.398375},green:{lat:-45.922372,lng:170.400358},frameTee:{lat:-45.923386,lng:170.398247},frameGreen:{lat:-45.922311,lng:170.400486},frontGreen:{lat:-45.922433,lng:170.400239},backGreen:{lat:-45.922322,lng:170.400492},layup:null},
+      15:{tee:{lat:-45.922761,lng:170.401142},green:{lat:-45.920281,lng:170.399978},frameTee:{lat:-45.922864,lng:170.40119},frameGreen:{lat:-45.920178,lng:170.39993},frontGreen:{lat:-45.9204,lng:170.400006},backGreen:{lat:-45.920189,lng:170.399931},layup:{lat:-45.92105,lng:170.399936}},
+      16:{tee:{lat:-45.919722,lng:170.400206},green:{lat:-45.922261,lng:170.402236},frameTee:{lat:-45.919628,lng:170.400131},frameGreen:{lat:-45.922355,lng:170.402311},frontGreen:{lat:-45.922283,lng:170.402069},backGreen:{lat:-45.922267,lng:170.402367},layup:{lat:-45.921775,lng:170.401225}},
+      17:{tee:{lat:-45.922267,lng:170.402367},green:{lat:-45.919803,lng:170.400808},frameTee:{lat:-45.922366,lng:170.402429},frameGreen:{lat:-45.919704,lng:170.400746},frontGreen:{lat:-45.919908,lng:170.400919},backGreen:{lat:-45.919736,lng:170.400719},layup:{lat:-45.920381,lng:170.401294}},
+      18:{tee:{lat:-45.918972,lng:170.401572},green:{lat:-45.921794,lng:170.403481},frameTee:{lat:-45.918874,lng:170.401506},frameGreen:{lat:-45.921892,lng:170.403547},frontGreen:{lat:-45.921689,lng:170.403422},backGreen:{lat:-45.921883,lng:170.403536},layup:{lat:-45.920894,lng:170.402775}},
+    },
+    h:[
     {h:1,par:4,y:358,si:7,orientation:'N'},{h:2,par:4,y:342,si:11,orientation:'E'},
     {h:3,par:3,y:168,si:15,orientation:'S'},{h:4,par:5,y:476,si:3,orientation:'W'},
     {h:5,par:4,y:389,si:1,orientation:'N'},{h:6,par:3,y:155,si:17,orientation:'NE'},
@@ -922,7 +946,21 @@ async function doLogin(){
     // Load user data from Supabase
     const {data:row}=await sb.from('ll_userdata').select('data').eq('uid',user.id).single();
     if(row?.data){try{const remote=typeof row.data==='string'?JSON.parse(row.data):row.data;SV('ll_d_'+user.id,remote);}catch(e){}}
-    SV('ll_sess',user.id);
+    // Remember me - if not checked, session clears on browser close
+    const rememberMe=document.getElementById('li-remember');
+    if(rememberMe&&rememberMe.checked){
+      SV('ll_sess',user.id);
+      localStorage.setItem('ll_remember','1');
+    } else {
+      // Store in sessionStorage only - clears when browser closes
+      sessionStorage.setItem('ll_sess',user.id);
+      localStorage.removeItem('ll_sess');
+      localStorage.removeItem('ll_remember');
+    }
+    // Save email for next time
+    if(rememberMe&&rememberMe.checked){
+      localStorage.setItem('ll_remember_email', em);
+    }
     btn.textContent='Sign in';btn.disabled=false;
     launch();
   }catch(e){
@@ -1159,6 +1197,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
+const APP_VERSION='v1.0';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -3398,7 +3437,10 @@ function initInlineHoleMap(courseId, holeNum, shotNum){
 
   // TEE marker (draggable - player sets their tee position)
   const teeIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;box-shadow:0 0 6px rgba(0,0,0,0.5);cursor:move"></div>',iconSize:[14,14],iconAnchor:[7,7]});
-  // Large T marker for easy grabbing
+  // Large T marker for easy grabbing - ensure tee position is valid GPS coords
+  if(!_inlineTeePos||!_inlineTeePos.lat||Math.abs(_inlineTeePos.lat)<0.001){
+    _inlineTeePos=gps.tee; // fallback to GPS tee if position invalid
+  }
   const teeBigIcon=L.divIcon({className:'',html:
     '<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center">'+
     '<div style="width:24px;height:24px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;box-shadow:0 0 0 3px rgba(45,90,61,0.3),0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:grab">'+
@@ -3780,9 +3822,9 @@ ${wxHTML(cHole,hole.y||hole.metres||0)}
     <!-- Tee control bar - always visible on first shot -->
     ${!waitingForBall?`
     <div style="display:flex;gap:6px;align-items:center" id="teeControlBar">
-      <div style="font-size:11px;color:#888;flex:1" id="teeHint">⬆ Drag the T marker to your tee box</div>
-      <button id="confirmTeeBtn" onclick="confirmTeePosition()" style="display:none;padding:6px 12px;background:#2d5a3d;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ Set tee</button>
-      <button onclick="unlockTeeAndPin()" style="padding:6px 10px;background:#333;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Edit tee/pin</button>
+      <div style="font-size:11px;color:#888;flex:1" id="teeHint">Drag T to your tee box, then confirm</div>
+      <button id="confirmTeeBtn" onclick="confirmTeePosition()" style="padding:6px 12px;background:#2d5a3d;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ Set tee</button>
+      <button onclick="unlockTeeAndPin()" style="padding:6px 10px;background:#333;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Edit</button>
     </div>`:''}
   </div>
 </div>
@@ -3800,7 +3842,6 @@ ${AR.mode==='hole'?`<button class="btn bg" style="margin-top:4px" onclick="WF.st
         window._teePopupShown_hole=cHole;
         initInlineHoleMap(AR.courseId,cHole+1,sn);
         drawBallHistory(hd);
-        showTeeSetPopup(null);
         return;
       }
     }
@@ -4908,6 +4949,23 @@ function buildGMapsUrl(played){
 }
 
 // ── PROFILE ──
+function updateApp(){
+  // Force reload bypassing cache to get latest deployed version
+  const btn=event.target;
+  btn.textContent='Updating...';
+  btn.disabled=true;
+  // Clear caches if available
+  if('caches' in window){
+    caches.keys().then(function(names){
+      names.forEach(function(name){caches.delete(name);});
+    });
+  }
+  // Hard reload after short delay
+  setTimeout(function(){
+    window.location.href=window.location.href.split('?')[0]+'?v='+Date.now();
+  },500);
+}
+
 function rProfile(){
   const d=ud();const rr=realR();
   const fullName=(CU.firstName&&CU.lastName)?(CU.firstName+' '+CU.lastName):(CU.name||'');
@@ -4945,6 +5003,13 @@ function rProfile(){
       '<button class="tog '+(d.settings&&d.settings.privateRounds?'on':'')+'" id="psTog" onclick="togPrivSetting()"></button></div>'+
     '</div>'+
     '<button class="btn bo" style="color:var(--red);border-color:var(--red);margin-top:8px" onclick="delTestData()">🗑 Delete all test data</button>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:10px 12px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px">'+
+      '<div>'+
+        '<div style="font-size:12px;font-weight:700">Links Ledger '+APP_VERSION+'</div>'+
+        '<div style="font-size:11px;color:var(--txt3)">Tap to check for updates</div>'+
+      '</div>'+
+      '<button onclick="updateApp()" style="padding:6px 14px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Update ↻</button>'+
+    '</div>'+
     '<button class="btn bo" onclick="logout()" style="margin-top:4px">Sign out</button>';
 }
 
@@ -5294,6 +5359,7 @@ function init(){
       setTimeout(function(){launch();},200);
     } else {
       document.getElementById('auth').style.display='flex';
+      setTimeout(prefillRememberedEmail,100);
     }
   })();
   setTimeout(function(){
@@ -5609,39 +5675,7 @@ function resetHoleMapState(){
 
 
 // ── TEE/PIN SET POPUP ──
-function showTeeSetPopup(onDoneFn){
-  const existing=document.getElementById('teeSetPopup');
-  if(existing)existing.remove();
-  const popup=document.createElement('div');
-  popup.id='teeSetPopup';
-  popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1200;display:flex;align-items:flex-end;justify-content:center';
-  popup.innerHTML=
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:420px">'+
-      '<div style="font-size:18px;font-weight:800;margin-bottom:6px">Set tee position</div>'+
-      '<div style="font-size:14px;color:var(--txt3);margin-bottom:20px">Would you like to drag the tee marker to your exact tee box?</div>'+
-      '<div style="display:flex;gap:10px">'+
-        '<button id="teeSetLeave" style="flex:1;padding:14px;background:var(--bg2);border:1.5px solid var(--bdr);border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Leave generic</button>'+
-        '<button id="teeSetOk" style="flex:1;padding:14px;background:var(--g);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">Set tee ✓</button>'+
-      '</div>'+
-    '</div>';
-  document.body.appendChild(popup);
-  document.getElementById('teeSetLeave').onclick=function(){
-    popup.remove(); window._teeSetMode=false; if(onDoneFn)onDoneFn();
-  };
-  document.getElementById('teeSetOk').onclick=function(){
-    popup.remove(); window._teeSetMode=true;
-    // Highlight tee marker with pulse animation
-    setTimeout(function(){
-      if(_inlineTeeMarker){
-        const el=_inlineTeeMarker.getElement();
-        if(el){el.style.animation='pulse 0.8s infinite alternate';el.style.transform='scale(1.5)';}
-      }
-      const hint=document.getElementById('ydHint')||document.querySelector('#holeMapInlineWrap .map-hint');
-      if(hint)hint.textContent='Drag the tee marker to your tee box';
-    },200);
-    if(onDoneFn)onDoneFn();
-  };
-}
+// Tee popup removed
 
 // ── PUTT TRACKING SCREEN ──
 let _puttMap=null, _puttPinMarker=null, _puttBallMarker=null;
@@ -5704,16 +5738,15 @@ function stepPutting(pg){
 }
 
 function showPinSetPopup(){
-  const popup=document.createElement('div');
-  popup.id='pinSetPopup';
-  popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1200;display:flex;align-items:flex-end;justify-content:center';
-  popup.innerHTML=
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:420px">'+
-      '<div style="font-size:18px;font-weight:800;margin-bottom:6px">📍 Set pin position</div>'+
-      '<div style="font-size:14px;color:var(--txt3);margin-bottom:20px">Drag the gold pin marker to the exact hole position, then tap Done.</div>'+
-      '<button onclick="document.getElementById(\'pinSetPopup\').remove();puttPinSet()" style="width:100%;padding:14px;background:var(--g);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">Done — pin is set ✓</button>'+
-    '</div>';
-  document.body.appendChild(popup);
+  const hint=document.getElementById('puttHint');
+  if(hint){
+    hint.style.cssText='background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.5);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:6px';
+    hint.innerHTML='<strong>📍 Set the pin:</strong> Drag the gold flag to the exact hole, then tap Save pin';
+  }
+  const actionsEl=document.getElementById('puttActions');
+  if(actionsEl){
+    actionsEl.innerHTML='<button class="btn bg" onclick="puttPinSet()" style="width:100%;background:#c9a84c;border-color:#c9a84c;font-size:14px">Save pin ✓</button>';
+  }
 }
 
 function puttPinSet(){
@@ -5731,14 +5764,18 @@ function puttPinSet(){
       '</div>',
       iconSize:[16,20],iconAnchor:[8,20]}));
   }
-  // Update hint
+  // Show locked state clearly
   const hint=document.getElementById('puttHint');
   if(hint){
-    hint.innerHTML='Pin locked 📍 · Drag crosshair to your ball · <button onclick="unlockPin()" style="background:none;border:none;color:var(--gold);font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">Edit pin</button>';
-    hint.style.background='';hint.style.border='';
+    hint.style.cssText='background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);border-radius:8px;padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px';
+    hint.innerHTML=
+      '<span>📍 <strong>Pin locked</strong> · Drag blue crosshair to your ball</span>'+
+      '<button onclick="unlockPin()" style="background:none;border:none;color:#c9a84c;font-weight:700;cursor:pointer;font-family:inherit;font-size:11px;padding:0;margin-left:8px;white-space:nowrap">✏️ Edit pin</button>';
   }
   const actionsEl=document.getElementById('puttActions');
-  if(actionsEl)actionsEl.innerHTML='<button class="btn bg" id="placeBallBtn" onclick="puttPlaceBall()">📍 Place ball here</button><button class="btn bg" id="puttHoleBtn" onclick="puttInHole()" style="display:none;background:var(--g)">⛳ In the hole!</button>';
+  if(actionsEl)actionsEl.innerHTML=
+    '<button class="btn bg" id="placeBallBtn" onclick="puttPlaceBall()" style="flex:1">📍 Place ball here</button>'+
+    '<button class="btn bg" id="puttHoleBtn" onclick="puttInHole()" style="display:none;flex:1;background:var(--g)">⛳ In the hole!</button>';
   document.getElementById('placeBallBtn').style.display='block';
 
   // Place crosshair offset from pin - toward tee so it's clearly separate
