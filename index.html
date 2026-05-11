@@ -269,7 +269,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .toast.show{opacity:1}
 
 /* TEST BANNER */
-.test-banner{background:var(--gold);color:var(--gd);padding:7px 13px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;flex-shrink:0}
+.test-banner{background:var(--gold);color:var(--gd);padding:7px 13px;padding-top:max(44px,env(safe-area-inset-top,44px));display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;flex-shrink:0}
 
 /* GPS CARD */
 .gps-card{background:var(--g);border-radius:13px;padding:13px 15px;margin-bottom:11px;color:#fff}
@@ -1199,7 +1199,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.0';
+const APP_VERSION='v1.1';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -4339,39 +4339,45 @@ function buildStockYdTable(){
   const clubs=myBag();
   var rows='';
   clubs.forEach(function(club){
-    var m=manual[club]||'';
+    var m=manual[club]!=null?manual[club]:'';
     var est=appEst[club]||{};
-    var estVal=est.est;
-    var bestVal=est.best;
-    var method=est.method;
-    var methodLabel=method==='★'?'★':method==='centre'?'★':method==='limited'?'~':method==='median'?'~':'';
-    var estColor=estVal?'var(--g)':'var(--txt3)';
-    rows+='<tr style="border-top:1px solid var(--bdr)">'+
-      '<td style="padding:6px 6px;font-weight:800;font-size:14px">'+club+'</td>'+
-      '<td style="padding:6px 4px;text-align:center">'+
-        '<input type="number" value="'+m+'" placeholder="—" '+
-          'style="width:60px;padding:6px 8px;border:1.5px solid var(--bdr);border-radius:8px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;background:var(--bg)" '+
-          'data-club="'+club+'" '+
-          'oninput="stockYdChanged()" '+
-          'id="syd-'+club+'">'+
-      '</td>'+
-      '<td style="padding:6px 4px;text-align:center;font-weight:700;color:'+estColor+'">'+
-        (estVal?estVal+'m <span style="font-size:9px;opacity:0.6">'+methodLabel+'</span>':'<span style="color:var(--txt3)">—</span>')+
-        (est.count?'<div style="font-size:9px;color:var(--txt3)">'+est.count+' shots</div>':'')+ 
-      '</td>'+
-      '<td style="padding:6px 4px;text-align:center;font-weight:700;color:var(--gold)">'+
-        (bestVal?bestVal+'m':'<span style="color:var(--txt3)">—</span>')+
-      '</td>'+
-    '</tr>';
+    var estVal=est.est||null;
+    var bestVal=est.best||null;
+    var method=est.method||'';
+    var ml=method==='centre'?'★':method==='limited'||method==='median'?'~':'';
+    rows+=
+      '<tr style="border-top:1px solid var(--bdr)">'+
+        '<td style="padding:8px 6px;font-weight:900;font-size:15px;color:var(--txt)">'+club+'</td>'+
+        '<td style="padding:4px 4px;text-align:center">'+
+          '<input type="text" inputmode="decimal" value="'+m+'" placeholder="—" '+
+            'id="syd-'+club+'" data-club="'+club+'" '+
+            'style="width:62px;padding:8px 4px;border:2px solid var(--g);border-radius:8px;font-size:16px;font-weight:800;text-align:center;font-family:inherit;background:var(--bg);color:var(--txt)" '+
+            'onfocus="this.select()" '+
+            'onchange="stockYdChanged(this)" '+
+            'onkeyup="stockYdChanged(this)">'+
+        '</td>'+
+        '<td style="padding:8px 4px;text-align:center;color:'+(estVal?'var(--g)':'var(--txt3)')+';font-weight:700">'+
+          (estVal?estVal+'m<span style="font-size:9px;font-weight:400;opacity:0.6"> '+ml+'</span>':'—')+
+          (est.count?'<div style="font-size:9px;color:var(--txt3)">'+est.count+' shots</div>':'')+
+        '</td>'+
+        '<td style="padding:8px 4px;text-align:center;color:'+(bestVal?'var(--gold)':'var(--txt3)')+';font-weight:700">'+
+          (bestVal?bestVal+'m':'—')+
+        '</td>'+
+      '</tr>';
   });
   tbody.innerHTML=rows;
+  // Re-attach listeners after render
+  document.querySelectorAll('#stockYdBody input').forEach(function(inp){
+    inp.addEventListener('input', function(){stockYdChanged(this);});
+  });
 }
 
-function stockYdChanged(){
-  // Show save button when any value changes
+function stockYdChanged(inp){
   const btn=document.getElementById('stockYdSaveBtn');
-  if(btn){btn.style.display='block';btn.textContent='Save distances ✓';}
+  if(btn)btn.style.display='block';
 }
+
+// stockYdChanged defined inside buildStockYdTable
 
 // ── SPARKLINE GRAPH BUILDER ──
 function buildSparklines(rounds){
