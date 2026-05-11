@@ -3002,7 +3002,7 @@ function stepSummary(pg){
   <div style="font-size:13px;opacity:0.8;margin-bottom:13px">${r.date} · ${r.player} · ${ph.length} holes</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
     <div class="sg-box"><div class="v">${r.total}</div><div class="l">Score (${r.toPar>=0?'+'+r.toPar:r.toPar})</div></div>
-    <div class="sg-box"><div class="v">${fmtT(r.duration)}</div><div class="l">Time</div></div>
+
  
     <div class="sg-box"><div class="v">${pace?pace+' min/km':'—'}</div><div class="l">Pace</div></div>
   </div>
@@ -3723,7 +3723,7 @@ function beginRound(){
     privateRound:ud().settings&&ud().settings.privateRounds||false
   };
   cHole=0;
-  roundStart=Date.now();
+  
   wxData=null;
   if(c)fetchWx(c.lat,c.lng).then(function(w){
     wxData=w;
@@ -4233,16 +4233,17 @@ ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
 <!-- STOCK YARDAGES -->
 <div class="sec" style="margin-top:14px">Stock Distances (metres)</div>
 <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
-  <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your stock distances in metres · App estimates from tracked shots</div>
+  <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your stock distances · ★ = centre contact · ~ = median estimate</div>
   <table style="width:100%;border-collapse:collapse;font-size:13px">
     <thead><tr>
       <th style="text-align:left;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Club</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">My Stock (m)</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Est. (m)</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">My Stock</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">App Est.</th>
       <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Best</th>
     </tr></thead>
     <tbody id="stockYdBody"></tbody>
   </table>
+  <button id="stockYdSaveBtn" onclick="saveAllStockYardages()" style="display:none;width:100%;margin-top:12px;padding:12px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Save distances ✓</button>
 </div>`;
   setTimeout(function(){buildPuttingStatsUI();buildStockYdTable();},80);
 }
@@ -6864,3 +6865,4 @@ function togTrk(key,btnId){
     toast('Distances saved ✓');
   }
 }>
+</html>
