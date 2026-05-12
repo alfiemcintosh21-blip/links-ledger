@@ -4545,34 +4545,77 @@ ${myL.length?`<div class="sec">My leagues</div>${myL.map(l=>`<div class="lg-card
 ${pubL.length?`<div class="sec">Public leagues</div>${pubL.slice(0,5).map(l=>`<div class="lg-card"><div class="fxb"><div><div style="font-size:16px;font-weight:800;margin-bottom:3px">${l.name}</div><div style="font-size:13px;color:var(--txt3)">🌍 Public · ${l.members?.length||1} members</div></div><button class="bsm bsmg" onclick="joinLeagueId('${l.id}')">Join</button></div></div>`).join('')}`:''}`;
 }
 
+function buildGLBRow(e,i){
+  const init=(e.name||'?').split(' ').map(function(n){return n[0]||'';}).join('').substring(0,2).toUpperCase();
+  const pos=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  const ring=e.ringColour||'#3b82f6';
+  return'<div class="lb-row">'+
+    '<div class="lb-pos '+pos+'">'+(i+1)+'</div>'+
+    '<div class="lb-av" style="border-color:'+ring+'">'+init+'</div>'+
+    '<div style="flex:1">'+
+      '<div style="font-weight:700;font-size:15px">'+e.name+(e.uid===CU?.uid?' (you)':'')+'</div>'+
+      '<div style="font-size:12px;color:var(--txt3)">'+e.rounds+' rounds'+(e.gir!=null?' · GIR '+e.gir+'%':'')+'</div>'+
+    '</div>'+
+    '<div style="text-align:right">'+
+      '<div style="font-size:18px;font-weight:900;color:var(--g)">'+(e.best>=0?'+'+e.best:e.best)+'</div>'+
+      '<div style="font-size:11px;color:var(--txt3)">best</div>'+
+    '</div>'+
+  '</div>';
+}
+
 function buildGLB(){
-  const users=GU();
-  const entries=Object.values(users).filter(u=>!u.disabled&&u.role!=='admin').map(u=>{
-    const isMe=CU&&u.uid===CU.uid;
-    // Use realR() for current user (most accurate), GUD for others
-    let rr;
-    if(isMe){
-      const d=ud();
-      rr=realR().filter(r=>!r.testMode&&!d.settings?.privateRounds);
-    } else {
-      const d=GUD(u.uid);
-      rr=d.rounds.filter(r=>!r.testMode&&!d.settings?.privateRounds);
+  // Show loading, then fetch fresh from Supabase
+  const wrap=document.getElementById('glbWrap');
+  if(wrap)wrap.innerHTML='<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">Loading leaderboard...</div>';
+  
+  if(!sb){
+    buildGLBLocal(wrap);
+    return '';
+  }
+  
+  // Fetch all users' data fresh from Supabase
+  sb.from('ll_userdata').select('uid,data').then(function(res){
+    if(res.error||!res.data){buildGLBLocal(wrap);return;}
+    const entries=[];
+    res.data.forEach(function(row){
+      try{
+        const d=JSON.parse(row.data||'{}');
+        const isMe=CU&&row.uid===CU.uid;
+        const rr=(d.rounds||[]).filter(function(r){return !r.testMode&&!d.settings?.privateRounds;});
+        if(!rr.length)return;
+        const name=isMe?CU.name:(d.name||row.uid.substring(0,8));
+        const avg=Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length);
+        const best=Math.min.apply(null,rr.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
+        const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
+        const girH=knownGIR(ah);
+        const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
+        const ringCol=isMe?(ud().ringColour||'#3b82f6'):(d.ringColour||'#3b82f6');
+        entries.push({name,uid:row.uid,avg,best,gir,rounds:rr.length,ringColour:ringCol});
+      }catch(e){}
+    });
+    entries.sort(function(a,b){return a.best-b.best;});
+    if(wrap){
+      wrap.innerHTML=entries.length?
+        entries.slice(0,10).map(buildGLBRow).join(''):
+        '<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>';
     }
-    if(!rr.length)return null;
-    const avg=Math.round(rr.reduce((s,r)=>s+normalizeScore(r.total,r.totalHoles||18),0)/rr.length);
-    const best=Math.min(...rr.map(r=>Math.round(to18(r.toPar,r.totalHoles||9))));
-    const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
-    const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
-    const ringCol=isMe?(ud().ringColour||'#c9a84c'):'#c9a84c';
-    return{name:(isMe?CU.name:u.name)||u.name,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:ringCol};
-  }).filter(Boolean).sort((a,b)=>a.best-b.best);
-  if(!entries.length)return`<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>`;
-  return entries.slice(0,10).map((e,i)=>`<div class="lb-row">
-    <div class="lb-pos ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
-    <div class="lb-av" style="border-color:${e.ringColour||'#c9a84c'}">${(e.name||'?').split(' ').map(function(n){return n[0]||''}).join('').substring(0,2).toUpperCase()}</div>
-    <div style="flex:1"><div style="font-weight:700;font-size:15px">${e.name}${e.uid===CU?.uid?' (you)':''}</div><div style="font-size:12px;color:var(--txt3)">${e.rounds} rounds${e.gir!=null?' · GIR '+e.gir+'%':''}</div></div>
-    <div style="text-align:right"><div style="font-size:18px;font-weight:900;color:var(--g)">${e.best>=0?'+'+e.best:e.best}</div><div style="font-size:11px;color:var(--txt3)">best</div></div>
-  </div>`).join('');
+  }).catch(function(){buildGLBLocal(wrap);});
+  
+  return '<div id="glbWrap"><div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">Loading...</div></div>';
+}
+
+function buildGLBLocal(wrap){
+  // Fallback: build from localStorage for current user only
+  const d=ud();
+  const rr=realR().filter(function(r){return !r.testMode&&!d.settings?.privateRounds;});
+  if(!rr.length){if(wrap)wrap.innerHTML='<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>';return;}
+  const avg=Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length);
+  const best=Math.min.apply(null,rr.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
+  const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
+  const girH=knownGIR(ah);
+  const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
+  const entry={name:CU.name,uid:CU.uid,avg,best,gir,rounds:rr.length,ringColour:ud().ringColour||'#3b82f6'};
+  if(wrap)wrap.innerHTML=buildGLBRow(entry,0);
 }
 
 function viewLeague(id){
