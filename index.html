@@ -272,7 +272,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .toast.show{opacity:1}
 
 /* TEST BANNER */
-.test-banner{background:var(–gold);color:var(–gd);padding:7px 13px;padding-top:max(44px,env(safe-area-inset-top,44px));display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;flex-shrink:0}
+.test-banner{background:var(–gold);color:var(–gd);padding:10px 13px 10px;padding-top:max(50px,calc(env(safe-area-inset-top,44px) + 6px));display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;flex-shrink:0}
 
 /* GPS CARD */
 .gps-card{background:var(–g);border-radius:13px;padding:13px 15px;margin-bottom:11px;color:#fff}
@@ -1585,7 +1585,7 @@ ${ip.map(r=>`<div style="background:var(--gl);border:2px solid var(--g3);border-
 ${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;padding:20px">No rounds yet — go play!</p>':
   rr.slice(0,3).map(r=>{
     const adj=Math.round(to18(r.toPar,r.totalHoles||9));
-    return`<div class="rr">
+    return`<div class="rr" onclick="SP('stats');setTimeout(function(){viewRound('${r.id}');},50)" style="cursor:pointer">
     <div>
       <div style="font-weight:700;font-size:15px">${r.courseName}</div>
       <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H played${r.avgGwdr!=null?' · 🌤 GWDR '+r.avgGwdr:''}</div>
@@ -1607,6 +1607,8 @@ let WF={};
 function startWF(isTest=false){
   testMode=isTest;
   document.getElementById('testBanner').style.display=isTest?'flex':'none';
+  const appHdr=document.getElementById('app-hdr');
+  if(appHdr)appHdr.style.display=isTest?'none':'';
   WF={step:'course'};SP('round');renderWF();
 }
 
@@ -4282,7 +4284,7 @@ ${progRounds.length>=3?`<div class="sec">Career progression</div>
 ${rr.map(r=>{
   const adj=Math.round(to18(r.toPar,r.totalHoles||9));
   const breakdown=r.breakdown;
-  return`<div class="rr">
+  return`<div class="rr" onclick="viewRound('${r.id}')" style="cursor:pointer">
   <div>
     <div style="font-weight:700;font-size:15px">${r.courseName}</div>
     <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H${r.duration?' · ⏱ '+fmtT(r.duration):''}</div>
@@ -4423,9 +4425,13 @@ function buildPuttingStatsUI(){
 function buildStockYdTable(){
   const tbody=document.getElementById('stockYdBody');
   if(!tbody)return;
-  const manual=getManualStockYardages();
+  const d=ud();
+  const manual=d.stockYardages||{};
   const appEst=getStockYardages();
-  const clubs=myBag();
+  const bag=d.bag&&d.bag.length?d.bag:myBag();
+  const defaultShow=['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','SW','Pu'];
+  const clubs=Array.from(new Set([...(bag.length?bag:defaultShow),...Object.keys(manual)])).filter(function(c){return ALL_CLUBS.includes(c)||manual[c];});
+  if(!clubs.length){tbody.innerHTML='<tr><td colspan="4" style="padding:10px;text-align:center;color:var(--txt3)">No clubs in bag — set your bag in Profile</td></tr>';return;}
   var rows='';
   clubs.forEach(function(club){
     var m=manual[club]!=null?manual[club]:'';
@@ -4435,29 +4441,26 @@ function buildStockYdTable(){
     var method=est.method||'';
     var ml=method==='centre'?'★':method==='limited'||method==='median'?'~':'';
     rows+=
-      '<tr style="border-top:1px solid var(--bdr)">'+
-        '<td style="padding:8px 6px;font-weight:900;font-size:15px;color:var(--txt)">'+club+'</td>'+
-        '<td style="padding:4px 4px;text-align:center">'+
+      '<tr style="border-top:1px solid #eee">'+
+        '<td style="padding:8px 6px;font-weight:800;font-size:15px;color:#1a1a1a">'+club+'</td>'+
+        '<td style="padding:8px 4px;text-align:center">'+
           '<div style="font-size:16px;font-weight:800;color:'+(m?'#2d5a3d':'#bbb')+'">'+
             (m?m+'m':'—')+
           '</div>'+
           '<div style="font-size:9px;color:#999;margin-top:1px">from profile</div>'+
         '</td>'+
-        '<td style="padding:8px 4px;text-align:center;color:'+(estVal?'var(--g)':'var(--txt3)')+';font-weight:700">'+
+        '<td style="padding:8px 4px;text-align:center;color:'+(estVal?'#2d5a3d':'#bbb')+';font-weight:700">'+
           (estVal?estVal+'m<span style="font-size:9px;font-weight:400;opacity:0.6"> '+ml+'</span>':'—')+
-          (est.count?'<div style="font-size:9px;color:var(--txt3)">'+est.count+' shots</div>':'')+
+          (est.count?'<div style="font-size:9px;color:#999">'+est.count+' shots</div>':'')+
         '</td>'+
-        '<td style="padding:8px 4px;text-align:center;color:'+(bestVal?'var(--gold)':'var(--txt3)')+';font-weight:700">'+
+        '<td style="padding:8px 4px;text-align:center;color:'+(bestVal?'#c9a84c':'#bbb')+';font-weight:700">'+
           (bestVal?bestVal+'m':'—')+
         '</td>'+
       '</tr>';
   });
   tbody.innerHTML=rows;
-  // Re-attach listeners after render
-  document.querySelectorAll('#stockYdBody input').forEach(function(inp){
-    inp.addEventListener('input', function(){stockYdChanged(this);});
-  });
 }
+
 
 function stockYdChanged(inp){
   const btn=document.getElementById('stockYdSaveBtn');
@@ -7416,6 +7419,90 @@ async function saveProfileStockYardages(){
     if(btn){btn.textContent='Saved ✓';setTimeout(function(){btn.style.display='none';btn.textContent='Save distances ✓';},2000);}
     toast('Distances saved ✓');
   }
+}
+
+
+// ── PAST ROUND DETAIL VIEW ──
+function viewRound(roundId){
+  const rr=realR();
+  const r=rr.find(function(x){return x.id===roundId;});
+  if(!r){toast('Round not found');return;}
+  
+  const pg=document.getElementById('pg-stats');
+  if(!pg)return;
+  
+  const holes=r.holes||[];
+  const par=r.par||72;
+  const totalHoles=r.totalHoles||holes.length||18;
+  
+  pg.innerHTML=
+    // Header
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'+
+      '<button onclick="rStats()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px">←</button>'+
+      '<div>'+
+        '<div style="font-size:18px;font-weight:900">'+r.courseName+'</div>'+
+        '<div style="font-size:12px;color:#888">'+r.date+' · '+totalHoles+'H'+
+          (r.avgGwdr!=null?' · 🌤 GWDR '+r.avgGwdr:'')+'</div>'+
+      '</div>'+
+    '</div>'+
+    
+    // Score summary card
+    '<div style="background:#2d5a3d;color:#fff;border-radius:14px;padding:16px;margin-bottom:14px">'+
+      '<div style="display:flex;justify-content:space-around;text-align:center">'+
+        '<div><div style="font-size:36px;font-weight:900">'+r.total+'</div><div style="font-size:11px;opacity:0.75">SCORE</div></div>'+
+        '<div style="width:1px;background:rgba(255,255,255,0.2)"></div>'+
+        '<div><div style="font-size:36px;font-weight:900">'+(r.toPar>=0?'+'+r.toPar:r.toPar)+'</div><div style="font-size:11px;opacity:0.75">TO PAR</div></div>'+
+        (r.avgGwdr!=null?
+          '<div style="width:1px;background:rgba(255,255,255,0.2)"></div>'+
+          '<div><div style="font-size:36px;font-weight:900">'+r.avgGwdr+'</div><div style="font-size:11px;opacity:0.75">GWDR</div></div>'
+        :'')+
+      '</div>'+
+    '</div>'+
+    
+    // Hole by hole table
+    '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:14px;overflow:hidden;margin-bottom:14px">'+
+      '<div style="display:grid;grid-template-columns:32px 40px 44px 44px 44px 1fr;background:#f5f5f5;padding:8px 10px;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;gap:2px">'+
+        '<div>H</div><div>Par</div><div>Score</div><div>Putts</div><div>S2G</div><div>GIR/FW</div>'+
+      '</div>'+
+      holes.map(function(h,i){
+        if(!h)return '';
+        var sc=h.score||0;
+        var p=h.par||4;
+        var diff=sc-p;
+        var diffCol=diff<0?'#2d5a3d':diff===0?'#666':diff===1?'#e67e22':'#dc2626';
+        var gir=h.gir===true?'✅':h.gir===false?'❌':'';
+        var fw=h.fairway===true?'✅':h.fairway===false?'❌':'';
+        return '<div style="display:grid;grid-template-columns:32px 40px 44px 44px 44px 1fr;padding:9px 10px;border-top:1px solid #eee;align-items:center;gap:2px;background:'+(i%2===0?'#fff':'#fafafa')+'">'+
+          '<div style="font-weight:700;font-size:13px">'+(h.h||i+1)+'</div>'+
+          '<div style="font-size:13px;color:#888">'+p+'</div>'+
+          '<div style="font-size:15px;font-weight:900;color:'+diffCol+'">'+sc+'<span style="font-size:10px;color:'+diffCol+'"> '+(diff===0?'E':diff>0?'+'+diff:''+diff)+'</span></div>'+
+          '<div style="font-size:13px">'+(h.putts!=null?h.putts:'—')+'</div>'+
+          '<div style="font-size:13px">'+(h._s2g||h.s2g!=null?h._s2g||h.s2g:'—')+'</div>'+
+          '<div style="font-size:11px">'+gir+' '+fw+'</div>'+
+        '</div>';
+      }).join('')+
+    '</div>'+
+    
+    // Shot details if available
+    (holes.some(function(h){return h&&h.shots&&h.shots.length;})?
+      '<div style="font-size:13px;font-weight:700;color:#555;margin-bottom:8px">Shot breakdown</div>'+
+      '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:14px;overflow:hidden;margin-bottom:14px">'+
+        holes.flatMap(function(h,hi){
+          if(!h||!h.shots||!h.shots.length)return [];
+          return ['<div style="padding:8px 12px;background:#f5f5f5;font-size:11px;font-weight:700;color:#666;text-transform:uppercase">Hole '+(h.h||hi+1)+' · Par '+(h.par||4)+'</div>'].concat(
+            h.shots.map(function(s,si){
+              return '<div style="padding:8px 12px;border-top:1px solid #eee;font-size:13px;display:flex;justify-content:space-between">'+
+                '<span>Shot '+(si+1)+' · <strong>'+(s.club||'?')+'</strong>'+(s.penalty?' ⚠️ Penalty':'')+
+                  (s.shape?' · '+s.shape:'')+(s.dirH?' · '+s.dirH:'')+
+                '</span>'+
+                '<span style="color:#888">'+(s.lie||'')+(s.dist?' · '+(Math.round(s.dist||0))+'m':'')+'</span>'+
+              '</div>';
+            })
+          );
+        }).join('')+
+      '</div>'
+    :'')+
+    '';
 }
 
 window.addEventListener('load',init);
