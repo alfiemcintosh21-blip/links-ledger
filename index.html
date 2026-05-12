@@ -6897,12 +6897,13 @@ async function fetchHomeWeather(){
           '<div style="position:absolute;top:0;left:0;height:100%;width:'+gwdr+'%;background:linear-gradient(to right,'+gradStop+');border-radius:7px;transition:width 0.8s ease"></div>'+
         '</div>'+
         // Labels row
-        '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--txt3);font-weight:600;margin-bottom:5px">'+
-          '<span style="color:#2ecc71">Ideal</span>'+
-          '<span style="color:#1abc9c">Easy</span>'+
-          '<span style="color:#3b82f6">Moderate</span>'+
-          '<span style="color:#f97316">Difficult</span>'+
-          '<span style="color:#e74c3c">Survival</span>'+
+        '<div style="position:relative;height:16px;margin-bottom:4px;font-size:9px;font-weight:700">'+
+          '<span style="position:absolute;left:0%;color:#2ecc71;transform:translateX(0%)">Ideal</span>'+
+          '<span style="position:absolute;left:20%;color:#1abc9c;transform:translateX(-50%)">Easy</span>'+
+          '<span style="position:absolute;left:35%;color:#3b82f6;transform:translateX(-50%)">Moderate</span>'+
+          '<span style="position:absolute;left:51%;color:#3b82f6;transform:translateX(-50%)">Difficult</span>'+
+          '<span style="position:absolute;left:66%;color:#f97316;transform:translateX(-50%)">Very Difficult</span>'+
+          '<span style="position:absolute;left:81%;color:#e74c3c;transform:translateX(-50%)">Survival</span>'+
         '</div>'+
         // Condition name
         '<div style="font-size:12px;font-weight:700;color:'+barCol+'">'+conditionName+'</div>'+
