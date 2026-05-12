@@ -1199,7 +1199,7 @@ function calcWHSHandicap(rounds){
   // Apply 0.96 multiplier
   return Math.round(avg*0.96*10)/10;
 }
-const myBag=()=>{const d=ud();return d.bag||['Dr','3W','5W','Hy','4i','5i','6i','7i','8i','9i','Pw','Sw','Pu'];};
+const myBag=()=>{const d=ud();return d.bag||['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'];};
 const fmtT=ms=>{if(!ms)return'—';const t=Math.round(ms/1000),h=Math.floor(t/3600),m=Math.floor((t%3600)/60);return h>0?`${h}h ${m}m`:`${m}m`;};
 const fmtD=m=>{if(!m||m<5)return'—';return m>=1000?(m/1000).toFixed(2)+'km':Math.round(m)+'m';};
 const hav=(a,b)=>{const R=6371000,dL=(b.lat-a.lat)*Math.PI/180,dO=(b.lng-a.lng)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
@@ -4425,9 +4425,7 @@ function buildStockYdTable(){
   const d=ud();
   const manual=d.stockYardages||{};
   const appEst=getStockYardages();
-  const bag=d.bag&&d.bag.length?d.bag:myBag();
-  const defaultShow=['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'];
-  const clubs=sortClubs(Array.from(new Set([...(bag.length?bag:defaultShow),...Object.keys(manual)])).filter(function(c){return ALL_CLUBS.includes(c)||manual[c];}).filter(function(c){return c!=='Pu'&&c!=='Pw'&&c!=='Sw';}));
+  const clubs=getStockClubs();
   if(!clubs.length){tbody.innerHTML='<tr><td colspan="4" style="padding:10px;text-align:center;color:var(--txt3)">No clubs in bag — set your bag in Profile</td></tr>';return;}
   var rows='';
   clubs.forEach(function(club){
@@ -4565,8 +4563,8 @@ function buildGLB(){
     const best=Math.min(...rr.map(r=>Math.round(to18(r.toPar,r.totalHoles||9))));
     const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
     const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
-    const ringCol=isMe?(ud().ringColour||'#2d5a3d'):'#2d5a3d';
-    return{name:u.name,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:ringCol};
+    const ringCol=isMe?(ud().ringColour||'#c9a84c'):'#c9a84c';
+    return{name:(isMe?CU.name:u.name)||u.name,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:ringCol};
   }).filter(Boolean).sort((a,b)=>a.best-b.best);
   if(!entries.length)return`<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>`;
   return entries.slice(0,10).map((e,i)=>`<div class="lb-row">
@@ -5192,22 +5190,15 @@ function rProfile(){
   document.getElementById('pg-profile').innerHTML=
     (CU.role==='admin'?'<button class="btn" onclick="SP(\'admin\')" style="width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px">⚙️ Admin Panel</button>':'')+
     '<div class="pav" id="profileAvatar" style="border-color:'+(d.ringColour||'#2d5a3d')+'">'+initials+'</div>'+
-    '<div style="text-align:center;margin-bottom:10px">'+
-      (d._showRingPicker?
-        '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:8px" id="ringColourPicker">'+
-          [["#2d5a3d","🟢"],["#c9a84c","🟡"],["#3b82f6","🔵"],["#e74c3c","🔴"],["#8e44ad","🟣"],["#1abc9c","🩵"],["#e67e22","🟠"],["#1a1a1a","⚫"],["#ffffff","⚪"]].map(function(c){
-            var selected=(d.ringColour||"#2d5a3d")===c[0];
-            return "<button data-col=\""+c[0]+"\" onclick=\"setRingColour(this.dataset.col)\" style=\"width:32px;height:32px;border-radius:50%;background:"+c[0]+";border:"+(selected?"3px solid #333":"2px solid #ccc")+";cursor:pointer;box-shadow:"+(selected?"0 0 0 2px #fff,0 0 0 4px "+c[0]:"none")+"\" ></button>";
-          }).join("")+
-        "</div>"+
-        "<button onclick=\"hidRingPicker()\" style=\"font-size:12px;padding:4px 12px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-family:inherit\">Done</button>"
-      :
-        "<button onclick=\"showRingPicker()\" style=\"font-size:12px;padding:4px 12px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-family:inherit\">✏️ Change ring colour</button>"
-      )+
+    '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px">'+
+      [["#2d5a3d","🟢"],["#c9a84c","🟡"],["#3b82f6","🔵"],["#e74c3c","🔴"],["#8e44ad","🟣"],["#1abc9c","🩵"],["#e67e22","🟠"],["#1a1a1a","⚫"],["#ffffff","⚪"]].map(function(c){
+        var sel=(d.ringColour||"#2d5a3d")===c[0];
+        return "<button data-col=\""+c[0]+"\" onclick=\"setRingColour(this.dataset.col)\" style=\"width:30px;height:30px;border-radius:50%;background:"+c[0]+";border:"+(sel?"3px solid #333":"2px solid #ddd")+";cursor:pointer;box-shadow:"+(sel?"0 0 0 2px #fff,0 0 0 4px "+c[0]:"none")+"\"></button>";
+      }).join("")+
     "</div>"+
     '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:2px">'+
       '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700">'+(fullName||CU.email)+'</div>'+
-      '<button onclick="openEditProfile()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;line-height:1" title="Edit name & ring colour">✏️</button>'+
+      '<button onclick="openEditProfile()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;line-height:1">✏️</button>'+
     '</div>'+
     '<div style="text-align:center;font-size:13px;color:var(--txt3);margin-bottom:4px">'+CU.email+'</div>'+
     '<div style="text-align:center;font-size:13px;color:var(--txt3);margin-bottom:14px">🏌️ '+homeCourseName+'</div>'+
@@ -7388,10 +7379,7 @@ function buildProfileStockYdTable(){
   if(!tbody)return;
   const d=ud();
   const manual=d.stockYardages||{};
-  const bag=d.bag&&d.bag.length?d.bag:myBag();
-  // Default common clubs if no bag set
-  const defaultShow=['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'];
-  const clubs=sortClubs(Array.from(new Set([...(bag.length?bag:defaultShow),...Object.keys(manual)])).filter(function(c){return ALL_CLUBS.includes(c)||manual[c];}).filter(function(c){return c!=='Pu'&&c!=='Pw'&&c!=='Sw';}));
+  const clubs=getStockClubs();
   tbody.innerHTML=clubs.map(function(club){
     var val=manual[club]!=null?manual[club]:'';
     return '<tr style="border-top:1px solid #eee">'+
@@ -7563,6 +7551,17 @@ function sortClubs(clubs){
     if(bi===-1)bi=ALL_CLUBS.length;
     return ai-bi;
   });
+}
+function getStockClubs(){
+  // Returns sorted club list for stock distances - same in profile and stats
+  const d=ud();
+  const manual=d.stockYardages||{};
+  const bag=d.bag&&d.bag.length?d.bag:['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'];
+  return sortClubs(
+    Array.from(new Set([...bag,...Object.keys(manual)]))
+      .filter(function(c){return ALL_CLUBS.includes(c)||manual[c];})
+      .filter(function(c){return c!=='Pu'&&c!=='Pw'&&c!=='Sw'&&c!=='Hy';})
+  );
 }
 window.addEventListener('load',init);
 
