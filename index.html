@@ -821,11 +821,12 @@ function seedData(){
     users['admin@linksled.ger']={uid:'admin',name:'Admin',email:'admin@linksled.ger',pass:'admin123',phone:'',role:'admin',created:Date.now(),lastLogin:null,disabled:false};
     SUs(users);
   }
-  // Create Alfie's account if it doesn't exist
-  if(!users['alfie@linksled.ger']){
-    const uid='alfie';
-    users['alfie@linksled.ger']={uid,name:'Alfie McIntosh',email:'alfie@linksled.ger',pass:'golf123',phone:'',role:'user',created:Date.now()-86400000*30,lastLogin:null,disabled:false,seedV:0};
+  // Remove old seed Alfie if present (replaced by real account)
+  if(users['alfie@linksled.ger']){
+    delete users['alfie@linksled.ger'];
     SUs(users);
+    // Clear seed round data
+    localStorage.removeItem('ll_d_alfie');
   }
   // Always re-seed rounds if seed version is outdated
   const alfieUser=users['alfie@linksled.ger'];
@@ -4545,62 +4546,126 @@ ${myL.length?`<div class="sec">My leagues</div>${myL.map(l=>`<div class="lg-card
 ${pubL.length?`<div class="sec">Public leagues</div>${pubL.slice(0,5).map(l=>`<div class="lg-card"><div class="fxb"><div><div style="font-size:16px;font-weight:800;margin-bottom:3px">${l.name}</div><div style="font-size:13px;color:var(--txt3)">🌍 Public · ${l.members?.length||1} members</div></div><button class="bsm bsmg" onclick="joinLeagueId('${l.id}')">Join</button></div></div>`).join('')}`:''}`;
 }
 
-function buildGLBRow(e,i){
-  const init=(e.name||'?').split(' ').map(function(n){return n[0]||'';}).join('').substring(0,2).toUpperCase();
-  const pos=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-  const ring=e.ringColour||'#3b82f6';
-  return'<div class="lb-row">'+
-    '<div class="lb-pos '+pos+'">'+(i+1)+'</div>'+
-    '<div class="lb-av" style="border-color:'+ring+'">'+init+'</div>'+
-    '<div style="flex:1">'+
-      '<div style="font-weight:700;font-size:15px">'+e.name+(e.isMe?' (you)':'')+'</div>'+
-      '<div style="font-size:12px;color:var(--txt3)">'+e.rounds+' rounds'+(e.gir!=null?' · GIR '+e.gir+'%':'')+'</div>'+
-    '</div>'+
-    '<div style="text-align:right">'+
-      '<div style="font-size:18px;font-weight:900;color:var(--g)">'+(e.best>=0?'+'+e.best:e.best)+'</div>'+
-      '<div style="font-size:11px;color:var(--txt3)">best</div>'+
-    '</div>'+
-  '</div>';
+// Leaderboard table sort state
+var _lbSort={col:'best',asc:true};
+
+function computeEntryStats(rr, name, uid, ringColour, isMe){
+  if(!rr||!rr.length)return null;
+  const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
+  const allShots=ah.flatMap(function(h){return h.shots||[];}).filter(Boolean);
+  const driverShots=allShots.filter(function(s){return(s.club==='Dr'||s.club==='Driver')&&s.dist>0;});
+  const girH=knownGIR(ah);
+  const fwH=knownFW(ah);
+  const udH=ah.filter(function(h){return h.updown==='made'||h.updown==='missed'||h.updown==='attempt';});
+  const puttH=ah.filter(function(h){return h.putts!=null;});
+  return{
+    name:name, uid:uid, ringColour:ringColour||'#3b82f6', isMe:isMe,
+    rounds:rr.length,
+    best:Math.min.apply(null,rr.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));})),
+    avg:Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length),
+    hcp:(function(){try{return calcWHSHandicap(rr);}catch(e){return null;}}()),
+    gir:girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null,
+    fw:fwH.length?Math.round(fwH.filter(function(h){return h.fairway===true;}).length/fwH.length*100):null,
+    putts:puttH.length?Math.round(puttH.reduce(function(s,h){return s+h.putts;},0)/puttH.length*10)/10:null,
+    updown:udH.length?Math.round(udH.filter(function(h){return h.updown==='made';}).length/udH.length*100):null,
+    longDrive:driverShots.length?Math.round(Math.max.apply(null,driverShots.map(function(s){return s.dist||0;}))):null,
+    avgDrive:driverShots.length?Math.round(driverShots.reduce(function(s,sh){return s+(sh.dist||0);},0)/driverShots.length):null,
+    gwdr:rr.filter(function(r){return r.avgGwdr!=null;}).length?
+      Math.round(rr.filter(function(r){return r.avgGwdr!=null;}).reduce(function(s,r){return s+r.avgGwdr;},0)/rr.filter(function(r){return r.avgGwdr!=null;}).length):null
+  };
+}
+
+function renderLBTable(entries){
+  const cols=[
+    {key:'name',label:'Player',asc:true,fmt:function(e){
+      const init=(e.name||'?').split(' ').map(function(n){return n[0]||'';}).join('').substring(0,2).toUpperCase();
+      return'<div style="display:flex;align-items:center;gap:8px">'+
+        '<div class="lb-av" style="border-color:'+e.ringColour+';width:32px;height:32px;font-size:12px">'+init+'</div>'+
+        '<span style="font-weight:700">'+e.name+(e.isMe?' ★':'')+'</span>'+
+      '</div>';
+    }},
+    {key:'best',label:'Best',asc:true,fmt:function(e){return e.best!=null?(e.best>=0?'+'+e.best:e.best):'—';}},
+    {key:'avg',label:'Avg',asc:true,fmt:function(e){return e.avg!=null?e.avg:'—';}},
+    {key:'hcp',label:'HCP',asc:true,fmt:function(e){return e.hcp!=null?e.hcp:'—';}},
+    {key:'rounds',label:'Rnds',asc:false,fmt:function(e){return e.rounds||'—';}},
+    {key:'gir',label:'GIR%',asc:false,fmt:function(e){return e.gir!=null?e.gir+'%':'—';}},
+    {key:'fw',label:'FW%',asc:false,fmt:function(e){return e.fw!=null?e.fw+'%':'—';}},
+    {key:'putts',label:'Putts',asc:true,fmt:function(e){return e.putts!=null?e.putts:'—';}},
+    {key:'updown',label:'U&D%',asc:false,fmt:function(e){return e.updown!=null?e.updown+'%':'—';}},
+    {key:'longDrive',label:'Long Dr',asc:false,fmt:function(e){return e.longDrive!=null?e.longDrive+'m':'—';}},
+    {key:'avgDrive',label:'Avg Dr',asc:false,fmt:function(e){return e.avgDrive!=null?e.avgDrive+'m':'—';}},
+    {key:'gwdr',label:'GWDR',asc:true,fmt:function(e){return e.gwdr!=null?e.gwdr:'—';}}
+  ];
+
+  // Sort
+  const col=cols.find(function(c){return c.key===_lbSort.col;})||cols[1];
+  const sorted=entries.slice().sort(function(a,b){
+    var av=a[col.key],bv=b[col.key];
+    if(av==null&&bv==null)return 0;
+    if(av==null)return 1;
+    if(bv==null)return-1;
+    var cmp=typeof av==='string'?av.localeCompare(bv):av-bv;
+    return _lbSort.asc?cmp:-cmp;
+  });
+
+  var html='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px">'+
+    '<thead><tr style="background:#f5f5f5;border-bottom:2px solid #e0e0e0">';
+  cols.forEach(function(c){
+    var active=_lbSort.col===c.key;
+    var arrow=active?(_lbSort.asc?' ↑':' ↓'):'';
+    html+='<th data-col="'+c.key+'" onclick="lbSortBy(this.dataset.col)" style="padding:8px 6px;text-align:'+(c.key==='name'?'left':'center')+';font-size:10px;font-weight:700;text-transform:uppercase;color:'+(active?'#2d5a3d':'#666')+';cursor:pointer;white-space:nowrap;user-select:none">'+c.label+arrow+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  sorted.forEach(function(e,i){
+    html+='<tr style="border-bottom:1px solid #eee;background:'+(i%2===0?'#fff':'#fafafa')+(e.isMe?';outline:2px solid #2d5a3d;outline-offset:-2px':'')+'">';
+    cols.forEach(function(c){
+      html+='<td style="padding:9px 6px;text-align:'+(c.key==='name'?'left':'center')+'">'+c.fmt(e)+'</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+
+function lbSortBy(col){
+  if(_lbSort.col===col){
+    _lbSort.asc=!_lbSort.asc;
+  } else {
+    _lbSort.col=col;
+    // Default: lower is better for best/avg/hcp/putts/gwdr; higher for rest
+    _lbSort.asc=['best','avg','hcp','putts','gwdr','name'].includes(col);
+  }
+  const wrap=document.getElementById('glbWrap');
+  if(wrap&&window._lbEntries){
+    wrap.innerHTML=renderLBTable(window._lbEntries);
+  }
 }
 
 function buildGLB(){
   const users=GU();
-  // Always compute current user's entry fresh from realR()
   const myD=ud();
   const myRR=realR().filter(function(r){return !r.testMode&&!myD.settings?.privateRounds;});
-  
   const entries=[];
-  
-  // Add current user's fresh entry
-  if(myRR.length){
-    const avg=Math.round(myRR.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/myRR.length);
-    const best=Math.min.apply(null,myRR.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
-    const ah=myRR.flatMap(function(r){return r.holes||[];}).filter(Boolean);
-    const girH=knownGIR(ah);
-    const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
-    entries.push({name:CU.name,uid:CU.uid,avg,best,gir,rounds:myRR.length,ringColour:myD.ringColour||'#3b82f6',isMe:true});
-  }
-  
-  // Add other users from registry
+
+  // Current user — always fresh
+  const myEntry=computeEntryStats(myRR,CU.name,CU.uid,myD.ringColour||'#3b82f6',true);
+  if(myEntry)entries.push(myEntry);
+
+  // Other users from registry
   Object.values(users).filter(function(u){
     return u.uid&&u.uid!==CU?.uid&&!u.disabled&&u.role!=='admin';
   }).forEach(function(u){
     try{
       const d=GUD(u.uid);
       const rr=(d.rounds||[]).filter(function(r){return !r.testMode&&!d.settings?.privateRounds;});
-      if(!rr.length)return;
-      const avg=Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length);
-      const best=Math.min.apply(null,rr.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
-      const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
-      const girH=knownGIR(ah);
-      const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
-      entries.push({name:u.name||u.email,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:d.ringColour||'#3b82f6',isMe:false});
+      const entry=computeEntryStats(rr,u.name||u.email,u.uid,d.ringColour||'#3b82f6',false);
+      if(entry)entries.push(entry);
     }catch(e){}
   });
-  
-  entries.sort(function(a,b){return a.best-b.best;});
+
   if(!entries.length)return'<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>';
-  return entries.slice(0,10).map(buildGLBRow).join('');
+  window._lbEntries=entries;
+  return'<div id="glbWrap">'+renderLBTable(entries)+'</div>';
 }
 
 function viewLeague(id){
