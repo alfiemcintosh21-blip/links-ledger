@@ -1091,7 +1091,7 @@ async function logout(){
 function launch(){
   document.getElementById('auth').style.display='none';
   document.getElementById('app').classList.remove('gone');
-  document.getElementById('rptBtn').style.display='flex';
+  document.getElementById('rptBtn').style.display='none';
   // Retry any pending Supabase syncs
   setTimeout(retrySyncQueue, 2000);
   setTimeout(migrateOldData, 3000);
@@ -1114,6 +1114,9 @@ const PT={home:'Links Ledger',round:'Round',stats:'My Stats',leagues:'Leagues',c
 const NAV=['home','stats','leagues','coach','profile'];
 
 function SP(p){
+  // Hide flag button when not in round
+  const rptEl=document.getElementById('rptBtn');
+  if(rptEl&&p!=='round')rptEl.style.display='none';
   Object.keys(PM).forEach(k=>document.getElementById(PM[k]).classList.toggle('gone',k!==p));
   NAV.forEach(k=>document.getElementById('n-'+k)?.classList.toggle('active',k===p));
   const titleEl=document.getElementById('pgTitle');
@@ -1615,6 +1618,9 @@ function startWF(isTest=false){
 
 function renderWF(){
   SP('round');
+  // Show flag button only during active play
+  const rptEl=document.getElementById('rptBtn');
+  if(rptEl)rptEl.style.display=(WF.step==='play'||WF.step==='preshot'||WF.step==='putting'||WF.step==='score')?'flex':'none';
   const pg=document.getElementById('pg-round');
   const steps={course:stepCourse,mode:stepMode,bag:stepBag,play:stepPlay,score:stepScore,lie:stepLie,preshot:stepPreshot,summary:stepSummary,scan:stepScan,yardage_hole:stepYardag,putting:stepPutting};
   if(steps[WF.step]){
@@ -4557,18 +4563,28 @@ ${pubL.length?`<div class="sec">Public leagues</div>${pubL.slice(0,5).map(l=>`<d
 function buildGLB(){
   const users=GU();
   const entries=Object.values(users).filter(u=>!u.disabled&&u.role!=='admin').map(u=>{
-    const d=GUD(u.uid);const rr=d.rounds.filter(r=>!r.testMode&&!d.settings?.privateRounds);
+    const isMe=CU&&u.uid===CU.uid;
+    // Use realR() for current user (most accurate), GUD for others
+    let rr;
+    if(isMe){
+      const d=ud();
+      rr=realR().filter(r=>!r.testMode&&!d.settings?.privateRounds);
+    } else {
+      const d=GUD(u.uid);
+      rr=d.rounds.filter(r=>!r.testMode&&!d.settings?.privateRounds);
+    }
     if(!rr.length)return null;
-    const avg=Math.round(rr.reduce((s,r)=>s+r.total,0)/rr.length);
-    const best=Math.min(...rr.map(r=>r.toPar));
+    const avg=Math.round(rr.reduce((s,r)=>s+normalizeScore(r.total,r.totalHoles||18),0)/rr.length);
+    const best=Math.min(...rr.map(r=>Math.round(to18(r.toPar,r.totalHoles||9))));
     const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
     const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
-    const uData=LD('ll_ud_'+u.uid,null)||{}; return{name:u.name,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:uData.ringColour||null};
+    const ringCol=isMe?(ud().ringColour||'#2d5a3d'):'#2d5a3d';
+    return{name:u.name,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:ringCol};
   }).filter(Boolean).sort((a,b)=>a.best-b.best);
   if(!entries.length)return`<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>`;
   return entries.slice(0,10).map((e,i)=>`<div class="lb-row">
     <div class="lb-pos ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
-    <div class="lb-av" style="border-color:${e.ringColour||'#2d5a3d'}">${(e.name||'?').split(' ').map(function(n){return n[0]||''}).join('').substring(0,2).toUpperCase()}</div>
+    <div class="lb-av" style="border-color:${e.ringColour||'#2d5a3d'};background:${e.ringColour||'#2d5a3d'}">${(e.name||'?').split(' ').map(function(n){return n[0]||''}).join('').substring(0,2).toUpperCase()}</div>
     <div style="flex:1"><div style="font-weight:700;font-size:15px">${e.name}${e.uid===CU?.uid?' (you)':''}</div><div style="font-size:12px;color:var(--txt3)">${e.rounds} rounds${e.gir!=null?' · GIR '+e.gir+'%':''}</div></div>
     <div style="text-align:right"><div style="font-size:18px;font-weight:900;color:var(--g)">${e.best>=0?'+'+e.best:e.best}</div><div style="font-size:11px;color:var(--txt3)">best</div></div>
   </div>`).join('');
