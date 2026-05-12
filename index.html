@@ -4333,7 +4333,7 @@ ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
   </table>
   <div style="font-size:11px;color:#888;text-align:center;margin-top:10px;padding-top:8px;border-top:1px solid #eee">Edit in Profile → Stock Distances</div>
 </div>`;
-  setTimeout(function(){buildPuttingStatsUI();buildStockYdTable();},80);
+  setTimeout(function(){buildPuttingStatsUI();},80);setTimeout(function(){buildStockYdTable();},150);
 }
 
 // ── PUTTING STATS UI BUILDER ──
@@ -4553,7 +4553,7 @@ function buildGLBRow(e,i){
     '<div class="lb-pos '+pos+'">'+(i+1)+'</div>'+
     '<div class="lb-av" style="border-color:'+ring+'">'+init+'</div>'+
     '<div style="flex:1">'+
-      '<div style="font-weight:700;font-size:15px">'+e.name+(e.uid===CU?.uid?' (you)':'')+'</div>'+
+      '<div style="font-weight:700;font-size:15px">'+e.name+(e.isMe?' (you)':'')+'</div>'+
       '<div style="font-size:12px;color:var(--txt3)">'+e.rounds+' rounds'+(e.gir!=null?' · GIR '+e.gir+'%':'')+'</div>'+
     '</div>'+
     '<div style="text-align:right">'+
@@ -4564,58 +4564,43 @@ function buildGLBRow(e,i){
 }
 
 function buildGLB(){
-  // Show loading, then fetch fresh from Supabase
-  const wrap=document.getElementById('glbWrap');
-  if(wrap)wrap.innerHTML='<div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">Loading leaderboard...</div>';
+  const users=GU();
+  // Always compute current user's entry fresh from realR()
+  const myD=ud();
+  const myRR=realR().filter(function(r){return !r.testMode&&!myD.settings?.privateRounds;});
   
-  if(!sb){
-    buildGLBLocal(wrap);
-    return '';
+  const entries=[];
+  
+  // Add current user's fresh entry
+  if(myRR.length){
+    const avg=Math.round(myRR.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/myRR.length);
+    const best=Math.min.apply(null,myRR.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
+    const ah=myRR.flatMap(function(r){return r.holes||[];}).filter(Boolean);
+    const girH=knownGIR(ah);
+    const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
+    entries.push({name:CU.name,uid:CU.uid,avg,best,gir,rounds:myRR.length,ringColour:myD.ringColour||'#3b82f6',isMe:true});
   }
   
-  // Fetch all users' data fresh from Supabase
-  sb.from('ll_userdata').select('uid,data').then(function(res){
-    if(res.error||!res.data){buildGLBLocal(wrap);return;}
-    const entries=[];
-    res.data.forEach(function(row){
-      try{
-        const d=JSON.parse(row.data||'{}');
-        const isMe=CU&&row.uid===CU.uid;
-        const rr=(d.rounds||[]).filter(function(r){return !r.testMode&&!d.settings?.privateRounds;});
-        if(!rr.length)return;
-        const name=isMe?CU.name:(d.name||row.uid.substring(0,8));
-        const avg=Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length);
-        const best=Math.min.apply(null,rr.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
-        const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
-        const girH=knownGIR(ah);
-        const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
-        const ringCol=isMe?(ud().ringColour||'#3b82f6'):(d.ringColour||'#3b82f6');
-        entries.push({name,uid:row.uid,avg,best,gir,rounds:rr.length,ringColour:ringCol});
-      }catch(e){}
-    });
-    entries.sort(function(a,b){return a.best-b.best;});
-    if(wrap){
-      wrap.innerHTML=entries.length?
-        entries.slice(0,10).map(buildGLBRow).join(''):
-        '<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>';
-    }
-  }).catch(function(){buildGLBLocal(wrap);});
+  // Add other users from registry
+  Object.values(users).filter(function(u){
+    return u.uid&&u.uid!==CU?.uid&&!u.disabled&&u.role!=='admin';
+  }).forEach(function(u){
+    try{
+      const d=GUD(u.uid);
+      const rr=(d.rounds||[]).filter(function(r){return !r.testMode&&!d.settings?.privateRounds;});
+      if(!rr.length)return;
+      const avg=Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length);
+      const best=Math.min.apply(null,rr.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
+      const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
+      const girH=knownGIR(ah);
+      const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
+      entries.push({name:u.name||u.email,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:d.ringColour||'#3b82f6',isMe:false});
+    }catch(e){}
+  });
   
-  return '<div id="glbWrap"><div style="padding:16px;text-align:center;color:var(--txt3);font-size:13px">Loading...</div></div>';
-}
-
-function buildGLBLocal(wrap){
-  // Fallback: build from localStorage for current user only
-  const d=ud();
-  const rr=realR().filter(function(r){return !r.testMode&&!d.settings?.privateRounds;});
-  if(!rr.length){if(wrap)wrap.innerHTML='<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>';return;}
-  const avg=Math.round(rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length);
-  const best=Math.min.apply(null,rr.map(function(r){return Math.round(to18(r.toPar,r.totalHoles||9));}));
-  const ah=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
-  const girH=knownGIR(ah);
-  const gir=girH.length?Math.round(girH.filter(function(h){return h.gir;}).length/girH.length*100):null;
-  const entry={name:CU.name,uid:CU.uid,avg,best,gir,rounds:rr.length,ringColour:ud().ringColour||'#3b82f6'};
-  if(wrap)wrap.innerHTML=buildGLBRow(entry,0);
+  entries.sort(function(a,b){return a.best-b.best;});
+  if(!entries.length)return'<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>';
+  return entries.slice(0,10).map(buildGLBRow).join('');
 }
 
 function viewLeague(id){
@@ -7599,12 +7584,19 @@ function getStockClubs(){
   // Returns sorted club list for stock distances - same in profile and stats
   const d=ud();
   const manual=d.stockYardages||{};
-  const bag=d.bag&&d.bag.length?d.bag:['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'];
-  return sortClubs(
-    Array.from(new Set([...bag,...Object.keys(manual)]))
-      .filter(function(c){return ALL_CLUBS.includes(c)||manual[c];})
-      .filter(function(c){return c!=='Pu'&&c!=='Pw'&&c!=='Sw'&&c!=='Hy';})
-  );
+  // Migrate old bag format to new names
+  const rawBag=d.bag&&d.bag.length?d.bag:['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'];
+  const bag=rawBag.map(function(c){
+    // Normalise old names to new
+    if(c==='Pw')return'PW';
+    if(c==='Sw')return'SW';
+    if(c==='Hy')return'4Hy';
+    return c;
+  });
+  // Exclude putter from stock distances
+  const clubs=Array.from(new Set([...bag,...Object.keys(manual)]))
+    .filter(function(c){return c!=='Pu';});
+  return sortClubs(clubs);
 }
 window.addEventListener('load',init);
 
