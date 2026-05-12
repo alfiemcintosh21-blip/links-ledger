@@ -6841,10 +6841,31 @@ async function fetchHomeWeather(){
     const wdesc=wxDesc(wx.code);
     const windDir=windDirLabel(wx.dir);
     const gwdr=calcGWDR(wx,4);
-    const gl=gwdrLabel(gwdr);
+
+    // Full condition name (no abbreviations)
+    const conditionNames=[
+      'Ideal Conditions','Easy','Slightly Challenging','Moderate','Difficult','Very Difficult','Survival Golf'
+    ];
+    const conditionName=gwdr<=10?conditionNames[0]:gwdr<=20?conditionNames[1]:gwdr<=35?conditionNames[2]:gwdr<=50?conditionNames[3]:gwdr<=65?conditionNames[4]:gwdr<=80?conditionNames[5]:conditionNames[6];
+
+    // Gradient colour stops: green -> teal -> blue -> orange -> red
+    // At gwdr%: 0=green, 30=teal, 50=blue, 70=orange, 100=red
+    function gwdrBarColor(pct){
+      if(pct<=20)return'#2ecc71';
+      if(pct<=40)return'#1abc9c';
+      if(pct<=60)return'#3b82f6';
+      if(pct<=80)return'#f97316';
+      return'#e74c3c';
+    }
+    const barCol=gwdrBarColor(gwdr);
+
+    // Gradient string for the fill bar
+    const gradStop=gwdr<=20?'#2ecc71':gwdr<=40?'#2ecc71, #1abc9c':gwdr<=60?'#2ecc71, #1abc9c, #3b82f6':gwdr<=80?'#2ecc71, #1abc9c, #3b82f6, #f97316':'#2ecc71, #1abc9c, #3b82f6, #f97316, #e74c3c';
+
     card.innerHTML=
       '<div style="font-size:11px;font-weight:700;color:var(--txt3);margin-bottom:8px">'+locName+' &middot; Now</div>'+
-      '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">'+
+      // Weather row
+      '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">'+
         '<div>'+
           '<div style="font-size:22px;font-weight:900;line-height:1">'+wx.temp+'&deg;C</div>'+
           '<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+wdesc+'</div>'+
@@ -6852,12 +6873,7 @@ async function fetchHomeWeather(){
         '<div style="width:1px;height:32px;background:var(--bdr);flex-shrink:0"></div>'+
         '<div>'+
           '<div style="font-size:18px;font-weight:800;line-height:1">'+wx.speed+'<span style="font-size:11px;font-weight:400"> km/h</span></div>'+
-          '<div style="font-size:11px;color:var(--txt3);margin-top:2px">From '+windDir+(wx.gust&&wx.gust>wx.speed?' &middot; Gusts '+wx.gust:'')+'</div>'+
-        '</div>'+
-        '<div style="width:1px;height:32px;background:var(--bdr);flex-shrink:0"></div>'+
-        '<div>'+
-          '<div style="font-size:22px;font-weight:900;line-height:1;color:'+gl.col+'">'+gwdr+'</div>'+
-          '<div style="font-size:11px;font-weight:700;color:'+gl.col+';margin-top:2px">'+gl.label+'</div>'+
+          '<div style="font-size:11px;color:var(--txt3);margin-top:2px">From '+windDir+(wx.gust&&wx.gust>wx.speed?' &middot; Gusts '+wx.gust+' km/h':'')+'</div>'+
         '</div>'+
         (wx.humidity?
           '<div style="width:1px;height:32px;background:var(--bdr);flex-shrink:0"></div>'+
@@ -6867,9 +6883,29 @@ async function fetchHomeWeather(){
           '</div>'
         :'')+
       '</div>'+
-      '<div style="margin-top:10px;padding:6px 10px;background:'+gl.col+'20;border-radius:8px;border-left:3px solid '+gl.col+'">'+
-        '<div style="font-size:11px;font-weight:700;color:'+gl.col+'">GWDR '+gwdr+'/100 &mdash; '+gl.label+'</div>'+
-        '<div style="font-size:10px;color:var(--txt3);margin-top:1px">Golf Weather Difficulty Rating</div>'+
+      // GWDR colour bar
+      '<div>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'+
+          '<div style="font-size:12px;font-weight:800;color:var(--txt)">Golf Weather Difficulty</div>'+
+          '<div style="font-size:13px;font-weight:900;color:'+barCol+'">'+gwdr+'<span style="font-size:10px;font-weight:700;color:var(--txt3)"> / 100</span></div>'+
+        '</div>'+
+        // Track
+        '<div style="position:relative;height:14px;background:var(--bg3);border-radius:7px;overflow:hidden;margin-bottom:5px">'+
+          // Full gradient background
+          '<div style="position:absolute;inset:0;background:linear-gradient(to right,#2ecc71,#1abc9c,#3b82f6,#f97316,#e74c3c);opacity:0.2;border-radius:7px"></div>'+
+          // Filled portion
+          '<div style="position:absolute;top:0;left:0;height:100%;width:'+gwdr+'%;background:linear-gradient(to right,'+gradStop+');border-radius:7px;transition:width 0.8s ease"></div>'+
+        '</div>'+
+        // Labels row
+        '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--txt3);font-weight:600;margin-bottom:5px">'+
+          '<span style="color:#2ecc71">Ideal</span>'+
+          '<span style="color:#1abc9c">Easy</span>'+
+          '<span style="color:#3b82f6">Moderate</span>'+
+          '<span style="color:#f97316">Difficult</span>'+
+          '<span style="color:#e74c3c">Survival</span>'+
+        '</div>'+
+        // Condition name
+        '<div style="font-size:12px;font-weight:700;color:'+barCol+'">'+conditionName+'</div>'+
       '</div>';
   }catch(e){
     card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';
