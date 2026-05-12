@@ -1265,9 +1265,27 @@ const udMade=function(h){return h.updown==='made'||h.updown===true;};
 // ── WEATHER ──
 async function fetchWx(lat,lng){
   try{
-    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m,temperature_2m,weather_code&wind_speed_unit=kmh&timezone=auto`);
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,relative_humidity_2m,precipitation,weather_code,visibility&hourly=precipitation_probability&wind_speed_unit=kmh&timezone=auto&forecast_days=1`);
     const d=await r.json();const c=d.current;
-    return{speed:Math.round(c.wind_speed_10m),dir:c.wind_direction_10m,dirLabel:windDirLabel(c.wind_direction_10m),temp:Math.round(c.temperature_2m),code:c.weather_code};
+    // Get current hour precipitation probability
+    const now=new Date();const hr=now.getHours();
+    const rainProb=(d.hourly&&d.hourly.precipitation_probability)?
+      (d.hourly.precipitation_probability[hr]||0):
+      (c.precipitation>0?80:10);
+    const visKm=(c.visibility||10000)/1000;
+    const visQ=Math.min(100,Math.round(visKm/10*100));
+    return{
+      speed:Math.round(c.wind_speed_10m),
+      dir:c.wind_direction_10m,
+      dirLabel:windDirLabel(c.wind_direction_10m),
+      temp:Math.round(c.temperature_2m),
+      code:c.weather_code,
+      gust:Math.round(c.wind_gusts_10m||c.wind_speed_10m*1.4),
+      humidity:Math.round(c.relative_humidity_2m||60),
+      rainMm:c.precipitation||0,
+      rainProb:rainProb,
+      visibility:visQ
+    };
   }catch(e){return null;}
 }
 function wxDesc(code){if(code===0)return'Clear ☀️';if(code<=3)return'Partly cloudy ⛅';if(code<=48)return'Foggy 🌫️';if(code<=67)return'Rainy 🌧️';if(code<=82)return'Showers 🌦️';return'Stormy ⛈️';}
@@ -1299,6 +1317,9 @@ function wxHTML(holeIdx,holeYds){
   const plResult=calcPlaysLike(holeYds||150, null, null);
   const plAdj=plResult?plResult.wind+plResult.temp:0;
   const adjStr=plAdj>0?`+${plAdj}m`:plAdj<0?`${plAdj}m`:'';
+  const roundHours=AR&&AR.type==='9f'?2:4;
+  const gwdr=calcGWDR(wxData,roundHours);
+  const gwdrL=gwdrLabel(gwdr);
   return`<div class="wx" id="wxStrip">
     <svg width="52" height="52" viewBox="0 0 52 52" style="flex-shrink:0">
       <circle cx="26" cy="26" r="24" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
@@ -1329,7 +1350,13 @@ function wxHTML(holeIdx,holeYds){
       <div class="wx-plays">${plResult?plResult.playsLike:(pl&&pl.yds!=null?pl.yds:"—")}m</div>
       <div class="wx-note">${adjStr}</div>
     </div>
-  </div>`;
+    <div class="wx-div"></div>
+    <div>
+      <div class="wx-lbl">Difficulty</div>
+      <div class="wx-plays" style="color:${gwdrL.col};font-size:22px">${gwdr!==null?gwdr:'—'}</div>
+      <div class="wx-note" style="color:${gwdrL.col};font-weight:700">${gwdrL.label}</div>
+    </div>
+  </div>\`;
 }
 
 // ── HOLE DIAGRAM ──
@@ -3002,6 +3029,7 @@ function stepSummary(pg){
   <div style="font-size:13px;opacity:0.8;margin-bottom:13px">${r.date} · ${r.player} · ${ph.length} holes</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
     <div class="sg-box"><div class="v">${r.total}</div><div class="l">Score (${r.toPar>=0?'+'+r.toPar:r.toPar})</div></div>
+    <div class="sg-box" style="color:${gwdrLabel(r.avgGwdr).col}"><div class="v">${r.avgGwdr!=null?r.avgGwdr:'—'}</div><div class="l">GWDR · ${gwdrLabel(r.avgGwdr).label}</div></div>
 
  
     <div class="sg-box"><div class="v">${pace?pace+' min/km':'—'}</div><div class="l">Pace</div></div>
@@ -4040,6 +4068,11 @@ function confirmTeePosition(){
   updateFrontBackFromTee();
   updateWindAnalysis();
   setTimeout(updatePlaysLike, 300);
+  // Store GWDR for this hole
+  if(window._hd&&wxData){
+    const rh=AR&&(AR.type==='9f'||AR.totalHoles===9)?2:4;
+    window._hd.gwdr=calcGWDR(wxData,rh);
+  }
   // Update UI
   const btn=document.getElementById('confirmTeeBtn');
   if(btn)btn.style.display='none';
@@ -5293,7 +5326,7 @@ async function rAdmin(){
       ${rounds.length?rounds.slice().reverse().slice(0,3).map(function(r,i){return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--bdr)">
         <div style="flex:1">
           <div style="font-size:12px;font-weight:700">${r.courseName||r.courseId} <span style="font-weight:400;color:var(--txt3)">${r.date||''}</span></div>
-          <div style="font-size:11px;color:var(--txt3)">${r.totalHoles||18}H · ${r.mode||'hole'} mode</div>
+          <div style="font-size:11px;color:var(--txt3)">${r.totalHoles||18}H · ${r.mode||'hole'} mode${r.avgGwdr!=null?' · 🌤 GWDR '+r.avgGwdr:''}</div>
         </div>
       </div>`;}).join(''):'<div style="font-size:12px;color:var(--txt3)">No rounds yet</div>'}
       <button class="bsm" onclick="adminResetUser('${uid}')" style="margin-top:8px;color:var(--red);font-size:11px">Reset data</button>
@@ -6821,6 +6854,64 @@ async function fetchHomeWeather(){
   }catch(e){
     card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';
   }
+}
+
+
+// ── GOLF WEATHER DIFFICULTY RATING (GWDR) ──
+function calcGWDR(wx, roundHours){
+  if(!wx)return null;
+  const windSpeedKmh = wx.speed||0;
+  const windGustKmh = wx.gust||windSpeedKmh*1.4; // estimate gust if unavailable
+  const rainProbability = wx.rainProb||0;
+  const rainIntensityMmHr = wx.rainMm||0;
+  const temperatureC = wx.temp||15;
+  const humidityPercent = wx.humidity||60;
+  const visibilityQuality = wx.visibility||90;
+  const fairwayWetness = wx.fairwayWet||Math.min(100,rainProbability*0.6);
+  const greenSlowdown = wx.greenSlow||Math.min(100,rainProbability*0.5);
+  const rh = roundHours||4;
+
+  // Step 1 — Wind
+  const W = Math.min(100, 1.35 * Math.pow(windSpeedKmh, 1.28));
+  // Step 2 — Rain intensity normalisation
+  const rainIntensityScore = Math.min(100, rainIntensityMmHr * 14);
+  // Step 3 — Rain score
+  const R = (0.55*rainProbability) + (0.45*rainIntensityScore);
+  // Step 4 — Temperature
+  const T = Math.min(100, 3.2 * Math.abs(temperatureC - 21));
+  // Step 5 — Humidity
+  const H = (Math.abs(humidityPercent - 50) / 50) * 100;
+  // Step 6 — Gust variability
+  const G = Math.min(100, 3.5 * (windGustKmh - windSpeedKmh));
+  // Step 7 — Visibility
+  const V = 100 - visibilityQuality;
+  // Step 8 — Playing surface
+  const P = (0.45*fairwayWetness) + (0.55*greenSlowdown);
+  // Step 9 — Base score
+  const base = (W*0.38)+(R*0.17)+(T*0.10)+(H*0.05)+(G*0.12)+(V*0.08)+(P*0.10);
+  // Step 10 — Interaction multipliers
+  const M1 = 1 + ((W*R)/12000);
+  const M2 = 1 + ((W*T)/18000);
+  // Step 11 — Extreme weather
+  const M3 = (windSpeedKmh>35||rainIntensityMmHr>8||temperatureC<3||visibilityQuality<30)?1.12:1;
+  // Step 12 — Round fatigue
+  const F = 1 + (0.015*rh);
+  // Step 13 — Final
+  let gwdr = base * M1 * M2 * M3 * F;
+  // Step 14 — Clamp
+  gwdr = Math.max(0, Math.min(100, Math.round(gwdr)));
+  return gwdr;
+}
+
+function gwdrLabel(score){
+  if(score===null||score===undefined)return{label:'—',col:'var(--txt3)'};
+  if(score<=10)return{label:'Ideal',col:'#2ecc71'};
+  if(score<=20)return{label:'Easy',col:'#27ae60'};
+  if(score<=35)return{label:'Slight',col:'#f1c40f'};
+  if(score<=50)return{label:'Moderate',col:'#e67e22'};
+  if(score<=65)return{label:'Difficult',col:'#e74c3c'};
+  if(score<=80)return{label:'Very Diff.',col:'#c0392b'};
+  return{label:'Survival',col:'#8e44ad'};
 }
 
 window.addEventListener('load',init);
