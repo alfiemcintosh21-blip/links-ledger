@@ -67,14 +67,14 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 /* CARDS */
 .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1.5px solid #e0e0e0}
 .cardsm{background:#fff;border-radius:10px;padding:11px;margin-bottom:9px;border:1px solid var(–bdr)}
-.sec{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(–txt3);font-weight:700;margin:15px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sec{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#555;font-weight:700;margin:15px 0 8px;display:flex;justify-content:space-between;align-items:center}
 
 /* BUTTONS */
-.btn{width:100%;padding:15px;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;transition:all 0.15s}
+.btn{width:100%;padding:15px;border:2px solid transparent;border-radius:12px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;transition:all 0.15s}
 .btn:active{transform:scale(0.98)}
 .bg{background:var(–g);color:#fff}.bg:active{background:var(–gd)}
 .bgold{background:var(–gold);color:#fff}
-.bo{background:none;border:2px solid var(–txt3);color:var(–txt)}.bo:active{background:var(–bg3)}
+.bo{background:#fff;border:2px solid #888 !important;color:#333 !important}.bo:active{background:var(–bg3)}
 .bred{background:var(–red);color:#fff}
 .bsm{padding:8px 14px;font-size:12px;font-weight:700;width:auto;border-radius:8px;border:1.5px solid var(–bdr);background:#fff;cursor:pointer;font-family:inherit;color:var(–txt)}
 .bsmg{background:var(–g);color:#fff;border-color:var(–g)}
@@ -103,8 +103,8 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
 .sg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
 .sg4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-bottom:12px}
-.sc{background:var(–bg3);border-radius:10px;padding:11px;text-align:center;border:1px solid var(–bdr)}
-.sv{font-size:22px;font-weight:800;color:var(–g)}
+.sc{background:#fff;border-radius:10px;padding:11px;text-align:center;border:1.5px solid #ddd;box-shadow:0 1px 4px rgba(0,0,0,0.07)}
+.sv{font-size:28px;font-weight:900;color:#1a1a1a;line-height:1}
 .sl{font-size:10px;color:var(–txt3);margin-top:2px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
 
 /* PROGRESS */
@@ -163,7 +163,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .chip.sel{border-color:var(–g);background:var(–gl);color:var(–gd)}
 .chip:active{transform:scale(0.95)}
 .club-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
-.cc{padding:11px 12px;border:2px solid #ccc;border-radius:9px;background:#fff;font-size:15px;font-weight:800;cursor:pointer;color:var(–txt);font-family:inherit;transition:all 0.12s}
+.cc{padding:11px 12px;border:2px solid #aaa;border-radius:9px;background:#fff;font-size:15px;font-weight:800;cursor:pointer;color:#1a1a1a;font-family:inherit;transition:all 0.12s;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
 .cc.sel{border-color:var(–g) !important;background:var(–g) !important;color:#fff !important;box-shadow:0 2px 8px rgba(45,90,61,0.3)}
 .cc:active{transform:scale(0.94)}
 
@@ -233,7 +233,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 
 /* STRAVA */
 .strava{background:var(–g);border-radius:15px;padding:16px;color:#fff;margin-bottom:13px}
-.sg-box{background:rgba(255,255,255,0.15);border-radius:10px;padding:11px}
+.sg-box{background:rgba(255,255,255,0.2);border-radius:10px;padding:11px;border:1px solid rgba(255,255,255,0.25)}
 .sg-box .v{font-size:22px;font-weight:900}.sg-box .l{font-size:10px;opacity:0.8;text-transform:uppercase;margin-top:2px}
 
 /* SCORE BAR */
@@ -1552,7 +1552,7 @@ function rHome(){
   <div style="font-size:11px;color:var(--txt3)">📍 Loading weather...</div>
 </div>
 <button onclick="startWF()" style="display:block;width:100%;font-size:19px;padding:18px;font-family:'Playfair Display',serif;margin-bottom:8px;background:#2d5a3d;color:#fff;border:none;border-radius:14px;box-shadow:0 4px 16px rgba(45,90,61,0.3);cursor:pointer;font-weight:700">⛳ Start a round</button>
-<div style="text-align:center;margin-bottom:8px"><button onclick="startWF(true)" style="background:none;border:none;color:#999;font-size:12px;cursor:pointer;font-family:inherit;padding:4px 8px;text-decoration:underline">Test mode</button></div>
+<button onclick="startWF(true)" style="display:block;width:100%;padding:14px;background:#fff;color:#555;border:2px solid #bbb;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">🧪 Test mode</button>
 
 <div class="sec" style="margin-top:16px">Your numbers <span style="font-size:10px;color:var(--txt3);font-weight:500">(all adjusted to 18 holes)</span></div>
 <div style="background:var(--bg2);border:1.5px solid #e0e0e0;border-radius:14px;padding:8px 4px;margin-bottom:12px">
@@ -5248,7 +5248,8 @@ function rProfile(){
       '</table>'+
       '<button id="profileStockSaveBtn" onclick="saveProfileStockYardages()" style="display:none;width:100%;margin-top:12px;padding:12px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Save distances ✓</button>'+
     '</div>'+
-    '<button class="btn bo" onclick="logout()" style="margin-top:4px;border:2px solid #999;color:#333">Sign out</button>';
+    '<button onclick="logout()" style="display:block;width:100%;padding:14px;background:#fff;color:#dc2626;border:2px solid #dc2626;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px">Sign out</button>';
+  setTimeout(function(){buildProfileStockYdTable();},80);
 }
 
 function openEditProfile(){
@@ -7363,24 +7364,26 @@ function buildProfileStockYdTable(){
   const d=ud();
   const manual=d.stockYardages||{};
   const bag=d.bag&&d.bag.length?d.bag:myBag();
-  // Show all clubs in bag, plus any manually entered clubs
-  const clubs=Array.from(new Set([...bag,...Object.keys(manual)])).filter(function(c){return ALL_CLUBS.includes(c)||manual[c];});
-  if(!clubs.length){tbody.innerHTML='<tr><td colspan="2" style="padding:10px;text-align:center;color:var(--txt3);font-size:13px">Add clubs to your bag above to enter distances</td></tr>';return;}
+  // Default common clubs if no bag set
+  const defaultShow=['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','SW','Pu'];
+  const clubs=Array.from(new Set([...(bag.length?bag:defaultShow),...Object.keys(manual)])).filter(function(c){return ALL_CLUBS.includes(c)||manual[c];});
   tbody.innerHTML=clubs.map(function(club){
     var val=manual[club]!=null?manual[club]:'';
-    return '<tr style="border-top:1px solid #f0f0f0">'+
-      '<td style="padding:8px 6px;font-weight:800;font-size:15px;color:var(--txt)">'+club+'</td>'+
-      '<td style="padding:5px 4px;text-align:center">'+
+    return '<tr style="border-top:1px solid #eee">'+
+      '<td style="padding:10px 8px;font-weight:800;font-size:15px;color:#1a1a1a">'+club+'</td>'+
+      '<td style="padding:6px 8px;text-align:right">'+
         '<input type="text" inputmode="decimal" value="'+val+'" placeholder="—" '+
           'id="psyd-'+club+'" data-club="'+club+'" '+
-          'style="width:68px;padding:8px 4px;border:2px solid var(--g);border-radius:8px;font-size:16px;font-weight:800;text-align:center;font-family:inherit;background:#fff;color:#000" '+
+          'style="width:80px;padding:10px 8px;border:2px solid #2d5a3d;border-radius:8px;font-size:17px;font-weight:800;text-align:center;font-family:inherit;background:#fff;color:#000;display:inline-block" '+
           'onfocus="this.select()" '+
           'onkeyup="profileStockChanged()" '+
           'onchange="profileStockChanged()">'+
+        '<span style="font-size:12px;color:#888;margin-left:4px">m</span>'+
       '</td>'+
     '</tr>';
   }).join('');
 }
+
 
 function profileStockChanged(){
   const btn=document.getElementById('profileStockSaveBtn');
