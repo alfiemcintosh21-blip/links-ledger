@@ -57,7 +57,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .hbtn{background:rgba(255,255,255,0.15);border:none;color:#fff;width:35px;height:35px;border-radius:10px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .hbtn:active{background:rgba(255,255,255,0.28)}
 .pages{flex:1;overflow:hidden;position:relative}
-.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(–bg);padding:14px 14px calc(var(–safe-b) + 78px)}
+.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(–bg);padding:14px 16px calc(var(–safe-b) + 78px)}
 .page.gone{display:none}
 .bnav{display:flex;background:#fff;border-top:1px solid var(–bdr);padding:7px 0 calc(var(–safe-b) + 3px);flex-shrink:0;box-shadow:0 -2px 12px rgba(0,0,0,0.06)}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:3px 0;border:none;background:none;color:var(–txt3);font-size:10px;font-weight:700;font-family:inherit;text-transform:uppercase;letter-spacing:0.04em;transition:color 0.2s}
@@ -91,9 +91,9 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .tr:last-child{border-bottom:none}
 .tl{font-size:15px;font-weight:600}.ts{font-size:12px;color:var(–txt3);margin-top:1px}
 .shape-btn{display:block;padding:6px 4px;border:1.5px solid var(–bdr);border-radius:10px;background:var(–bg2);cursor:pointer;font-family:inherit;text-align:center;transition:all 0.15s;width:100%}
-.shape-btn.sel{border-color:var(–g);background:rgba(45,90,61,0.15)}
+.shape-btn.sel{border-color:var(–g) !important;background:rgba(45,90,61,0.2) !important;box-shadow:0 2px 8px rgba(45,90,61,0.25)}
 .dir-btn{display:block;width:100%;padding:10px 4px;border:1.5px solid var(–bdr);border-radius:10px;background:var(–bg2);color:var(–txt);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;transition:background 0.15s,color 0.15s}
-.dir-btn.sel,.dir-btn:active{background:var(–g);color:#fff;border-color:var(–g)}
+.dir-btn.sel{background:var(–g) !important;color:#fff !important;border-color:var(–g) !important;box-shadow:0 2px 8px rgba(45,90,61,0.35)}.dir-btn:active{background:var(–gd);color:#fff;border-color:var(–gd)}
 .tog{width:49px;height:27px;border-radius:14px;background:#ccc;border:2px solid #aaa;cursor:pointer;position:relative;transition:all 0.2s;flex-shrink:0}
 .tog.on{background:var(–g);border-color:var(–gd)}
 .tog::after{content:’’;position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
@@ -163,8 +163,8 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .chip.sel{border-color:var(–g);background:var(–gl);color:var(–gd)}
 .chip:active{transform:scale(0.95)}
 .club-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
-.cc{padding:11px 12px;border:2px solid var(–bdr);border-radius:9px;background:#fff;font-size:15px;font-weight:800;cursor:pointer;color:var(–txt);font-family:inherit;transition:all 0.12s}
-.cc.sel{border-color:var(–g);background:var(–gl);color:var(–gd)}
+.cc{padding:11px 12px;border:2px solid #ccc;border-radius:9px;background:#fff;font-size:15px;font-weight:800;cursor:pointer;color:var(–txt);font-family:inherit;transition:all 0.12s}
+.cc.sel{border-color:var(–g) !important;background:var(–g) !important;color:#fff !important;box-shadow:0 2px 8px rgba(45,90,61,0.3)}
 .cc:active{transform:scale(0.94)}
 
 /* LIE GRID */
@@ -265,7 +265,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .lg-card:active{background:var(–bg3)}
 
 /* REPORT BTN */
-.rpt-btn{position:fixed;bottom:calc(var(–safe-b) + 88px);right:15px;width:44px;height:44px;border-radius:50%;background:var(–red);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.4);z-index:50;display:none;align-items:center;justify-content:center}
+.rpt-btn{position:fixed;top:calc(env(safe-area-inset-top,44px) + 56px) !important;bottom:calc(var(–safe-b) + 88px);right:15px;width:44px;height:44px;border-radius:50%;background:var(–red);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.4);z-index:50;display:none;align-items:center;justify-content:center}
 
 /* TOAST */
 .toast{position:fixed;bottom:calc(var(–safe-b) + 98px);left:50%;transform:translateX(-50%);background:rgba(26,61,41,0.95);color:#fff;padding:11px 18px;border-radius:11px;font-size:14px;font-weight:600;z-index:500;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;backdrop-filter:blur(8px)}
@@ -712,7 +712,18 @@ h:[{h:1,par:4,y:346,si:4},{h:2,par:4,y:329,si:6},{h:3,par:4,y:423,si:2},{h:4,par
     h:[{h:1,par:3,y:120,si:3},{h:2,par:3,y:120,si:7},{h:3,par:3,y:130,si:2},{h:4,par:3,y:100,si:5},{h:5,par:3,y:100,si:6},{h:6,par:3,y:125,si:1},{h:7,par:3,y:85,si:8},{h:8,par:3,y:90,si:9},{h:9,par:3,y:120,si:4}]},
 };
 
-const ALL_CLUBS = ['Dr','3W','5W','7W','Hy','2i','3i','4i','5i','6i','7i','8i','9i','PW','GW','SW','LW','Pu'];
+const ALL_CLUBS = [
+  // Woods
+  'Dr','2W','3W','4W','5W','7W','9W',
+  // Hybrids
+  '1Hy','2Hy','3Hy','4Hy','5Hy','6Hy',
+  // Irons
+  '1i','2i','3i','4i','5i','6i','7i','8i','9i',
+  // Wedges
+  'PW','GW','AW','SW','LW','60°','58°','56°','54°','52°','50°',
+  // Putters
+  'Pu'
+];
 const LIES = ['Fairway','Intermediate rough','Rough','Sand','Trouble','Chipping','Green'];
 // Lie icons — use provided image URLs, fall back to SVG
 const LIE_IMGS = {
@@ -1540,7 +1551,7 @@ function rHome(){
 <div id="homeWxCard" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:14px">
   <div style="font-size:11px;color:var(--txt3)">📍 Loading weather...</div>
 </div>
-<button class="btn bg" onclick="startWF()" style="font-size:18px;padding:18px;font-family:'Playfair Display',serif;margin-bottom:8px;background:#2d5a3d;color:#fff;border:none;border-radius:14px;box-shadow:0 4px 16px rgba(45,90,61,0.3)">⛳ Start a round</button>
+<button onclick="startWF()" style="display:block;width:100%;font-size:19px;padding:18px;font-family:'Playfair Display',serif;margin-bottom:8px;background:#2d5a3d;color:#fff;border:none;border-radius:14px;box-shadow:0 4px 16px rgba(45,90,61,0.3);cursor:pointer;font-weight:700">⛳ Start a round</button>
 <button onclick="startWF(true)" style="width:100%;padding:10px;background:none;border:1.5px solid #999;border-radius:10px;color:#666;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px">🧪 Test mode</button>
 
 <div class="sec" style="margin-top:16px">Your numbers <span style="font-size:10px;color:var(--txt3);font-weight:500">(all adjusted to 18 holes)</span></div>
@@ -1577,7 +1588,7 @@ ${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;paddi
     return`<div class="rr">
     <div>
       <div style="font-weight:700;font-size:15px">${r.courseName}</div>
-      <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H played${r.duration?' · ⏱ '+fmtT(r.duration):''}</div>
+      <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H played${r.avgGwdr!=null?' · 🌤 GWDR '+r.avgGwdr:''}</div>
       ${r.breakdown?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">🐦${r.breakdown.birdies} P${r.breakdown.pars} B${r.breakdown.bogeys} D${r.breakdown.doubles}</div>`:''}
     </div>
     <div style="text-align:right">
@@ -5204,10 +5215,18 @@ function rProfile(){
     '</div>'+
     '<div class="sec">My Bag</div>'+
     '<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">'+
-      '<p style="font-size:12px;color:var(--txt3);margin-bottom:10px">Select your clubs — these will be pre-loaded into every round.</p>'+
-      '<div class="club-grid" id="profileBagGrid">'+
-        ALL_CLUBS.map(function(c){var sel=(d.bag||[]).includes(c);return '<button class="cc'+(sel?' sel':'')+'" data-club="'+c+'" onclick="togProfileBagClub(this,this.dataset.club)">'+c+'</button>';}).join('')+
+      '<p style="font-size:12px;color:var(--txt3);margin-bottom:10px">Your selected clubs are pre-loaded into every round.</p>'+
+      // Selected clubs display
+      '<div id="profileBagSelected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">'+
+        ((d.bag&&d.bag.length)?d.bag.map(function(c){return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--g);color:#fff;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:700">'+c+'<button data-club="'+c+'" onclick="removeBagClub(this.dataset.club)" style="background:none;border:none;color:rgba(255,255,255,0.8);font-size:14px;cursor:pointer;padding:0;line-height:1;font-family:inherit">×</button></span>';}).join(''):'<span style="font-size:12px;color:var(--txt3)">No clubs selected — search below</span>')+
       '</div>'+
+      // Search to add
+      '<div style="display:flex;gap:6px;margin-bottom:8px">'+
+        '<input type="text" id="bagSearchInput" placeholder="Search clubs (e.g. 7i, SW, Dr...)" '+
+          'oninput="bagSearch(this.value)" '+
+          'style="flex:1;padding:10px 12px;border:1.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit">'+
+      '</div>'+
+      '<div id="bagSearchResults" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px"></div>'+
       '<button id="profileBagSaveBtn" onclick="saveProfileBag()" style="display:none;width:100%;margin-top:12px;padding:11px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Save bag ✓</button>'+
     '</div>'+
     '<button class="btn bo" style="color:var(--red);border-color:var(--red);margin-top:8px" onclick="delTestData()">🗑 Delete all test data</button>'+
@@ -5346,6 +5365,39 @@ function togQuickTrack(){
   sud(d);
   const btn=document.getElementById('quickTrackTog');
   if(btn)btn.classList.toggle('on',d.quickTrack!==false);
+}
+
+function bagSearch(q){
+  const res=document.getElementById('bagSearchResults');
+  if(!res)return;
+  if(!q||q.trim()===''){res.innerHTML='';return;}
+  const d=ud();
+  const currentBag=d.bag||[];
+  const matches=ALL_CLUBS.filter(function(c){
+    return c.toLowerCase().includes(q.toLowerCase())&&!currentBag.includes(c);
+  });
+  if(matches.length===0){res.innerHTML='<span style="font-size:12px;color:var(--txt3)">No clubs found</span>';return;}
+  res.innerHTML=matches.slice(0,12).map(function(c){
+    return '<button data-club="'+c+'" onclick="addBagClub(this.dataset.club)" style="padding:7px 12px;border:1.5px solid #ccc;border-radius:8px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ '+c+'</button>';
+  }).join('');
+}
+
+function addBagClub(club){
+  const d=ud();
+  if(!d.bag)d.bag=[];
+  if(!d.bag.includes(club))d.bag.push(club);
+  sud(d);
+  rProfile();
+  toast(club+' added to bag');
+}
+
+function removeBagClub(club){
+  const d=ud();
+  if(!d.bag)return;
+  d.bag=d.bag.filter(function(c){return c!==club;});
+  sud(d);
+  rProfile();
+  toast(club+' removed');
 }
 
 function saveProfileBag(){
@@ -5970,7 +6022,7 @@ function stepPutting(pg){
     // Pin marker (draggable)
     const pinIco=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#c9a84c;border-radius:50%;border:2.5px solid #fff;cursor:move;animation:pulse 0.8s infinite alternate"></div>',iconSize:[14,14],iconAnchor:[7,7]});
     _puttPinMarker=L.marker([_puttPinPos.lat,_puttPinPos.lng],{icon:pinIco,draggable:true,zIndexOffset:900}).addTo(_puttMap);
-    _puttPinMarker.bindTooltip('pin',{permanent:true,direction:'top',className:'map-lbl',offset:[0,-8]});
+    // pin tooltip removed — icon is sufficient
     _puttPinMarker.on('drag',function(e){_puttPinPos={lat:e.latlng.lat,lng:e.latlng.lng};});
 
     // Show "Set pin" popup
