@@ -205,7 +205,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .lb-pos.gold{background:var(–gold);color:#fff}
 .lb-pos.silver{background:#9ca3af;color:#fff}
 .lb-pos.bronze{background:#b45309;color:#fff}
-.lb-av{width:34px;height:34px;border-radius:50%;background:var(–g);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0}
+.lb-av{width:38px;height:38px;border-radius:50%;background:#2d5a3d;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;border:3px solid #2d5a3d;box-shadow:0 0 0 2px rgba(255,255,255,0.85)}
 
 /* MODALS */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:none;align-items:flex-end;justify-content:center}
@@ -258,7 +258,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .ctbl tr:last-child td{border-bottom:none}
 
 /* PROFILE */
-.pav{width:68px;height:68px;border-radius:50%;background:var(–g);color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 9px;font-family:‘Playfair Display’,serif}
+.pav{width:72px;height:72px;border-radius:50%;background:var(–g);color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-family:‘Playfair Display’,serif;border:4px solid #2d5a3d;box-shadow:0 0 0 3px rgba(255,255,255,0.9)}
 
 /* LEAGUE */
 .lg-card{border:2px solid var(–bdr);border-radius:13px;padding:13px;margin-bottom:9px;background:#fff;cursor:pointer;transition:all 0.15s}
@@ -352,8 +352,8 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
   <!-- Step 1: Name -->
   <div id="su-step1">
     <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Step 1 of 4 — Your name</div>
-    <div class="fi"><label>First name</label><input type="text" id="su-fn" placeholder="Jamie" autocomplete="given-name"></div>
-    <div class="fi"><label>Last name</label><input type="text" id="su-ln" placeholder="McIntosh" autocomplete="family-name"></div>
+    <div class="fi"><label>First name</label><input type="text" id="su-fn" placeholder="John" autocomplete="given-name"></div>
+    <div class="fi"><label>Last name</label><input type="text" id="su-ln" placeholder="Doe" autocomplete="family-name"></div>
     <button class="ba" onclick="suNext(1)">Next →</button>
     <div class="aerr" id="su-err1"></div>
   </div>
@@ -774,7 +774,8 @@ STRICT RULES:
 4. NEVER say things like "one shot at a time", "trust yourself", "believe in yourself" unless asked about confidence/mental game
 5. If data is limited, say "With limited data I'd focus on X" and still give technical advice
 6. Keep responses under 120 words
-7. Lead with the technical content — humour is a seasoning not the main course
+7. Lead with the technical 
+8. DRIVING DISTANCE RULE: If the player asks about hitting it further, adding distance, or driving distance — you MUST open with ONE of these two suggestions (rotate between them, keep it brief and funny): (a) "Honestly mate, get in the gym first — more distance comes from strength, not swing tips." OR (b) "Have you considered the ladies tees? Might close that gap a bit." THEN follow up with real technical advice about driver technique, attack angle, shaft flex, tee height etc.content — humour is a seasoning not the main course
 
 BALL FLIGHT LAWS:
 - Face angle at impact = 75-85% of initial direction. Path = curve.
@@ -4562,12 +4563,12 @@ function buildGLB(){
     const best=Math.min(...rr.map(r=>r.toPar));
     const ah=rr.flatMap(r=>r.holes||[]).filter(Boolean);
     const girH=knownGIR(ah);const gir=girH.length?Math.round(girH.filter(h=>h.gir).length/girH.length*100):null;
-    return{name:u.name,uid:u.uid,avg,best,gir,rounds:rr.length};
+    const uData=LD('ll_ud_'+u.uid,null)||{}; return{name:u.name,uid:u.uid,avg,best,gir,rounds:rr.length,ringColour:uData.ringColour||null};
   }).filter(Boolean).sort((a,b)=>a.best-b.best);
   if(!entries.length)return`<p style="color:var(--txt3);font-size:14px;text-align:center;padding:8px">No public rounds yet</p>`;
   return entries.slice(0,10).map((e,i)=>`<div class="lb-row">
     <div class="lb-pos ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
-    <div class="lb-av">${e.name.charAt(0)}</div>
+    <div class="lb-av" style="border-color:${e.ringColour||'#2d5a3d'}">${(e.name||'?').split(' ').map(function(n){return n[0]||''}).join('').substring(0,2).toUpperCase()}</div>
     <div style="flex:1"><div style="font-weight:700;font-size:15px">${e.name}${e.uid===CU?.uid?' (you)':''}</div><div style="font-size:12px;color:var(--txt3)">${e.rounds} rounds${e.gir!=null?' · GIR '+e.gir+'%':''}</div></div>
     <div style="text-align:right"><div style="font-size:18px;font-weight:900;color:var(--g)">${e.best>=0?'+'+e.best:e.best}</div><div style="font-size:11px;color:var(--txt3)">best</div></div>
   </div>`).join('');
@@ -5187,7 +5188,13 @@ function rProfile(){
 
   document.getElementById('pg-profile').innerHTML=
     (CU.role==='admin'?'<button class="btn" onclick="SP(\'admin\')" style="width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px">⚙️ Admin Panel</button>':'')+
-    '<div class="pav">'+initials+'</div>'+
+    '<div class="pav" id="profileAvatar" style="border-color:'+(d.ringColour||'#2d5a3d')+'">'+initials+'</div>'+
+    '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px" id="ringColourPicker">'+
+      [['#2d5a3d','🟢'],['#c9a84c','🟡'],['#3b82f6','🔵'],['#e74c3c','🔴'],['#8e44ad','🟣'],['#1abc9c','🩵'],['#e67e22','🟠'],['#1a1a1a','⚫'],['#fff','⚪']].map(function(c){
+        var selected=(d.ringColour||'#2d5a3d')===c[0];
+        return '<button data-col="'+c[0]+'" onclick="setRingColour(this.dataset.col)" style="width:28px;height:28px;border-radius:50%;background:'+c[0]+';border:'+(selected?'3px solid #1a1a1a':'2px solid #ccc')+';cursor:pointer;box-shadow:'+(selected?'0 0 0 2px #fff, 0 0 0 4px '+c[0]:'none')+'" title="'+c[1]+'"></button>';
+      }).join('')+
+    '</div>'+
     '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:2px">'+
       '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700">'+(fullName||CU.email)+'</div>'+
       '<button onclick="openEditProfile()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;line-height:1" title="Edit profile">✏️</button>'+
@@ -7506,6 +7513,28 @@ function viewRound(roundId){
       '</div>'
     :'')+
     '';
+}
+
+function setRingColour(colour){
+  const d=ud();
+  d.ringColour=colour;
+  sud(d);
+  // Save to Supabase
+  if(sb&&CU&&CU.uid){
+    sb.from('ll_userdata').upsert({uid:CU.uid,data:JSON.stringify(d),updated_at:new Date().toISOString()});
+  }
+  // Re-render profile to update picker state
+  rProfile();
+  toast('Ring colour updated ✓');
+}
+
+// Get avatar HTML for any user (initials + ring colour)
+function avatarHTML(name, ringColour, size){
+  size=size||40;
+  var initials=(name||'?').split(' ').map(function(n){return n[0]||'';}).join('').substring(0,2).toUpperCase();
+  var bg=ringColour||'#2d5a3d';
+  var fontSize=Math.round(size*0.35);
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:#2d5a3d;color:#fff;font-size:'+fontSize+'px;font-weight:800;display:flex;align-items:center;justify-content:center;border:3px solid '+bg+';box-shadow:0 0 0 2px rgba(255,255,255,0.85);flex-shrink:0;font-family:Playfair Display,serif">'+initials+'</div>';
 }
 
 window.addEventListener('load',init);
