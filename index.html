@@ -265,7 +265,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .lg-card:active{background:var(–bg3)}
 
 /* REPORT BTN */
-.rpt-btn{position:fixed;top:calc(env(safe-area-inset-top,44px) + 56px) !important;bottom:calc(var(–safe-b) + 88px);right:15px;width:44px;height:44px;border-radius:50%;background:var(–red);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.4);z-index:50;display:none;align-items:center;justify-content:center}
+.rpt-btn{position:fixed;bottom:calc(var(–safe-b) + 88px);right:15px;width:44px;height:44px;border-radius:50%;background:var(–red);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.4);z-index:50;display:none;align-items:center;justify-content:center}
 
 /* TOAST */
 .toast{position:fixed;bottom:calc(var(–safe-b) + 98px);left:50%;transform:translateX(-50%);background:rgba(26,61,41,0.95);color:#fff;padding:11px 18px;border-radius:11px;font-size:14px;font-weight:600;z-index:500;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;backdrop-filter:blur(8px)}
@@ -343,7 +343,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
     <input type="checkbox" id="li-remember" style="width:16px;height:16px;cursor:pointer" checked>
     <label for="li-remember" style="font-size:13px;color:var(--txt3);cursor:pointer">Remember me on this device</label>
   </div>
-  <button class="ba" id="li-btn" onclick="doLogin()">Sign in</button>
+  <button class="ba" id="li-btn" onclick="doLogin()" style="background:#2d5a3d;color:#fff;border:none">Sign in</button>
   <div class="aerr" id="li-err"></div>
 </div>
 
@@ -1552,10 +1552,10 @@ function rHome(){
   <div style="font-size:11px;color:var(--txt3)">📍 Loading weather...</div>
 </div>
 <button onclick="startWF()" style="display:block;width:100%;font-size:19px;padding:18px;font-family:'Playfair Display',serif;margin-bottom:8px;background:#2d5a3d;color:#fff;border:none;border-radius:14px;box-shadow:0 4px 16px rgba(45,90,61,0.3);cursor:pointer;font-weight:700">⛳ Start a round</button>
-<button onclick="startWF(true)" style="width:100%;padding:10px;background:none;border:1.5px solid #999;border-radius:10px;color:#666;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px">🧪 Test mode</button>
+<div style="text-align:center;margin-bottom:8px"><button onclick="startWF(true)" style="background:none;border:none;color:#999;font-size:12px;cursor:pointer;font-family:inherit;padding:4px 8px;text-decoration:underline">Test mode</button></div>
 
 <div class="sec" style="margin-top:16px">Your numbers <span style="font-size:10px;color:var(--txt3);font-weight:500">(all adjusted to 18 holes)</span></div>
-<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:4px 0;margin-bottom:12px">
+<div style="background:var(--bg2);border:1.5px solid #e0e0e0;border-radius:14px;padding:8px 4px;margin-bottom:12px">
 <div class="sg">
   <div class="sc"><div class="sv">${avg18||'—'}</div><div class="sl">Avg score</div></div>
   <div class="sc"><div class="sv">${best18!=null?(best18>=0?'+'+best18:best18):'—'}</div><div class="sl">Best to par</div></div>
@@ -1576,8 +1576,8 @@ ${ip.map(r=>`<div style="background:var(--gl);border:2px solid var(--g3);border-
     <div style="text-align:right"><div style="font-size:13px;color:var(--txt3)">${r.type==='9f'?'Front 9':r.type==='9b'?'Back 9':r.type==='12f'?'Front 12':'18 holes'}</div></div>
   </div>
   <div style="display:flex;gap:8px">
-    <button class="btn bg" onclick="resumeRound('${r.id}')" style="margin:0;padding:12px;font-size:14px;flex:2">▶ Resume round</button>
-    <button class="btn bo" onclick="deleteInProgress('${r.id}')" style="margin:0;padding:12px;font-size:13px;color:var(--red);border-color:var(--red);flex:1">✕ Discard</button>
+    <button onclick="resumeRound('${r.id}')" style="flex:2;padding:13px;background:#2d5a3d;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">▶ Resume round</button>
+    <button onclick="deleteInProgress('${r.id}')" style="flex:1;padding:13px;background:none;color:#e74c3c;border:2px solid #e74c3c;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">✕ Discard</button>
   </div>
 </div>`).join('')}`:'';})()}
 
@@ -4332,7 +4332,7 @@ ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
     </tr></thead>
     <tbody id="stockYdBody"></tbody>
   </table>
-  <button id="stockYdSaveBtn" onclick="saveAllStockYardages()" style="display:none;width:100%;margin-top:12px;padding:12px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Save distances ✓</button>
+  <div style="font-size:11px;color:var(--txt3);text-align:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0">To edit distances, go to Profile → Stock Distances</div>
 </div>`;
   setTimeout(function(){buildPuttingStatsUI();buildStockYdTable();},80);
 }
@@ -4438,12 +4438,10 @@ function buildStockYdTable(){
       '<tr style="border-top:1px solid var(--bdr)">'+
         '<td style="padding:8px 6px;font-weight:900;font-size:15px;color:var(--txt)">'+club+'</td>'+
         '<td style="padding:4px 4px;text-align:center">'+
-          '<input type="text" inputmode="decimal" value="'+m+'" placeholder="—" '+
-            'id="syd-'+club+'" data-club="'+club+'" '+
-            'style="width:62px;padding:8px 4px;border:2px solid var(--g);border-radius:8px;font-size:16px;font-weight:800;text-align:center;font-family:inherit;background:var(--bg);color:var(--txt)" '+
-            'onfocus="this.select()" '+
-            'onchange="stockYdChanged(this)" '+
-            'onkeyup="stockYdChanged(this)">'+
+          '<div style="font-size:16px;font-weight:800;color:'+(m?'#2d5a3d':'#bbb')+'">'+
+            (m?m+'m':'—')+
+          '</div>'+
+          '<div style="font-size:9px;color:#999;margin-top:1px">from profile</div>'+
         '</td>'+
         '<td style="padding:8px 4px;text-align:center;color:'+(estVal?'var(--g)':'var(--txt3)')+';font-weight:700">'+
           (estVal?estVal+'m<span style="font-size:9px;font-weight:400;opacity:0.6"> '+ml+'</span>':'—')+
@@ -5237,7 +5235,20 @@ function rProfile(){
       '</div>'+
       '<button onclick="updateApp()" style="padding:6px 14px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Update ↻</button>'+
     '</div>'+
-    '<button class="btn bo" onclick="logout()" style="margin-top:4px">Sign out</button>';
+    // ── STOCK YARDAGES IN PROFILE ──
+    '<div class="sec" style="margin-top:16px">Stock Distances (metres)</div>'+
+    '<div style="background:var(--bg2);border:1.5px solid #e0e0e0;border-radius:14px;padding:14px;margin-bottom:10px">'+
+      '<p style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your carry distances in metres. These are used in Plays Like calculations.</p>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:14px">'+
+        '<thead><tr>'+
+          '<th style="text-align:left;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Club</th>'+
+          '<th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">My Distance</th>'+
+        '</tr></thead>'+
+        '<tbody id="profileStockYdBody"></tbody>'+
+      '</table>'+
+      '<button id="profileStockSaveBtn" onclick="saveProfileStockYardages()" style="display:none;width:100%;margin-top:12px;padding:12px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Save distances ✓</button>'+
+    '</div>'+
+    '<button class="btn bo" onclick="logout()" style="margin-top:4px;border:2px solid #999;color:#333">Sign out</button>';
 }
 
 function openEditProfile(){
@@ -7341,6 +7352,66 @@ function hbhSaveHole(){
     window._hd=null;
     WF.step='play';
     renderWF();
+  }
+}
+
+
+// ── PROFILE STOCK YARDAGES ──
+function buildProfileStockYdTable(){
+  const tbody=document.getElementById('profileStockYdBody');
+  if(!tbody)return;
+  const d=ud();
+  const manual=d.stockYardages||{};
+  const bag=d.bag&&d.bag.length?d.bag:myBag();
+  // Show all clubs in bag, plus any manually entered clubs
+  const clubs=Array.from(new Set([...bag,...Object.keys(manual)])).filter(function(c){return ALL_CLUBS.includes(c)||manual[c];});
+  if(!clubs.length){tbody.innerHTML='<tr><td colspan="2" style="padding:10px;text-align:center;color:var(--txt3);font-size:13px">Add clubs to your bag above to enter distances</td></tr>';return;}
+  tbody.innerHTML=clubs.map(function(club){
+    var val=manual[club]!=null?manual[club]:'';
+    return '<tr style="border-top:1px solid #f0f0f0">'+
+      '<td style="padding:8px 6px;font-weight:800;font-size:15px;color:var(--txt)">'+club+'</td>'+
+      '<td style="padding:5px 4px;text-align:center">'+
+        '<input type="text" inputmode="decimal" value="'+val+'" placeholder="—" '+
+          'id="psyd-'+club+'" data-club="'+club+'" '+
+          'style="width:68px;padding:8px 4px;border:2px solid var(--g);border-radius:8px;font-size:16px;font-weight:800;text-align:center;font-family:inherit;background:#fff;color:#000" '+
+          'onfocus="this.select()" '+
+          'onkeyup="profileStockChanged()" '+
+          'onchange="profileStockChanged()">'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function profileStockChanged(){
+  const btn=document.getElementById('profileStockSaveBtn');
+  if(btn)btn.style.display='block';
+}
+
+async function saveProfileStockYardages(){
+  const inputs=document.querySelectorAll('#profileStockYdBody input[data-club]');
+  if(!inputs.length)return;
+  const d=ud();
+  if(!d.stockYardages)d.stockYardages={};
+  inputs.forEach(function(inp){
+    const v=inp.value.trim();
+    const club=inp.dataset.club;
+    if(v&&!isNaN(parseInt(v))){d.stockYardages[club]=parseInt(v);}
+    else if(!v){d.stockYardages[club]=null;}
+  });
+  sud(d);
+  const btn=document.getElementById('profileStockSaveBtn');
+  if(sb&&CU&&CU.uid){
+    try{
+      await sb.from('ll_userdata').upsert({uid:CU.uid,data:JSON.stringify(d),updated_at:new Date().toISOString()});
+      if(btn){btn.textContent='Saved ✓ ☁️';btn.style.background='#1a5c2a';setTimeout(function(){btn.style.display='none';btn.textContent='Save distances ✓';btn.style.background='var(--g)';},2500);}
+      toast('Distances saved ✓');
+    }catch(e){
+      if(btn)btn.style.display='none';
+      toast('Saved locally');
+    }
+  } else {
+    if(btn){btn.textContent='Saved ✓';setTimeout(function(){btn.style.display='none';btn.textContent='Save distances ✓';},2000);}
+    toast('Distances saved ✓');
   }
 }
 
