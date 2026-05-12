@@ -1103,6 +1103,7 @@ function launch(){
     d.rounds=(d.rounds||[]).filter(r=>!(r.courseId==='otago'&&!r.seedRound));
     if(d.rounds.length!==before){SUD('alfie',d);console.log('Removed Otago test round');}
   }
+  cleanupTestShots();
   SP('home');
 }
 
