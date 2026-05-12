@@ -51,13 +51,13 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 /* APP */
 #app{position:fixed;inset:0;display:flex;flex-direction:column;background:var(–bg)}
 #app.gone{display:none}
-.app-hdr{background:#2d5a3d;color:#fff;padding:calc(env(safe-area-inset-top,44px) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.app-hdr{background:#2d5a3d;color:#fff;padding-top:calc(env(safe-area-inset-top,44px) + 10px);padding-bottom:10px;padding-left:16px;padding-right:16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;min-height:calc(env(safe-area-inset-top,44px) + 52px)}
 .app-hdr h1{font-size:19px;color:#fff;letter-spacing:-0.3px}
 .hdr-acts{display:flex;gap:9px}
 .hbtn{background:rgba(255,255,255,0.15);border:none;color:#fff;width:35px;height:35px;border-radius:10px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .hbtn:active{background:rgba(255,255,255,0.28)}
 .pages{flex:1;overflow:hidden;position:relative}
-.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(–bg);padding:14px 16px calc(var(–safe-b) + 78px)}
+.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(–bg);padding:16px 16px calc(var(–safe-b) + 78px)}
 .page.gone{display:none}
 .bnav{display:flex;background:#fff;border-top:1px solid var(–bdr);padding:7px 0 calc(var(–safe-b) + 3px);flex-shrink:0;box-shadow:0 -2px 12px rgba(0,0,0,0.06)}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:3px 0;border:none;background:none;color:var(–txt3);font-size:10px;font-weight:700;font-family:inherit;text-transform:uppercase;letter-spacing:0.04em;transition:color 0.2s}
@@ -67,12 +67,12 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 /* CARDS */
 .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1.5px solid #e0e0e0}
 .cardsm{background:#fff;border-radius:10px;padding:11px;margin-bottom:9px;border:1px solid var(–bdr)}
-.sec{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#555;font-weight:700;margin:15px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sec{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#444;font-weight:800;margin:15px 0 8px;display:flex;justify-content:space-between;align-items:center}
 
 /* BUTTONS */
 .btn{width:100%;padding:15px;border:2px solid transparent;border-radius:12px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;transition:all 0.15s}
 .btn:active{transform:scale(0.98)}
-.bg{background:var(–g);color:#fff}.bg:active{background:var(–gd)}
+.bg{background:#2d5a3d;color:#fff;border:3px solid #1a3d29 !important}.bg:active{background:#1a3d29}
 .bgold{background:var(–gold);color:#fff}
 .bo{background:#fff;border:2px solid #888 !important;color:#333 !important}.bo:active{background:var(–bg3)}
 .bred{background:var(–red);color:#fff}
@@ -265,7 +265,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .lg-card:active{background:var(–bg3)}
 
 /* REPORT BTN */
-.rpt-btn{position:fixed;bottom:calc(var(–safe-b) + 88px);right:15px;width:44px;height:44px;border-radius:50%;background:var(–red);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.4);z-index:50;display:none;align-items:center;justify-content:center}
+.rpt-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);right:16px;width:44px;height:44px;border-radius:50%;background:var(–red);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.4);z-index:500;display:none;align-items:center;justify-content:center}
 
 /* TOAST */
 .toast{position:fixed;bottom:calc(var(–safe-b) + 98px);left:50%;transform:translateX(-50%);background:rgba(26,61,41,0.95);color:#fff;padding:11px 18px;border-radius:11px;font-size:14px;font-weight:600;z-index:500;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;backdrop-filter:blur(8px)}
@@ -278,7 +278,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .gps-card{background:var(–g);border-radius:13px;padding:13px 15px;margin-bottom:11px;color:#fff}
 
 /* RR */
-.rr{padding:11px 0;border-bottom:1px solid var(–bdr);display:flex;align-items:center;justify-content:space-between}
+.rr{padding:12px 14px;margin-bottom:8px;background:#fff;border-radius:12px;border:1.5px solid #e0e0e0;box-shadow:0 1px 4px rgba(0,0,0,0.07);cursor:pointer}
 .rr:last-child{border-bottom:none}
 
 /* ACH */
@@ -1714,7 +1714,7 @@ function stepCourse(pg){
   <option value="9b">Back 9</option>
   <option value="custom">Play & stop when done</option>
 </select></div>
-<button class="btn bg" onclick="goMode()">Continue →</button>
+<button onclick="goMode()" style="display:block;width:100%;padding:16px;background:#2d5a3d;color:#fff;border:3px solid #1a3d29;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">Continue →</button>
 <button class="btn bo" onclick="openM('m-addcourse')">+ Add a course</button>
 <button class="btn bo" onclick="SP('home')">← Back</button>`;
 }
@@ -1740,7 +1740,9 @@ function stepMode(pg){
 function selMode(m){
   if(m==='scan'){WF.mode='scan';WF.step='scan';renderWF();return;}
   if(m==='yardage'){WF.mode='yardage';WF.step='yardage_hole';renderWF();return;}
-  WF.mode=m;WF.step='bag';renderWF();
+  WF.mode=m;
+  // Use clubs from profile bag directly - no in-game bag selection
+  beginRound();
 }
 
 // STEP: Bag
@@ -1760,7 +1762,7 @@ function stepBag(pg){
   <div style="font-size:12px;color:var(--txt3);margin-top:4px">Don't share with leaderboard</div>
 </div>
 
-<button class="btn bg" onclick="beginRound()">Play now ⛳</button>
+<button onclick="beginRound()" style="display:block;width:100%;padding:18px;background:#2d5a3d;color:#fff;border:3px solid #1a3d29;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:8px">Play now ⛳</button>
 <button class="btn bo" onclick="WF.step='mode';renderWF()">← Back</button>`;
 }
 
@@ -4285,9 +4287,10 @@ ${rr.map(r=>{
   const adj=Math.round(to18(r.toPar,r.totalHoles||9));
   const breakdown=r.breakdown;
   return`<div class="rr" onclick="viewRound('${r.id}')" style="cursor:pointer">
-  <div>
-    <div style="font-weight:700;font-size:15px">${r.courseName}</div>
-    <div style="font-size:12px;color:var(--txt3)">${r.date} · ${r.totalHoles}H${r.duration?' · ⏱ '+fmtT(r.duration):''}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-weight:800;font-size:16px;color:#1a1a1a">${r.courseName}</div>
+      <div style="font-size:12px;color:#888;margin-top:2px">${r.date} · ${r.totalHoles}H${r.avgGwdr!=null?' · 🌤 '+r.avgGwdr:''}</div>
     ${breakdown?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">🐦${breakdown.birdies} P${breakdown.pars} B${breakdown.bogeys} D${breakdown.doubles}</div>`:''}
   </div>
   <div style="text-align:right">
@@ -5203,7 +5206,7 @@ function rProfile(){
           '<option value="">Select your home course...</option>'+courseOpts+
         '</select>'+
       '</div>'+
-      '<button class="btn bg" onclick="saveHomeCourse()" style="padding:10px">Save home course</button>'+
+      '<button onclick="saveHomeCourse()" style="display:block;width:100%;padding:12px;background:#2d5a3d;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px">Save home course ✓</button>'+
     '</div>'+
     '<div class="sec">Settings</div>'+
     '<div class="card" style="padding:10px 13px;margin-bottom:8px">'+
