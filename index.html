@@ -6818,7 +6818,6 @@ async function updatePlaysLike(){
 async function fetchHomeWeather(){
   const card=document.getElementById('homeWxCard');
   if(!card)return;
-  // Use home course lat/lng if set, else try geolocation
   const d=ud();
   const homeCourseId=CU&&CU.homeCourse||d.homeCourse;
   const homeCourse=homeCourseId&&CDB[homeCourseId];
@@ -6826,7 +6825,6 @@ async function fetchHomeWeather(){
   if(homeCourse){
     lat=homeCourse.lat;lng=homeCourse.lng;locName=homeCourse.name;
   } else {
-    // Try geolocation
     try{
       const pos=await new Promise(function(res,rej){
         navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000});
@@ -6842,14 +6840,36 @@ async function fetchHomeWeather(){
     if(!wx){card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';return;}
     const wdesc=wxDesc(wx.code);
     const windDir=windDirLabel(wx.dir);
+    const gwdr=calcGWDR(wx,4);
+    const gl=gwdrLabel(gwdr);
     card.innerHTML=
-      '<div style="font-size:11px;font-weight:700;color:var(--txt3);margin-bottom:6px">'+locName+' · Now</div>'+
-      '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'+
-        '<div><div style="font-size:22px;font-weight:900">'+wx.temp+'°C</div><div style="font-size:12px;color:var(--txt3)">'+wdesc+'</div></div>'+
-        '<div style="width:1px;height:32px;background:var(--bdr)"></div>'+
-        '<div><div style="font-size:18px;font-weight:800">'+wx.speed+'<span style="font-size:11px;font-weight:400"> km/h</span></div><div style="font-size:12px;color:var(--txt3)">From '+windDir+'</div></div>'+
-        (wx.speed>20?'<div style="font-size:11px;font-weight:700;color:#e74c3c;padding:3px 8px;background:rgba(231,76,60,0.1);border-radius:6px">Windy</div>':
-         wx.speed>10?'<div style="font-size:11px;font-weight:700;color:#c9a84c;padding:3px 8px;background:rgba(201,168,76,0.1);border-radius:6px">Breezy</div>':'') +
+      '<div style="font-size:11px;font-weight:700;color:var(--txt3);margin-bottom:8px">'+locName+' &middot; Now</div>'+
+      '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">'+
+        '<div>'+
+          '<div style="font-size:22px;font-weight:900;line-height:1">'+wx.temp+'&deg;C</div>'+
+          '<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+wdesc+'</div>'+
+        '</div>'+
+        '<div style="width:1px;height:32px;background:var(--bdr);flex-shrink:0"></div>'+
+        '<div>'+
+          '<div style="font-size:18px;font-weight:800;line-height:1">'+wx.speed+'<span style="font-size:11px;font-weight:400"> km/h</span></div>'+
+          '<div style="font-size:11px;color:var(--txt3);margin-top:2px">From '+windDir+(wx.gust&&wx.gust>wx.speed?' &middot; Gusts '+wx.gust:'')+'</div>'+
+        '</div>'+
+        '<div style="width:1px;height:32px;background:var(--bdr);flex-shrink:0"></div>'+
+        '<div>'+
+          '<div style="font-size:22px;font-weight:900;line-height:1;color:'+gl.col+'">'+gwdr+'</div>'+
+          '<div style="font-size:11px;font-weight:700;color:'+gl.col+';margin-top:2px">'+gl.label+'</div>'+
+        '</div>'+
+        (wx.humidity?
+          '<div style="width:1px;height:32px;background:var(--bdr);flex-shrink:0"></div>'+
+          '<div>'+
+            '<div style="font-size:18px;font-weight:800;line-height:1">'+wx.humidity+'<span style="font-size:11px;font-weight:400">%</span></div>'+
+            '<div style="font-size:11px;color:var(--txt3);margin-top:2px">Humidity</div>'+
+          '</div>'
+        :'')+
+      '</div>'+
+      '<div style="margin-top:10px;padding:6px 10px;background:'+gl.col+'20;border-radius:8px;border-left:3px solid '+gl.col+'">'+
+        '<div style="font-size:11px;font-weight:700;color:'+gl.col+'">GWDR '+gwdr+'/100 &mdash; '+gl.label+'</div>'+
+        '<div style="font-size:10px;color:var(--txt3);margin-top:1px">Golf Weather Difficulty Rating</div>'+
       '</div>';
   }catch(e){
     card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';
