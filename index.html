@@ -1583,7 +1583,7 @@ ${ip.map(r=>`<div style="background:var(--gl);border:2px solid var(--g3);border-
 </div>`).join('')}`:'';})()}
 
 <div class="sec"><span>Recent rounds</span><button class="bsm" onclick="SP('stats')">See all</button></div>
-${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;padding:20px">No rounds yet — go play!</p>':
+${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;padding:20px">No rounds yet — go play!</p>':`<div style="background:#fff;border-radius:12px;border:1.5px solid #e0e0e0;overflow:hidden;margin-bottom:4px">`+
   rr.slice(0,3).map(r=>{
     const adj=Math.round(to18(r.toPar,r.totalHoles||9));
     return`<div class="rr" onclick="SP('stats');setTimeout(function(){viewRound('${r.id}');},50)" style="cursor:pointer">
@@ -1596,7 +1596,7 @@ ${!rr.length?'<p style="color:var(--txt3);font-size:14px;text-align:center;paddi
       <div style="font-size:22px;font-weight:900">${r.total}</div>
       <div style="font-size:12px;color:var(--txt3)">${adj>=0?'+'+adj:adj} to par (18H adj)</div>
     </div>
-  </div>`;}).join('')}
+  </div>`;}).join('')+'</div>'}
 ${CU.role==='admin'?`<div class="sec"></div><button class="btn bo" onclick="SP('admin')" style="border-color:var(--gold);color:var(--gold3)">⚙ Admin panel</button>`:''}`;
 
   setTimeout(fetchHomeWeather, 300);
@@ -4284,13 +4284,13 @@ ${progRounds.length>=3?`<div class="sec">Career progression</div>
 <div class="score-bar">${[['#7c3aed',sb.eagle],['#5DCAA5',sb.birdie],['#bbb',sb.par],['#fbbf24',sb.bogey],['#fca5a5',sb.double],['#dc2626',sb.worse]].filter(x=>x[1]>0).map(([c,n])=>`<div style="flex:${n};background:${c}"></div>`).join('')}</div>
 
 <div class="sec">Round history</div>
+<div style="background:#fff;border-radius:12px;border:1.5px solid #e0e0e0;overflow:hidden;margin-bottom:12px">
 ${rr.map(r=>{
   const adj=Math.round(to18(r.toPar,r.totalHoles||9));
   const breakdown=r.breakdown;
-  return`<div class="rr" onclick="viewRound('${r.id}')" style="cursor:pointer">
-  <div style="display:flex;justify-content:space-between;align-items:center">
+  return`<div class="rr" onclick="viewRound('${r.id}')">
     <div>
-      <div style="font-weight:800;font-size:16px;color:#1a1a1a">${r.courseName}</div>
+      <div style="font-weight:800;font-size:15px;color:#1a1a1a">${r.courseName}</div>
       <div style="font-size:12px;color:#888;margin-top:2px">${r.date} · ${r.totalHoles}H${r.avgGwdr!=null?' · 🌤 '+r.avgGwdr:''}</div>
     ${breakdown?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">🐦${breakdown.birdies} P${breakdown.pars} B${breakdown.bogeys} D${breakdown.doubles}</div>`:''}
   </div>
@@ -4298,7 +4298,7 @@ ${rr.map(r=>{
     <div style="font-size:20px;font-weight:900">${r.total} <span style="font-size:13px;color:var(--txt3)">(${r.totalHoles}H)</span></div>
     <div style="font-size:12px;color:var(--txt3)">${adj>=0?'+'+adj:adj} to par (18H)</div>
   </div>
-</div>`;}).join('')}
+</div>`;}).join('')+'</div>'}
 
 ${drives.length?`<div class="sec">Driving (shot-tracked rounds)</div>
 <div class="sg3">
@@ -4329,16 +4329,16 @@ ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
 <div class="sec" style="margin-top:14px">Stock Distances (metres)</div>
 <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
   <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your stock distances · ★ = centre contact · ~ = median estimate</div>
-  <table style="width:100%;border-collapse:collapse;font-size:13px">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
     <thead><tr>
-      <th style="text-align:left;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Club</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">My Stock</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">App Est.</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--txt3);font-weight:700;font-size:11px">Best</th>
+      <th style="text-align:left;padding:6px 8px;color:#555;font-weight:700;font-size:11px;width:20%">Club</th>
+      <th style="text-align:center;padding:6px 4px;color:#555;font-weight:700;font-size:11px;width:27%">My Stock</th>
+      <th style="text-align:center;padding:6px 4px;color:#555;font-weight:700;font-size:11px;width:27%">App Est.</th>
+      <th style="text-align:center;padding:6px 4px;color:#555;font-weight:700;font-size:11px;width:26%">Best</th>
     </tr></thead>
     <tbody id="stockYdBody"></tbody>
   </table>
-  <div style="font-size:11px;color:var(--txt3);text-align:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0">To edit distances, go to Profile → Stock Distances</div>
+  <div style="font-size:11px;color:#888;text-align:center;margin-top:10px;padding-top:8px;border-top:1px solid #eee">Edit in Profile → Stock Distances</div>
 </div>`;
   setTimeout(function(){buildPuttingStatsUI();buildStockYdTable();},80);
 }
@@ -5189,12 +5189,19 @@ function rProfile(){
   document.getElementById('pg-profile').innerHTML=
     (CU.role==='admin'?'<button class="btn" onclick="SP(\'admin\')" style="width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px">⚙️ Admin Panel</button>':'')+
     '<div class="pav" id="profileAvatar" style="border-color:'+(d.ringColour||'#2d5a3d')+'">'+initials+'</div>'+
-    '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px" id="ringColourPicker">'+
-      [['#2d5a3d','🟢'],['#c9a84c','🟡'],['#3b82f6','🔵'],['#e74c3c','🔴'],['#8e44ad','🟣'],['#1abc9c','🩵'],['#e67e22','🟠'],['#1a1a1a','⚫'],['#fff','⚪']].map(function(c){
-        var selected=(d.ringColour||'#2d5a3d')===c[0];
-        return '<button data-col="'+c[0]+'" onclick="setRingColour(this.dataset.col)" style="width:28px;height:28px;border-radius:50%;background:'+c[0]+';border:'+(selected?'3px solid #1a1a1a':'2px solid #ccc')+';cursor:pointer;box-shadow:'+(selected?'0 0 0 2px #fff, 0 0 0 4px '+c[0]:'none')+'" title="'+c[1]+'"></button>';
-      }).join('')+
-    '</div>'+
+    '<div style="text-align:center;margin-bottom:10px">'+
+      (d._showRingPicker?
+        '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:8px" id="ringColourPicker">'+
+          [["#2d5a3d","🟢"],["#c9a84c","🟡"],["#3b82f6","🔵"],["#e74c3c","🔴"],["#8e44ad","🟣"],["#1abc9c","🩵"],["#e67e22","🟠"],["#1a1a1a","⚫"],["#ffffff","⚪"]].map(function(c){
+            var selected=(d.ringColour||"#2d5a3d")===c[0];
+            return "<button data-col=\""+c[0]+"\" onclick=\"setRingColour(this.dataset.col)\" style=\"width:32px;height:32px;border-radius:50%;background:"+c[0]+";border:"+(selected?"3px solid #333":"2px solid #ccc")+";cursor:pointer;box-shadow:"+(selected?"0 0 0 2px #fff,0 0 0 4px "+c[0]:"none")+"\" ></button>";
+          }).join("")+
+        "</div>"+
+        "<button onclick=\"hidRingPicker()\" style=\"font-size:12px;padding:4px 12px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-family:inherit\">Done</button>"
+      :
+        "<button onclick=\"showRingPicker()\" style=\"font-size:12px;padding:4px 12px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-family:inherit\">✏️ Change ring colour</button>"
+      )+
+    "</div>"+
     '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:2px">'+
       '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700">'+(fullName||CU.email)+'</div>'+
       '<button onclick="openEditProfile()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;line-height:1" title="Edit profile">✏️</button>'+
@@ -7515,6 +7522,12 @@ function viewRound(roundId){
     '';
 }
 
+function showRingPicker(){
+  const d=ud(); d._showRingPicker=true; sud(d); rProfile();
+}
+function hidRingPicker(){
+  const d=ud(); d._showRingPicker=false; sud(d); rProfile();
+}
 function setRingColour(colour){
   const d=ud();
   d.ringColour=colour;
