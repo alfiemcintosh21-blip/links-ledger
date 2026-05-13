@@ -4468,82 +4468,95 @@ ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
     if(typeof L==='undefined')return;
     if(window._statsMap){try{window._statsMap.remove();}catch(e){} window._statsMap=null;}
 
-    // Build ordered list of courses by first played date
-    const played=[...new Set(rr.slice().sort(function(a,b){return (a.started||0)-(b.started||0);}).map(function(r){return r.courseId;}))].filter(Boolean);
+    const played=[...new Set(rr.map(function(r){return r.courseId;}))].filter(Boolean);
     const courseData=played.map(function(id){
-      var c=gc(id);
-      if(!c)return null;
+      var c=gc(id);if(!c)return null;
       var cnt=rr.filter(function(r){return r.courseId===id;}).length;
       return{id:id,name:c.name,lat:c.lat,lng:c.lng,count:cnt};
     }).filter(Boolean);
-
     if(!courseData.length)return;
 
-    const lats=courseData.map(function(c){return c.lat;});
-    const lngs=courseData.map(function(c){return c.lng;});
-    const center=[lats.reduce(function(a,b){return a+b;},0)/lats.length,
-                  lngs.reduce(function(a,b){return a+b;},0)/lngs.length];
+    // ── CONVEX HULL (Graham scan) ──
+    function convexHull(pts){
+      if(pts.length<3)return pts.slice();
+      // Find lowest lat point (bottom-most)
+      var start=pts.reduce(function(a,b){return b.lat<a.lat||(b.lat===a.lat&&b.lng<a.lng)?b:a;});
+      // Sort by polar angle from start
+      var sorted=pts.filter(function(p){return p!==start;}).sort(function(a,b){
+        var angA=Math.atan2(a.lat-start.lat,a.lng-start.lng);
+        var angB=Math.atan2(b.lat-start.lat,b.lng-start.lng);
+        if(angA!==angB)return angA-angB;
+        var dA=(a.lat-start.lat)*(a.lat-start.lat)+(a.lng-start.lng)*(a.lng-start.lng);
+        var dB=(b.lat-start.lat)*(b.lat-start.lat)+(b.lng-start.lng)*(b.lng-start.lng);
+        return dA-dB;
+      });
+      var hull=[start];
+      function cross(O,A,B){return(A.lng-O.lng)*(B.lat-O.lat)-(A.lat-O.lat)*(B.lng-O.lng);}
+      sorted.forEach(function(p){
+        while(hull.length>=2&&cross(hull[hull.length-2],hull[hull.length-1],p)<=0)hull.pop();
+        hull.push(p);
+      });
+      return hull;
+    }
+
+    const hull=convexHull(courseData);
+    const center=[
+      courseData.reduce(function(s,c){return s+c.lat;},0)/courseData.length,
+      courseData.reduce(function(s,c){return s+c.lng;},0)/courseData.length
+    ];
 
     try{
       window._statsMap=L.map('statsLeafletMap',{
-        center:center,zoom:11,
-        zoomControl:false,attributionControl:false,
+        center:center,zoom:11,zoomControl:false,attributionControl:false,
         scrollWheelZoom:false,dragging:true
       });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(window._statsMap);
 
-      // Draw lines between courses in order first played
-      if(courseData.length>1){
-        var lineCoords=courseData.map(function(c){return[c.lat,c.lng];});
-        L.polyline(lineCoords,{
-          color:'#2d5a3d',weight:2,
-          dashArray:'6,5',opacity:0.5
+      // ── TERRITORY POLYGON (3+ courses) ──
+      if(hull.length>=3){
+        var hullCoords=hull.map(function(p){return[p.lat,p.lng];});
+        // Filled territory
+        L.polygon(hullCoords,{
+          color:'#2d5a3d',weight:2.5,
+          fillColor:'#2d5a3d',fillOpacity:0.12,
+          dashArray:'8,5'
+        }).addTo(window._statsMap);
+      } else if(hull.length===2){
+        // Just a line for 2 courses
+        L.polyline([[hull[0].lat,hull[0].lng],[hull[1].lat,hull[1].lng]],{
+          color:'#2d5a3d',weight:2.5,dashArray:'8,5',opacity:0.7
         }).addTo(window._statsMap);
       }
 
-      // Draw markers with permanent labels
-      var cols=['#2d5a3d','#3b82f6','#e74c3c','#c9a84c','#8e44ad','#06b6d4','#e67e22','#1abc9c'];
-      courseData.forEach(function(c,i){
-        var col=cols[i%cols.length];
-        var radius=Math.min(18, 10+c.count*2); // bigger circle = more rounds
-
-        // Circle marker
+      // ── COURSE MARKERS + LABELS ──
+      courseData.forEach(function(c){
+        var onHull=hull.indexOf(c)!==-1;
+        var radius=Math.min(20,10+c.count*2);
+        // Dot
         L.circleMarker([c.lat,c.lng],{
           radius:radius,
-          fillColor:col,color:'#fff',weight:2.5,fillOpacity:0.92
+          fillColor:'#2d5a3d',color:'#fff',weight:2.5,fillOpacity:0.92
         }).bindPopup(
           '<div style="font-size:13px;font-weight:800;margin-bottom:2px">'+c.name+'</div>'+
           '<div style="font-size:12px;color:#666">'+c.count+' round'+(c.count!==1?'s':'')+' played</div>'
         ).addTo(window._statsMap);
-
-        // Permanent label below the dot
-        var shortName=c.name.replace(/Golf Club|Golf Course|GC|Links/gi,'').trim().replace(/\s+/g,' ');
-        if(shortName.length>18)shortName=shortName.substring(0,16)+'…';
+        // Label
+        var short=c.name.replace(/Golf Club|Golf Course|GC|Links/gi,'').trim();
+        if(short.length>16)short=short.substring(0,15)+'…';
         L.marker([c.lat,c.lng],{
           icon:L.divIcon({
             className:'',
-            html:'<div style="'+
-              'background:rgba(255,255,255,0.92);'+
-              'color:#1a1a1a;font-size:9px;font-weight:700;'+
-              'padding:2px 5px;border-radius:4px;'+
-              'white-space:nowrap;text-align:center;'+
-              'box-shadow:0 1px 3px rgba(0,0,0,0.2);'+
-              'margin-top:'+(radius+6)+'px;'+
-              'transform:translateX(-50%);'+
-              'position:absolute;left:50%'+
-            '">'+shortName+'<br><span style="color:'+col+';font-weight:800">×'+c.count+'</span></div>',
+            html:'<div style="background:rgba(255,255,255,0.93);color:#1a1a1a;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.25);margin-top:'+(radius+4)+'px;transform:translateX(-50%);position:absolute;left:50%">'+short+'<br><span style="color:#2d5a3d;font-weight:900">'+c.count+'×</span></div>',
             iconSize:[0,0],iconAnchor:[0,0]
           }),
           interactive:false
         }).addTo(window._statsMap);
       });
 
-      if(courseData.length>1){
-        window._statsMap.fitBounds(
-          L.latLngBounds(courseData.map(function(c){return[c.lat,c.lng];})),
-          {padding:[30,30]}
-        );
-      }
+      window._statsMap.fitBounds(
+        L.latLngBounds(courseData.map(function(c){return[c.lat,c.lng];})),
+        {padding:[40,40]}
+      );
     }catch(e){console.warn('Stats map error:',e);}
   },400);
 }
