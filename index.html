@@ -1434,7 +1434,7 @@ function wxHTML(holeIdx,holeYds){
   const plAdjR=Math.round(plAdj*10)/10;
   const adjStr=plAdjR>0?`+${plAdjR}m`:plAdjR<0?`${plAdjR}m`:'';
   const roundHours=AR&&AR.type==='9f'?2:4;
-  const gwdr=calcGWDR(wxData,roundHours);
+  const {gwdr=null,diff=null,vari=null,phys=null}=calcGWDR(wxData,roundHours)||{};
   const gwdrL=gwdrLabel(gwdr);
   return`<div class="wx" id="wxStrip">
     <svg width="52" height="52" viewBox="0 0 52 52" style="flex-shrink:0">
@@ -7366,7 +7366,7 @@ async function fetchHomeWeather(){
     if(!wx){card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';return;}
     const wdesc=wxDesc(wx.code);
     const windDir=windDirLabel(wx.dir);
-    const gwdr=calcGWDR(wx,4);
+    const {gwdr=null,diff=null,vari=null,phys=null}=calcGWDR(wx,4)||{};
 
     // Full condition name (no abbreviations)
     const conditionNames=[
@@ -7434,6 +7434,27 @@ async function fetchHomeWeather(){
         '</div>'+
         // Condition name
         '<div style="font-size:12px;font-weight:700;color:'+barCol+'">'+conditionName+'</div>'+
+        // Sub-scores
+        (diff!==null?
+          '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.07)">'+
+            [
+              {label:'Difficulty',val:diff,cols:['#2ecc71','#f1c40f','#e67e22','#e74c3c'],labels:['Ideal','Challenging','Difficult','Severe','Brutal']},
+              {label:'Variance',val:vari,cols:['#2ecc71','#f1c40f','#e67e22','#8e44ad'],labels:['Predictable','Slightly Volatile','Unstable','Highly Volatile','Chaos Golf']},
+              {label:'Physical Stress',val:phys,cols:['#2ecc71','#f1c40f','#e67e22','#e74c3c'],labels:['Comfortable','Mild Fatigue','Physically Demanding','Exhausting','Survival Conditions']}
+            ].map(function(s){
+              var col=s.val<26?s.cols[0]:s.val<51?s.cols[1]:s.val<76?s.cols[2]:s.cols[3];
+              var lbl=s.val<21?s.labels[0]:s.val<41?s.labels[1]:s.val<61?s.labels[2]:s.val<81?s.labels[3]:s.labels[4];
+              return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'+
+                '<div style="font-size:10px;font-weight:700;color:#555;width:80px;flex-shrink:0">'+s.label+'</div>'+
+                '<div style="flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden">'+
+                  '<div style="width:'+s.val+'%;height:100%;background:'+col+';border-radius:3px;transition:width 0.6s"></div>'+
+                '</div>'+
+                '<div style="font-size:10px;font-weight:800;color:'+col+';min-width:30px;text-align:right">'+s.val+'%</div>'+
+                '<div style="font-size:9px;color:#888;min-width:70px">'+lbl+'</div>'+
+              '</div>';
+            }).join('')+
+          '</div>'
+        :'')+
       '</div>';
   }catch(e){
     card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';
@@ -7442,10 +7463,10 @@ async function fetchHomeWeather(){
 
 
 // ── GOLF WEATHER DIFFICULTY RATING (GWDR) ──
-function calcGWDR(wx, roundHours){
+function calcGWDR(wx, roundHours, overnightLowC){
   if(!wx)return null;
   const windSpeedKmh = wx.speed||0;
-  const windGustKmh = wx.gust||windSpeedKmh*1.4; // estimate gust if unavailable
+  const windGustKmh = wx.gust||windSpeedKmh*1.4;
   const rainProbability = wx.rainProb||0;
   const rainIntensityMmHr = wx.rainMm||0;
   const temperatureC = wx.temp||15;
@@ -7454,37 +7475,59 @@ function calcGWDR(wx, roundHours){
   const fairwayWetness = wx.fairwayWet||Math.min(100,rainProbability*0.6);
   const greenSlowdown = wx.greenSlow||Math.min(100,rainProbability*0.5);
   const rh = roundHours||4;
+  const overnight = overnightLowC!=null ? overnightLowC : (wx.overnightLow!=null ? wx.overnightLow : temperatureC - 5);
 
-  // Step 1 — Wind
+  // Core components
   const W = Math.min(100, 1.35 * Math.pow(windSpeedKmh, 1.28));
-  // Step 2 — Rain intensity normalisation
   const rainIntensityScore = Math.min(100, rainIntensityMmHr * 14);
-  // Step 3 — Rain score
   const R = (0.55*rainProbability) + (0.45*rainIntensityScore);
-  // Step 4 — Temperature
   const T = Math.min(100, 3.2 * Math.abs(temperatureC - 21));
-  // Step 5 — Humidity
   const H = (Math.abs(humidityPercent - 50) / 50) * 100;
-  // Step 6 — Gust variability
   const G = Math.min(100, 3.5 * (windGustKmh - windSpeedKmh));
-  // Step 7 — Visibility
   const V = 100 - visibilityQuality;
-  // Step 8 — Playing surface
   const P = (0.45*fairwayWetness) + (0.55*greenSlowdown);
-  // Step 9 — Base score
-  const base = (W*0.38)+(R*0.17)+(T*0.10)+(H*0.05)+(G*0.12)+(V*0.08)+(P*0.10);
-  // Step 10 — Interaction multipliers
+
+  // Multipliers
   const M1 = 1 + ((W*R)/12000);
   const M2 = 1 + ((W*T)/18000);
-  // Step 11 — Extreme weather
   const M3 = (windSpeedKmh>35||rainIntensityMmHr>8||temperatureC<3||visibilityQuality<30)?1.12:1;
-  // Step 12 — Round fatigue
-  const F = 1 + (0.015*rh);
-  // Step 13 — Final
-  let gwdr = base * M1 * M2 * M3 * F;
-  // Step 14 — Clamp
+  const F  = 1 + (0.015*rh);
+
+  // Freeze model
+  const freezeSeverity = Math.min(100, Math.max(0, (3 - overnight) * 20));
+  const freezeMultiplier = 1 + (freezeSeverity / 250);
+
+  // Overall GWDR (existing formula + freeze)
+  const base = (W*0.38)+(R*0.17)+(T*0.10)+(H*0.05)+(G*0.12)+(V*0.08)+(P*0.10);
+  let gwdr = base * M1 * M2 * M3 * F * freezeMultiplier;
   gwdr = Math.max(0, Math.min(100, Math.round(gwdr)));
-  return gwdr;
+
+  // ── DIFFICULTY % ──
+  let diff = ((W*0.42)+(R*0.20)+(T*0.10)+(G*0.15)+(P*0.13)) * M1 * M2 * freezeMultiplier;
+  diff = Math.max(0, Math.min(100, Math.round(diff)));
+
+  // ── VARIANCE % ──
+  let vari = (G*0.35)+(freezeSeverity*0.30)+(W*0.20)+(R*0.10)+(V*0.05);
+  if(windGustKmh >= windSpeedKmh + 15) vari += 10;
+  if(freezeSeverity >= 40) vari += 10;
+  vari = Math.max(0, Math.min(100, Math.round(vari)));
+
+  // ── PHYSICAL STRESS % ──
+  const windChillFactor = Math.max(0, windSpeedKmh * 0.6);
+  const coldStress = Math.max(0, (12 - temperatureC) * 4);
+  const heatStress = Math.max(0, (temperatureC - 28) * 4);
+  const wetStress = R * 0.5;
+  let phys = coldStress + heatStress + wetStress + windChillFactor + (rh * 4);
+  if(freezeSeverity >= 40) phys += 8;
+  phys = Math.max(0, Math.min(100, Math.round(phys)));
+
+  return {gwdr, diff, vari, phys, freezeSeverity};
+}
+
+function gwdrNum(wx, roundHours){
+  // Backwards-compatible: returns just the number
+  const r = calcGWDR(wx, roundHours);
+  return r ? r.gwdr : null;
 }
 
 function gwdrLabel(score){
