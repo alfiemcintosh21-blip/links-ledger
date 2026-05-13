@@ -1104,6 +1104,40 @@ function launch(){
     if(d.rounds.length!==before){SUD('alfie',d);console.log('Removed Otago test round');}
   }
   cleanupTestShots();
+  // One-time fix: remove hole 10 from most recent round + fix par on any Chisholm hole 10
+  (function(){
+    const FIX_KEY='ll_chisholm_h10_fix_v1';
+    if(localStorage.getItem(FIX_KEY))return;
+    const d=ud();
+    if(!d||!d.rounds||!d.rounds.length){localStorage.setItem(FIX_KEY,'1');return;}
+    // Sort rounds by started desc - first is most recent
+    const sorted=d.rounds.slice().sort(function(a,b){return (b.started||0)-(a.started||0);});
+    const latest=sorted[0];
+    if(latest){
+      // Remove hole 10 from most recent round if it exists
+      if(latest.holes){
+        const before=latest.holes.length;
+        latest.holes=latest.holes.filter(function(h){return !h||h.h!==10;});
+        if(latest.holes.length!==before){
+          // Recalculate total
+          const validHoles=latest.holes.filter(function(h){return h&&h.score;});
+          latest.total=validHoles.reduce(function(s,h){return s+(h.score||0);},0);
+          latest.toPar=validHoles.reduce(function(s,h){return s+(h.score||0)-(h.par||4);},0);
+          latest.totalHoles=validHoles.length;
+          console.log('Removed hole 10 from most recent round, new total:',latest.total);
+        }
+      }
+    }
+    // Fix par:4 on hole 10 in any Chisholm round
+    d.rounds.forEach(function(r){
+      if(!r||r.courseId!=='chisholm'||!r.holes)return;
+      r.holes.forEach(function(h){
+        if(h&&h.h===10&&h.par===4){h.par=3;console.log('Fixed hole 10 par to 3');}
+      });
+    });
+    sud(d);
+    localStorage.setItem(FIX_KEY,'1');
+  })();
   SP('home');
 }
 
@@ -2416,8 +2450,8 @@ function commitShot(){
   hd.shots.push(shot);
   if(!AR.rawShots)AR.rawShots=[];
   AR.rawShots.push(shot);
-  // Update club stats if distance recorded
-  if(distRecorded&&distRecorded>0&&hd.selectedClub){
+  // Update club stats if distance recorded — skip OOB/penalty shots
+  if(distRecorded&&distRecorded>0&&hd.selectedClub&&!hd.pendingPenalty){
     const ud2=ud();
     const c=hd.selectedClub;
     if(!ud2.clubStats)ud2.clubStats={};
@@ -4035,6 +4069,7 @@ function openPenaltyFlow(){
 
   // Record penalty shot
   if(!window._hd.shots)window._hd.shots=[];
+  window._hd.pendingPenalty=true; // flag so commitShot skips club stats
   window._hd.shots.push({
     shotNum:window._hd.shots.length+1,
     club:window._sfb?window._sfb.club:'?',
@@ -4100,6 +4135,8 @@ function penaltyTakeDrop(){
   if(!window._hd.penaltyStrokes)window._hd.penaltyStrokes=0;
   window._hd.penaltyStrokes++;
 
+  // Clear pendingPenalty after drop position is set (next REAL shot counts normally)
+  window._hd.pendingPenalty=false;
   // Keep crosshair where it is - player drags to drop zone
   toast('📍 Drag crosshair to your drop position then confirm lie');
   // Ensure crosshair is visible and draggable
@@ -4189,18 +4226,27 @@ function drawBallHistory(hd){
   const shotColors=['#e74c3c','#c9a84c','#3b82f6','#2d8c3a','#9b59b6'];
   const posShots=(hd.shots||[]).filter(function(s){return s.ballPos&&s.ballPos.gps;});
   var prevPt=null;
+  var displayNum=0; // running display shot number (accounts for penalties)
   // Draw tee marker as origin for line
   if(_inlineTeePos){prevPt=[_inlineTeePos.lat,_inlineTeePos.lng];}
   posShots.forEach(function(s,i){
-    const col=shotColors[i%shotColors.length];
-    const icon=L.divIcon({className:'',html:'<div style="width:18px;height:18px;background:'+col+';border-radius:50%;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)">'+(i+1)+'</div>',iconSize:[18,18],iconAnchor:[9,9]});
+    displayNum++;
+    const col=s.penalty?'#dc2626':shotColors[i%shotColors.length];
+    // Penalty: show "N+1" label; normal: show shot number
+    const label=s.penalty?(displayNum+'+1'):String(displayNum);
+    if(s.penalty)displayNum++; // penalty costs extra stroke
+    const icon=L.divIcon({className:'',html:
+      '<div style="width:'+(s.penalty?26:18)+'px;height:'+(s.penalty?26:18)+'px;background:'+col+
+      ';border-radius:50%;border:'+(s.penalty?'2.5px solid #fff':'2.5px solid #fff')+
+      ';display:flex;align-items:center;justify-content:center;font-size:'+(s.penalty?'8':'9')+'px;font-weight:900;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)">'+
+      label+'</div>',
+      iconSize:[s.penalty?26:18,s.penalty?26:18],iconAnchor:[s.penalty?13:9,s.penalty?13:9]});
     const pt=[s.ballPos.x,s.ballPos.y];
-    // Draw line from previous position
     if(prevPt){
-      L.polyline([prevPt,pt],{color:col,weight:2.5,dashArray:'6,4',opacity:0.85}).addTo(_inlineMap);
+      L.polyline([prevPt,pt],{color:col,weight:s.penalty?2:2.5,dashArray:s.penalty?'3,3':'6,4',opacity:0.85}).addTo(_inlineMap);
     }
     L.marker(pt,{icon:icon,interactive:false}).addTo(_inlineMap);
-    if(s.dist){
+    if(s.dist&&!s.penalty){
       L.marker(pt,{icon:L.divIcon({className:'',html:'<div style="background:rgba(0,0,0,0.75);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;margin-top:20px;white-space:nowrap">'+s.dist+'m</div>',iconAnchor:[-2,-2]}),interactive:false}).addTo(_inlineMap);
     }
     prevPt=pt;
@@ -7775,19 +7821,38 @@ function viewHoleRoute(roundId, holeIndex){
       pts.push([h.teePos.lat,h.teePos.lng]);
     }
     
-    // Shot positions
+    // Tee from course GPS if not in hole data
+    if(!h.teePos&&r.courseId){
+      var gpsHole=getHoleGPS(r.courseId,h.h||holeIndex+1);
+      if(gpsHole&&gpsHole.tee){
+        var teeIco2=L.divIcon({className:'',html:'<div style="width:22px;height:22px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#2d5a3d">T</div>',iconSize:[22,22],iconAnchor:[11,11]});
+        L.marker([gpsHole.tee.lat,gpsHole.tee.lng],{icon:teeIco2}).addTo(map);
+        pts.push([gpsHole.tee.lat,gpsHole.tee.lng]);
+      }
+    }
+    
+    // Shot positions with penalty support
     var colours=['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3b82f6','#8e44ad','#1abc9c','#e91e63','#ff5722'];
+    var displayNum=0;
     h.shots.forEach(function(s,i){
       if(s.ballPos&&s.ballPos.lat){
-        var col=colours[i%colours.length];
-        var dotIcon=L.divIcon({className:'',html:'<div style="width:26px;height:26px;background:'+col+';border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)">'+(i+1)+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
+        displayNum++;
+        var isPenalty=s.penalty||s.lie==='OOB';
+        var col=isPenalty?'#dc2626':colours[i%colours.length];
+        var label=isPenalty?(displayNum+'+1'):String(displayNum);
+        if(isPenalty)displayNum++;
+        var sz=isPenalty?28:26;
+        var dotIcon=L.divIcon({className:'',html:
+          '<div style="width:'+sz+'px;height:'+sz+'px;background:'+col+
+          ';border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:'+(isPenalty?9:11)+'px;font-weight:900;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)">'+
+          label+'</div>',
+          iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
         L.marker([s.ballPos.lat,s.ballPos.lng],{icon:dotIcon})
-          .bindPopup('<b>Shot '+(i+1)+'</b><br>'+(s.club||'?')+(s.lie?' · '+s.lie:'')+(s.dist?' · '+Math.round(s.dist)+'m':''))
+          .bindPopup('<b>'+(isPenalty?'Penalty (Shot '+label+')':'Shot '+label)+'</b><br>'+(s.club||'?')+(s.lie?' · '+s.lie:'')+(s.dist&&!isPenalty?' · '+Math.round(s.dist)+'m':''))
           .addTo(map);
         pts.push([s.ballPos.lat,s.ballPos.lng]);
-        // Line from previous point
         if(pts.length>1){
-          L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:col,weight:2,dashArray:'6,4',opacity:0.8}).addTo(map);
+          L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:col,weight:2,dashArray:isPenalty?'3,3':'6,4',opacity:0.8}).addTo(map);
         }
       }
     });
