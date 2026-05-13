@@ -4471,7 +4471,35 @@ ${Object.keys(d.clubStats||{}).length?`<div class="sec">Club distances</div>
   </table>
   <div style="font-size:11px;color:#888;text-align:center;margin-top:10px;padding-top:8px;border-top:1px solid #eee">Edit in Profile → Stock Distances</div>
 </div>`;
-  setTimeout(function(){buildPuttingStatsUI();},80);setTimeout(function(){buildStockYdTable();},150);
+  setTimeout(function(){buildPuttingStatsUI();},80);
+  setTimeout(function(){buildStockYdTable();},150);
+  setTimeout(function(){
+    const mapEl=document.getElementById('statsLeafletMap');
+    if(!mapEl)return;
+    if(typeof L==='undefined')return;
+    if(window._statsMap){try{window._statsMap.remove();}catch(e){} window._statsMap=null;}
+    const played=[...new Set(rr.map(function(r){return r.courseId;}))].filter(Boolean);
+    const courses=played.map(function(id){return gc(id);}).filter(Boolean);
+    if(!courses.length)return;
+    const lats=courses.map(function(c){return c.lat;});
+    const lngs=courses.map(function(c){return c.lng;});
+    const center=[lats.reduce(function(a,b){return a+b;},0)/lats.length,
+                  lngs.reduce(function(a,b){return a+b;},0)/lngs.length];
+    try{
+      window._statsMap=L.map('statsLeafletMap',{center:center,zoom:11,zoomControl:false,attributionControl:false,scrollWheelZoom:false,dragging:true});
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(window._statsMap);
+      const cols=['#2d5a3d','#3b82f6','#e74c3c','#c9a84c','#8e44ad','#06b6d4'];
+      courses.forEach(function(c,i){
+        var cnt=rr.filter(function(r){return r.courseId===played[i];}).length;
+        L.circleMarker([c.lat,c.lng],{radius:13,fillColor:cols[i%cols.length],color:'#fff',weight:2.5,fillOpacity:0.9})
+          .bindPopup('<b>'+c.name+'</b><br>'+cnt+' round'+(cnt!==1?'s':'')+' played')
+          .addTo(window._statsMap);
+      });
+      if(courses.length>1){
+        window._statsMap.fitBounds(L.latLngBounds(courses.map(function(c){return[c.lat,c.lng];})),{padding:[20,20]});
+      }
+    }catch(e){console.warn('Stats map error:',e);}
+  },400);
 }
 
 // ── PUTTING STATS UI BUILDER ──
