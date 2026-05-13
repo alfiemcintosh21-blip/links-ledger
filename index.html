@@ -21,7 +21,7 @@
   --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:#f8f6f1d)}
+html,body{height:100%;overflow:hidden;background:var(--gd)}
 body{font-family:'DM Sans',system-ui,sans-serif;color:var(--txt);font-size:16px}
 h1,h2,h3,h4{font-family:'Playfair Display',serif}
 ::-webkit-scrollbar{display:none}*{scrollbar-width:none}
@@ -5907,11 +5907,10 @@ function init(){
         if(row?.data){const remote=typeof row.data==='string'?JSON.parse(row.data):row.data;SV('ll_d_'+user.id,remote);}
       }catch(e){}
       SV('ll_sess',user.id);
-      // Show app + hide splash immediately
-      document.getElementById('app').classList.remove('gone');
+      // Hide splash, launch immediately
       const splashEl=document.getElementById('splash');
       if(splashEl)splashEl.classList.add('out');
-      setTimeout(function(){launch();},100);
+      launch();
     } else {
       document.getElementById('auth').style.display='flex';
       setTimeout(prefillRememberedEmail,100);
@@ -5922,9 +5921,9 @@ function init(){
     const splashEl=document.getElementById('splash');
     if(splashEl&&!splashEl.classList.contains('out')){
       splashEl.classList.add('out');
-      setTimeout(function(){document.getElementById('auth').style.display='flex';},600);
+      setTimeout(function(){document.getElementById('auth').style.display='flex';},400);
     }
-  },2200);
+  },1400);
   document.querySelectorAll('.mbg').forEach(function(el){
     el.addEventListener('click',function(e){if(e.target===el)el.classList.remove('open');});
   });
