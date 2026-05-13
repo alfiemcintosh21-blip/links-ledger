@@ -5629,14 +5629,19 @@ async function saveEditProfile(){
       return;
     }
 
-    // Update local CU object
+    // Update local CU object immediately
     CU.firstName=fn;
     CU.lastName=ln;
     CU.name=fn+' '+ln;
     CU.phone=ph;
     if(hc)CU.homeCourse=hc;
-    // Save home course to user data
+    // Save name + profile to local data immediately (survives without Supabase)
     const d2=ud();
+    d2.name=fn+' '+ln;
+    d2.firstName=fn;
+    d2.lastName=ln;
+    d2.email=em;
+    d2.phone=ph;
     if(hc)d2.homeCourse=hc;
     sud(d2);
     if(em!==CU.email){
