@@ -1211,14 +1211,15 @@ function launch(){
   }catch(e){
     console.error('SP home error:',e);
   }
-  // Safety: if home page is empty after 800ms, force re-render
-  setTimeout(function(){
+  // Safety: force home render at 200ms and 1000ms if still empty
+  function _checkHome(){
     const pg=document.getElementById('pg-home');
-    if(pg&&(!pg.innerHTML||pg.innerHTML.trim()==='')&&CU){
-      console.log('Home was empty - forcing rHome');
-      try{pg.classList.remove('gone');rHome();}catch(e2){console.error(e2);}
+    if(pg&&CU&&CU.uid&&(!pg.innerHTML||pg.innerHTML.trim()==='')){ 
+      try{pg.classList.remove('gone');rHome();}catch(e2){console.error('rHome retry:',e2);}
     }
-  },800);
+  }
+  setTimeout(_checkHome,200);
+  setTimeout(_checkHome,1000);
 }
 
 // ── PAGE ROUTING ──
@@ -3299,9 +3300,11 @@ ${holes.map(function(h,i){return'<button class="btn bo" style="padding:12px;font
 }
 
 function openYardageMap(holeNum){
-  const gps=WF.courseId?getHoleGPS(WF.courseId,holeNum):null;
-  const c=WF.courseId?CDB[WF.courseId]:null;
-  const holes=WF.courseId?getH(WF.courseId,WF.holeType||'18'):[];
+  const _ydCourseId=WF.courseId||(AR&&AR.courseId)||null;
+  const _ydHoleType=WF.holeType||(AR&&AR.type)||'18';
+  const gps=_ydCourseId?getHoleGPS(_ydCourseId,holeNum):null;
+  const c=_ydCourseId?CDB[_ydCourseId]:null;
+  const holes=_ydCourseId?getH(_ydCourseId,_ydHoleType):[];
   const hd=holes[holeNum-1]||{par:4};
 
   const existing=document.getElementById('yardageModal');
