@@ -1011,7 +1011,10 @@ async function doLogin(){
       localStorage.removeItem('ll_remember_email');
       localStorage.removeItem('ll_remember_pw');
     }
-    SV('ll_cu_'+user.id, {name:CU.name,email:CU.email,firstName:CU.firstName,lastName:CU.lastName,homeCourse:CU.homeCourse,role:CU.role,phone:CU.phone});
+    // Store name into user data for instant-launch reads
+    const _ld=LD('ll_d_'+user.id,{});
+    _ld.name=CU.name;_ld.email=CU.email;_ld.firstName=CU.firstName;_ld.lastName=CU.lastName;_ld.homeCourse=CU.homeCourse;_ld.role=CU.role;
+    SV('ll_d_'+user.id,_ld);
     btn.textContent='Sign in';btn.disabled=false;
     launch();
   }catch(e){
@@ -5930,15 +5933,14 @@ function init(){
   if(cachedUid&&LD('ll_d_'+cachedUid,null)){
     // We have local data — launch immediately, verify session in background
     const cachedData=LD('ll_d_'+cachedUid,{});
-    const cachedCU=LD('ll_cu_'+cachedUid,{});
     CU={uid:cachedUid,
-        email:cachedCU.email||cachedData.email||'',
-        name:cachedCU.name||cachedData.name||cachedCU.email||cachedData.email||'',
-        firstName:cachedCU.firstName||cachedData.firstName||'',
-        lastName:cachedCU.lastName||cachedData.lastName||'',
-        phone:cachedCU.phone||cachedData.phone||'',
-        homeCourse:cachedCU.homeCourse||cachedData.homeCourse||cachedData.settings?.homeCourse||'',
-        role:cachedCU.role||cachedData.role||'user'};
+        email:cachedData.email||'',
+        name:cachedData.name||cachedData.email||'',
+        firstName:cachedData.firstName||'',
+        lastName:cachedData.lastName||'',
+        phone:cachedData.phone||'',
+        homeCourse:cachedData.homeCourse||cachedData.settings?.homeCourse||'',
+        role:cachedData.role||'user'};
     document.getElementById('splash').classList.add('out');
     launch();
   }
@@ -5963,15 +5965,16 @@ function init(){
         const {data:row}=await sb.from('ll_userdata').select('data').eq('uid',user.id).single();
         if(row?.data){const remote=typeof row.data==='string'?JSON.parse(row.data):row.data;SV('ll_d_'+user.id,remote);}
         SV('ll_sess',user.id);
-        // Cache CU so instant-launch path has name/email
-        SV('ll_cu_'+user.id, {name:CU.name,email:CU.email,firstName:CU.firstName,lastName:CU.lastName,homeCourse:CU.homeCourse,role:CU.role,phone:CU.phone});
+        // Store name/email into user data so instant-launch always has it
+        const _d=LD('ll_d_'+user.id,{});
+        _d.name=CU.name;_d.email=CU.email;_d.firstName=CU.firstName;_d.lastName=CU.lastName;_d.homeCourse=CU.homeCourse;_d.role=CU.role;
+        SV('ll_d_'+user.id,_d);
         if(!cachedUid){
           // No cached session — launch now after Supabase confirms
           document.getElementById('splash').classList.add('out');
           launch();
         } else {
-          // Already launched — refresh name/header silently
-          const hdrEl=document.getElementById('app-hdr');
+          // Already launched — refresh home silently with correct name
           rHome();
         }
       } else {
