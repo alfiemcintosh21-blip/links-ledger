@@ -7541,83 +7541,322 @@ function viewRound(roundId){
   const rr=realR();
   const r=rr.find(function(x){return x.id===roundId;});
   if(!r){toast('Round not found');return;}
+  window._viewRoundId=roundId;
   
   const pg=document.getElementById('pg-stats');
   if(!pg)return;
   
   const holes=r.holes||[];
-  const par=r.par||72;
   const totalHoles=r.totalHoles||holes.length||18;
+  const courseGPS=getHoleGPS?r.courseId:null;
+  
+  var holesHTML='';
+  holes.forEach(function(h,i){
+    if(!h)return;
+    var sc=h.score||0;
+    var p=h.par||4;
+    var diff=sc-p;
+    var diffCol=diff<0?'#2d5a3d':diff===0?'#555':diff===1?'#e67e22':'#dc2626';
+    var gir=h.gir===true?'✅ GIR':h.gir===false?'❌ No GIR':'';
+    var fw=p>=4?(h.fairway===true?'✅ FW':h.fairway===false?'❌ FW':''):'';
+    var hasShots=h.shots&&h.shots.length>0;
+    var hasShotGPS=hasShots&&h.shots.some(function(s){return s.ballPos&&s.ballPos.lat;});
+    var holeNum=h.h||i+1;
+    
+    holesHTML+=
+      '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:13px;margin-bottom:10px" id="vr-hole-'+holeNum+'">'+
+        // Hole header
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            '<div style="width:32px;height:32px;border-radius:50%;background:#2d5a3d;color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center">'+holeNum+'</div>'+
+            '<div>'+
+              '<span style="font-size:11px;color:#888">Par '+p+'</span>'+
+              (gir?' <span style="font-size:11px">'+gir+'</span>':'')+
+              (fw?' <span style="font-size:11px">'+fw+'</span>':'')+
+            '</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+            '<div style="font-size:28px;font-weight:900;color:'+diffCol+'">'+sc+'</div>'+
+            '<div style="font-size:11px;color:'+diffCol+';font-weight:700">'+(diff===0?'E':diff>0?'+'+diff:''+diff)+'</div>'+
+          '</div>'+
+        '</div>'+
+        // Stats row
+        '<div style="display:flex;gap:12px;font-size:12px;color:#888;margin-bottom:8px">'+
+          (h.putts!=null?'<span>'+h.putts+' putts</span>':'')+
+          (h._s2g?'<span>'+h._s2g+' to green</span>':'')+
+          (hasShots?'<span>'+h.shots.length+' shots tracked</span>':'')+
+        '</div>'+
+        // Buttons
+        '<div style="display:flex;gap:6px">'+
+          (hasShotGPS?
+            '<button onclick="viewHoleRoute(\''+roundId+'\','+i+')" style="flex:1;padding:8px;background:#f0f7f4;color:#2d5a3d;border:1.5px solid #2d5a3d;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🗺 View route</button>'
+          :
+            (r.courseId?'<button onclick="viewHoleMap(\''+r.courseId+'\','+(holeNum)+')" style="flex:1;padding:8px;background:#f0f7f4;color:#2d5a3d;border:1.5px solid #2d5a3d;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🗺 Hole map</button>':'')
+          )+
+          '<button onclick="editHole(\''+roundId+'\','+i+')" style="flex:1;padding:8px;background:#fff7ed;color:#e67e22;border:1.5px solid #e67e22;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✏️ Edit</button>'+
+        '</div>'+
+        // Shot breakdown (if tracked)
+        (hasShots?
+          '<div style="margin-top:8px;border-top:1px solid #eee;padding-top:8px">'+
+            h.shots.map(function(s,si){
+              return '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #f5f5f5">'+
+                '<span>'+(si+1)+'. <strong>'+(s.club||'?')+'</strong>'+(s.penalty?' ⚠️':'')+
+                  (s.shape?' · '+s.shape:'')+
+                  (s.dirH&&s.dirH!==''?' · '+s.dirH:'')+
+                '</span>'+
+                '<span style="color:#888">'+(s.lie||'')+(s.dist?' · '+Math.round(s.dist)+'m':'')+'</span>'+
+              '</div>';
+            }).join('')+
+          '</div>'
+        :'')+
+      '</div>';
+  });
   
   pg.innerHTML=
-    // Header
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'+
-      '<button onclick="rStats()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px">←</button>'+
-      '<div>'+
-        '<div style="font-size:18px;font-weight:900">'+r.courseName+'</div>'+
-        '<div style="font-size:12px;color:#888">'+r.date+' · '+totalHoles+'H'+
-          (r.avgGwdr!=null?' · 🌤 GWDR '+r.avgGwdr:'')+'</div>'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'+
+      '<button onclick="rStats()" style="background:none;border:none;font-size:22px;cursor:pointer;padding:4px">←</button>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:18px;font-weight:900;color:#1a1a1a">'+r.courseName+'</div>'+
+        '<div style="font-size:12px;color:#888">'+r.date+' · '+totalHoles+'H'+(r.avgGwdr!=null?' · 🌤 GWDR '+r.avgGwdr:'')+'</div>'+
       '</div>'+
     '</div>'+
     
-    // Score summary card
-    '<div style="background:#2d5a3d;color:#fff;border-radius:14px;padding:16px;margin-bottom:14px">'+
-      '<div style="display:flex;justify-content:space-around;text-align:center">'+
-        '<div><div style="font-size:36px;font-weight:900">'+r.total+'</div><div style="font-size:11px;opacity:0.75">SCORE</div></div>'+
+    // Summary card
+    '<div style="background:#2d5a3d;color:#fff;border-radius:12px;padding:14px;margin-bottom:14px;display:flex;justify-content:space-around;text-align:center">'+
+      '<div><div style="font-size:34px;font-weight:900">'+r.total+'</div><div style="font-size:11px;opacity:0.75">SCORE</div></div>'+
+      '<div style="width:1px;background:rgba(255,255,255,0.2)"></div>'+
+      '<div><div style="font-size:34px;font-weight:900">'+(r.toPar>=0?'+'+r.toPar:r.toPar)+'</div><div style="font-size:11px;opacity:0.75">TO PAR</div></div>'+
+      (r.avgGwdr!=null?
         '<div style="width:1px;background:rgba(255,255,255,0.2)"></div>'+
-        '<div><div style="font-size:36px;font-weight:900">'+(r.toPar>=0?'+'+r.toPar:r.toPar)+'</div><div style="font-size:11px;opacity:0.75">TO PAR</div></div>'+
-        (r.avgGwdr!=null?
-          '<div style="width:1px;background:rgba(255,255,255,0.2)"></div>'+
-          '<div><div style="font-size:36px;font-weight:900">'+r.avgGwdr+'</div><div style="font-size:11px;opacity:0.75">GWDR</div></div>'
-        :'')+
-      '</div>'+
+        '<div><div style="font-size:34px;font-weight:900">'+r.avgGwdr+'</div><div style="font-size:11px;opacity:0.75">GWDR</div></div>'
+      :'')+
     '</div>'+
     
-    // Hole by hole table
-    '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:14px;overflow:hidden;margin-bottom:14px">'+
-      '<div style="display:grid;grid-template-columns:32px 40px 44px 44px 44px 1fr;background:#f5f5f5;padding:8px 10px;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;gap:2px">'+
-        '<div>H</div><div>Par</div><div>Score</div><div>Putts</div><div>S2G</div><div>GIR/FW</div>'+
-      '</div>'+
-      holes.map(function(h,i){
-        if(!h)return '';
-        var sc=h.score||0;
-        var p=h.par||4;
-        var diff=sc-p;
-        var diffCol=diff<0?'#2d5a3d':diff===0?'#666':diff===1?'#e67e22':'#dc2626';
-        var gir=h.gir===true?'✅':h.gir===false?'❌':'';
-        var fw=h.fairway===true?'✅':h.fairway===false?'❌':'';
-        return '<div style="display:grid;grid-template-columns:32px 40px 44px 44px 44px 1fr;padding:9px 10px;border-top:1px solid #eee;align-items:center;gap:2px;background:'+(i%2===0?'#fff':'#fafafa')+'">'+
-          '<div style="font-weight:700;font-size:13px">'+(h.h||i+1)+'</div>'+
-          '<div style="font-size:13px;color:#888">'+p+'</div>'+
-          '<div style="font-size:15px;font-weight:900;color:'+diffCol+'">'+sc+'<span style="font-size:10px;color:'+diffCol+'"> '+(diff===0?'E':diff>0?'+'+diff:''+diff)+'</span></div>'+
-          '<div style="font-size:13px">'+(h.putts!=null?h.putts:'—')+'</div>'+
-          '<div style="font-size:13px">'+(h._s2g||h.s2g!=null?h._s2g||h.s2g:'—')+'</div>'+
-          '<div style="font-size:11px">'+gir+' '+fw+'</div>'+
-        '</div>';
-      }).join('')+
-    '</div>'+
+    '<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#444;margin-bottom:10px">Hole by hole</div>'+
+    holesHTML+
     
-    // Shot details if available
-    (holes.some(function(h){return h&&h.shots&&h.shots.length;})?
-      '<div style="font-size:13px;font-weight:700;color:#555;margin-bottom:8px">Shot breakdown</div>'+
-      '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:14px;overflow:hidden;margin-bottom:14px">'+
-        holes.flatMap(function(h,hi){
-          if(!h||!h.shots||!h.shots.length)return [];
-          return ['<div style="padding:8px 12px;background:#f5f5f5;font-size:11px;font-weight:700;color:#666;text-transform:uppercase">Hole '+(h.h||hi+1)+' · Par '+(h.par||4)+'</div>'].concat(
-            h.shots.map(function(s,si){
-              return '<div style="padding:8px 12px;border-top:1px solid #eee;font-size:13px;display:flex;justify-content:space-between">'+
-                '<span>Shot '+(si+1)+' · <strong>'+(s.club||'?')+'</strong>'+(s.penalty?' ⚠️ Penalty':'')+
-                  (s.shape?' · '+s.shape:'')+(s.dirH?' · '+s.dirH:'')+
-                '</span>'+
-                '<span style="color:#888">'+(s.lie||'')+(s.dist?' · '+(Math.round(s.dist||0))+'m':'')+'</span>'+
-              '</div>';
-            })
-          );
-        }).join('')+
-      '</div>'
-    :'')+
+    // Map container (hidden until needed)
+    '<div id="vrMapWrap" style="display:none;margin-bottom:14px;border-radius:12px;overflow:hidden;border:1.5px solid #e0e0e0"></div>'+
     '';
 }
+
+function viewHoleRoute(roundId, holeIndex){
+  const rr=realR();
+  const r=rr.find(function(x){return x.id===roundId;});
+  if(!r)return;
+  const h=r.holes[holeIndex];
+  if(!h||!h.shots)return;
+  
+  const wrap=document.getElementById('vrMapWrap');
+  if(!wrap)return;
+  wrap.style.display='block';
+  wrap.innerHTML='<div id="vrMap" style="width:100%;height:320px"></div>';
+  
+  // Scroll to map
+  setTimeout(function(){wrap.scrollIntoView({behavior:'smooth',block:'start'});},100);
+  
+  // Init map
+  setTimeout(function(){
+    if(window._vrMap){window._vrMap.remove();window._vrMap=null;}
+    const map=L.map('vrMap',{zoomControl:false});
+    window._vrMap=map;
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {maxZoom:20,attribution:''}).addTo(map);
+    
+    var pts=[];
+    
+    // Tee position if available
+    if(h.teePos&&h.teePos.lat){
+      var teeIcon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#2d5a3d">T</div>',iconSize:[22,22],iconAnchor:[11,11]});
+      L.marker([h.teePos.lat,h.teePos.lng],{icon:teeIcon}).addTo(map);
+      pts.push([h.teePos.lat,h.teePos.lng]);
+    }
+    
+    // Shot positions
+    var colours=['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3b82f6','#8e44ad','#1abc9c','#e91e63','#ff5722'];
+    h.shots.forEach(function(s,i){
+      if(s.ballPos&&s.ballPos.lat){
+        var col=colours[i%colours.length];
+        var dotIcon=L.divIcon({className:'',html:'<div style="width:26px;height:26px;background:'+col+';border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)">'+(i+1)+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
+        L.marker([s.ballPos.lat,s.ballPos.lng],{icon:dotIcon})
+          .bindPopup('<b>Shot '+(i+1)+'</b><br>'+(s.club||'?')+(s.lie?' · '+s.lie:'')+(s.dist?' · '+Math.round(s.dist)+'m':''))
+          .addTo(map);
+        pts.push([s.ballPos.lat,s.ballPos.lng]);
+        // Line from previous point
+        if(pts.length>1){
+          L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:col,weight:2,dashArray:'6,4',opacity:0.8}).addTo(map);
+        }
+      }
+    });
+    
+    // Pin position if available
+    if(h.pinPos&&h.pinPos.lat){
+      var pinIcon=L.divIcon({className:'',html:'<div style="font-size:20px;line-height:1">⛳</div>',iconSize:[20,20],iconAnchor:[10,20]});
+      L.marker([h.pinPos.lat,h.pinPos.lng],{icon:pinIcon}).addTo(map);
+      pts.push([h.pinPos.lat,h.pinPos.lng]);
+    }
+    
+    if(pts.length>0){
+      map.fitBounds(L.latLngBounds(pts),{padding:[30,30]});
+    }
+    
+    // Label
+    var hNum=h.h||holeIndex+1;
+    wrap.insertAdjacentHTML('afterbegin','<div style="background:#2d5a3d;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Hole '+hNum+' route — '+h.shots.length+' shots tracked</div>');
+  },200);
+}
+
+function viewHoleMap(courseId, holeNum){
+  // Show satellite map of the hole with GPS data only (no shot data)
+  const wrap=document.getElementById('vrMapWrap');
+  if(!wrap)return;
+  wrap.style.display='block';
+  wrap.innerHTML='<div style="background:#2d5a3d;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Hole '+holeNum+' — course map</div><div id="vrMap" style="width:100%;height:280px"></div>';
+  setTimeout(function(){wrap.scrollIntoView({behavior:'smooth',block:'start'});},100);
+  setTimeout(function(){
+    if(window._vrMap){window._vrMap.remove();window._vrMap=null;}
+    const map=L.map('vrMap',{zoomControl:false});
+    window._vrMap=map;
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:''}).addTo(map);
+    const gps=getHoleGPS(courseId,holeNum);
+    if(!gps){map.setView([-45.87,170.49],15);return;}
+    if(gps.tee){L.circleMarker([gps.tee.lat,gps.tee.lng],{radius:7,color:'#fff',fillColor:'#2d5a3d',fillOpacity:1}).bindPopup('Tee').addTo(map);}
+    if(gps.green){L.circleMarker([gps.green.lat,gps.green.lng],{radius:7,color:'#fff',fillColor:'#c9a84c',fillOpacity:1}).bindPopup('Green').addTo(map);}
+    if(gps.tee&&gps.green){
+      L.polyline([[gps.tee.lat,gps.tee.lng],[gps.green.lat,gps.green.lng]],{color:'#fff',weight:1,dashArray:'4,4',opacity:0.6}).addTo(map);
+      map.fitBounds([[gps.tee.lat,gps.tee.lng],[gps.green.lat,gps.green.lng]],{padding:[40,40]});
+    }
+  },200);
+}
+
+function editHole(roundId, holeIndex){
+  const rr=realR();
+  const r=rr.find(function(x){return x.id===roundId;});
+  if(!r)return;
+  const h=r.holes[holeIndex];
+  if(!h)return;
+  const par=h.par||4;
+  const holeNum=h.h||holeIndex+1;
+  
+  // Build edit modal
+  const existing=document.getElementById('editHoleModal');
+  if(existing)existing.remove();
+  
+  const modal=document.createElement('div');
+  modal.id='editHoleModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML=
+    '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 36px;width:100%;max-width:420px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'+
+        '<div style="font-size:17px;font-weight:900">Edit Hole '+holeNum+' (Par '+par+')</div>'+
+        '<button onclick="document.getElementById(\'editHoleModal\').remove()" style="background:none;border:none;font-size:22px;cursor:pointer">×</button>'+
+      '</div>'+
+      
+      // Score
+      '<div style="margin-bottom:14px">'+
+        '<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:6px">Score</div>'+
+        '<div style="display:flex;align-items:center;justify-content:center;gap:16px">'+
+          '<button onclick="ehAdj(\'score\',-1)" style="width:44px;height:44px;border-radius:50%;border:2px solid #ddd;background:#f5f5f5;font-size:22px;cursor:pointer;font-family:inherit">−</button>'+
+          '<div id="ehScore" style="font-size:40px;font-weight:900;min-width:50px;text-align:center;color:#2d5a3d">'+(h.score||par)+'</div>'+
+          '<button onclick="ehAdj(\'score\',1)" style="width:44px;height:44px;border-radius:50%;border:2px solid #ddd;background:#f5f5f5;font-size:22px;cursor:pointer;font-family:inherit">+</button>'+
+        '</div>'+
+        '<div id="ehToPar" style="text-align:center;font-size:13px;color:#888;margin-top:4px">'+
+          (h.score?(h.score-par===0?'Even':((h.score-par>0?'+':'')+( h.score-par))):'Even')+
+        '</div>'+
+      '</div>'+
+      
+      // Putts
+      '<div style="margin-bottom:14px">'+
+        '<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:6px">Putts <span style="font-weight:400;color:#aaa">(optional)</span></div>'+
+        '<div style="display:flex;align-items:center;justify-content:center;gap:16px">'+
+          '<button onclick="ehAdj(\'putts\',-1)" style="width:40px;height:40px;border-radius:50%;border:2px solid #ddd;background:#f5f5f5;font-size:20px;cursor:pointer;font-family:inherit">−</button>'+
+          '<div id="ehPutts" style="font-size:32px;font-weight:900;min-width:44px;text-align:center">'+(h.putts!=null?h.putts:'—')+'</div>'+
+          '<button onclick="ehAdj(\'putts\',1)" style="width:40px;height:40px;border-radius:50%;border:2px solid #ddd;background:#f5f5f5;font-size:20px;cursor:pointer;font-family:inherit">+</button>'+
+        '</div>'+
+      '</div>'+
+      
+      // GIR + Fairway toggles
+      '<div style="display:flex;gap:10px;margin-bottom:16px">'+
+        '<div style="flex:1;background:#f5f5f5;border-radius:10px;padding:10px;text-align:center">'+
+          '<div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px">GIR</div>'+
+          '<div style="display:flex;gap:6px;justify-content:center">'+
+            '<button id="ehGirY" onclick="ehSetGIR(true)" style="padding:6px 10px;border-radius:6px;border:1.5px solid '+(h.gir===true?'#2d5a3d':'#ddd')+';background:'+(h.gir===true?'#2d5a3d':'#fff')+';color:'+(h.gir===true?'#fff':'#555')+';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Yes</button>'+
+            '<button id="ehGirN" onclick="ehSetGIR(false)" style="padding:6px 10px;border-radius:6px;border:1.5px solid '+(h.gir===false?'#dc2626':'#ddd')+';background:'+(h.gir===false?'#dc2626':'#fff')+';color:'+(h.gir===false?'#fff':'#555')+';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">❌ No</button>'+
+          '</div>'+
+        '</div>'+
+        (par>=4?
+          '<div style="flex:1;background:#f5f5f5;border-radius:10px;padding:10px;text-align:center">'+
+            '<div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px">Fairway</div>'+
+            '<div style="display:flex;gap:6px;justify-content:center">'+
+              '<button id="ehFwY" onclick="ehSetFW(true)" style="padding:6px 10px;border-radius:6px;border:1.5px solid '+(h.fairway===true?'#2d5a3d':'#ddd')+';background:'+(h.fairway===true?'#2d5a3d':'#fff')+';color:'+(h.fairway===true?'#fff':'#555')+';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Hit</button>'+
+              '<button id="ehFwN" onclick="ehSetFW(false)" style="padding:6px 10px;border-radius:6px;border:1.5px solid '+(h.fairway===false?'#dc2626':'#ddd')+';background:'+(h.fairway===false?'#dc2626':'#fff')+';color:'+(h.fairway===false?'#fff':'#555')+';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">❌ Miss</button>'+
+            '</div>'+
+          '</div>'
+        :'')+
+      '</div>'+
+      
+      '<button onclick="saveEditHole(\''+roundId+'\','+holeIndex+')" style="width:100%;padding:14px;background:#2d5a3d;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Save changes ✓</button>'+
+    '</div>';
+  
+  // Store working values
+  window._eh={score:h.score||par,putts:h.putts,gir:h.gir,fairway:h.fairway,par:par};
+  document.body.appendChild(modal);
+}
+
+function ehAdj(field,delta){
+  const eh=window._eh;if(!eh)return;
+  if(field==='score'){
+    eh.score=Math.max(1,eh.score+delta);
+    const el=document.getElementById('ehScore');if(el)el.textContent=eh.score;
+    const tp=document.getElementById('ehToPar');
+    if(tp){const d=eh.score-eh.par;tp.textContent=d===0?'Even':d>0?'+'+d:''+d;}
+  } else if(field==='putts'){
+    if(eh.putts==null&&delta>0)eh.putts=0;
+    else if(eh.putts!=null)eh.putts=Math.max(0,eh.putts+delta);
+    const el=document.getElementById('ehPutts');if(el)el.textContent=eh.putts!=null?eh.putts:'—';
+  }
+}
+function ehSetGIR(val){
+  if(!window._eh)return;
+  window._eh.gir=window._eh.gir===val?null:val;
+  const g=window._eh.gir;
+  const y=document.getElementById('ehGirY'),n=document.getElementById('ehGirN');
+  if(y){y.style.background=g===true?'#2d5a3d':'#fff';y.style.color=g===true?'#fff':'#555';y.style.borderColor=g===true?'#2d5a3d':'#ddd';}
+  if(n){n.style.background=g===false?'#dc2626':'#fff';n.style.color=g===false?'#fff':'#555';n.style.borderColor=g===false?'#dc2626':'#ddd';}
+}
+function ehSetFW(val){
+  if(!window._eh)return;
+  window._eh.fairway=window._eh.fairway===val?null:val;
+  const fw=window._eh.fairway;
+  const y=document.getElementById('ehFwY'),n=document.getElementById('ehFwN');
+  if(y){y.style.background=fw===true?'#2d5a3d':'#fff';y.style.color=fw===true?'#fff':'#555';y.style.borderColor=fw===true?'#2d5a3d':'#ddd';}
+  if(n){n.style.background=fw===false?'#dc2626':'#fff';n.style.color=fw===false?'#fff':'#555';n.style.borderColor=fw===false?'#dc2626':'#ddd';}
+}
+
+function saveEditHole(roundId,holeIndex){
+  const eh=window._eh;if(!eh)return;
+  const d=ud();
+  const r=d.rounds.find(function(x){return x.id===roundId;});
+  if(!r||!r.holes[holeIndex]){toast('Round not found');return;}
+  
+  const h=r.holes[holeIndex];
+  const oldScore=h.score||0;
+  h.score=eh.score;
+  h.putts=eh.putts;
+  h.gir=eh.gir;
+  h.fairway=eh.fairway;
+  
+  // Recalculate round total
+  const scoreDiff=eh.score-oldScore;
+  r.total=(r.total||0)+scoreDiff;
+  r.toPar=(r.toPar||0)+scoreDiff;
+  
+  sud(d);
+  document.getElementById('editHoleModal').remove();
+  toast('Hole '+(h.h||holeIndex+1)+' updated ✓');
+  viewRound(roundId);
+}
+
 
 function showRingPicker(){
   const d=ud(); d._showRingPicker=true; sud(d); rProfile();
