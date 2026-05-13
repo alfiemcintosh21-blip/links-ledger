@@ -67,7 +67,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 /* CARDS */
 .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1.5px solid #e0e0e0}
 .cardsm{background:#fff;border-radius:10px;padding:11px;margin-bottom:9px;border:1px solid var(–bdr)}
-.sec{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#444;font-weight:800;margin:15px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sec{font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#1a1a1a;font-weight:900;margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fff;border-radius:8px;border-left:4px solid #2d5a3d;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
 
 /* BUTTONS */
 .btn{width:100%;padding:15px;border:2px solid transparent;border-radius:12px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;transition:all 0.15s}
@@ -4281,9 +4281,7 @@ ${progRounds.length>=3?`<div class="sec">Career progression</div>
 <div class="sec">Activity</div>
 <div class="sg">
   <div class="sc"><div class="sv">${rr.length}</div><div class="sl">Rounds</div></div>
-  <div class="sc"><div class="sv">—</div><div class="sl">Total walked</div></div>
-  <div class="sc"><div class="sv">${fmtT(rr.reduce((s,r)=>s+(r.duration||0),0))}</div><div class="sl">Time on course</div></div>
-  <div class="sc"><div class="sv">${[...new Set(rr.map(r=>r.courseId))].length}</div><div class="sl">Courses played</div></div>
+      <div class="sc"><div class="sv">${[...new Set(rr.map(r=>r.courseId))].length}</div><div class="sl">Courses played</div></div>
 </div>
 
 <div class="sec">Score breakdown</div>
@@ -4362,80 +4360,121 @@ function buildPuttingStatsUI(){
   const ps=getPuttingStats();
   const noData=!ps||ps.totalPutts===0;
 
-  // Green SVG
+  // ── GREEN SVG + PROXIMITY TABLE SIDE BY SIDE ──
   const svgEl=document.getElementById('puttGreenSvg');
-  if(svgEl)svgEl.innerHTML=buildPuttingGreenSvg(ps);
-
-  // Over/under bar
-  const ouEl=document.getElementById('overUnderBar');
-  if(ouEl){
-    const total=ps?ps.totalMissed:0;
-    const overPct=total>0?Math.round(ps.overHit/total*100):null;
-    const underPct=total>0?Math.round(ps.underHit/total*100):null;
-    ouEl.innerHTML='<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:6px;text-align:center">Over/Under Hit</div>'+
-      (total>0?
-        '<div style="display:flex;align-items:center;gap:6px">'+
-          '<div style="font-size:11px;color:#3b82f6;width:48px;text-align:right">Short<br>'+underPct+'%</div>'+
-          '<div style="flex:1;height:14px;background:var(--bg3);border-radius:7px;overflow:hidden;display:flex">'+
-            '<div style="width:'+underPct+'%;background:#3b82f6;border-radius:7px 0 0 7px"></div>'+
-            '<div style="width:'+overPct+'%;background:#e74c3c;border-radius:0 7px 7px 0"></div>'+
-          '</div>'+
-          '<div style="font-size:11px;color:#e74c3c;width:48px">Long<br>'+overPct+'%</div>'+
-        '</div>':
-        '<div style="font-size:12px;color:var(--txt3);text-align:center">No missed putt data yet</div>');
-  }
-
-  // Make % table
-  const mpEl=document.getElementById('makePctTable');
-  if(mpEl){
-    const bins=ps?ps.bins:{'0-1':[],'1-2':[],'2-3':[],'3-5':[],'5-10':[],'10+':[]};
-    var rows='';
-    Object.keys(bins).forEach(function(rng){
-      var arr=bins[rng];
-      var made=arr.filter(function(m){return m;}).length;
-      var pct=arr.length?Math.round(made/arr.length*100):null;
-      var barW=pct!==null?pct:0;
-      var col=pct===null?'var(--txt3)':pct>=70?'var(--g)':pct>=40?'var(--gold)':'var(--red)';
-      rows+='<tr style="border-top:1px solid var(--bdr)">'+
-        '<td style="padding:5px 6px;font-weight:700">'+(ftLabels[rng]||rng)+'</td>'+
-        '<td style="padding:5px 6px">'+
-          '<div style="display:flex;align-items:center;gap:4px">'+
-            '<div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">'+
-              '<div style="width:'+barW+'%;height:100%;background:'+col+';border-radius:3px"></div>'+
-            '</div>'+
-            '<span style="font-weight:700;color:'+col+';min-width:28px;text-align:right">'+(pct!==null?pct+'%':'—')+'</span>'+
-          '</div>'+
-        '</td>'+
-        '<td style="padding:5px 6px;text-align:center;color:var(--txt3)">'+(arr.length||'—')+'</td>'+
-      '</tr>';
+  if(svgEl){
+    // SVG keeps its visual rings; numbers shown in adjacent table
+    var svgHTML=buildPuttingGreenSvg(ps);
+    // Build proximity table
+    var proxTable='<div style="display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:90px">';
+    var proximityRows=[
+      {label:'1-putt from',val:ps&&ps.avg1ft?Math.round(ps.avg1ft)+'ft':null,n:ps&&ps.avg1n,col:'#2ecc71'},
+      {label:'2-putt from',val:ps&&ps.avg2ft?Math.round(ps.avg2ft)+'ft':null,n:ps&&ps.avg2n,col:'#c9a84c'},
+      {label:'3-putt from',val:ps&&ps.avg3ft?Math.round(ps.avg3ft)+'ft':null,n:ps&&ps.avg3n,col:'#e74c3c'},
+    ];
+    proximityRows.forEach(function(row){
+      if(row.val){
+        proxTable+='<div style="text-align:right">'+
+          '<div style="font-size:18px;font-weight:900;color:'+row.col+'">'+row.val+'</div>'+
+          '<div style="font-size:9px;color:#888;font-weight:600">'+row.label+'</div>'+
+          (row.n?'<div style="font-size:8px;color:#bbb">'+row.n+' holes</div>':'')+ 
+        '</div>';
+      } else {
+        proxTable+='<div style="text-align:right">'+
+          '<div style="font-size:14px;font-weight:700;color:#ddd">—</div>'+
+          '<div style="font-size:9px;color:#bbb">'+row.label+'</div>'+
+        '</div>';
+      }
     });
-    mpEl.innerHTML='<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:8px;text-align:center">Make % by Distance</div>'+
-      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
-        '<thead><tr>'+
-          '<th style="text-align:left;padding:3px 6px;color:var(--txt3);font-size:11px">Dist</th>'+
-          '<th style="padding:3px 6px;color:var(--txt3);font-size:11px">Make %</th>'+
-          '<th style="text-align:center;padding:3px 6px;color:var(--txt3);font-size:11px">Putts</th>'+
-        '</tr></thead>'+
-        '<tbody>'+rows+'</tbody>'+
-      '</table>';
+    proxTable+='</div>';
+    svgEl.innerHTML='<div style="display:flex;align-items:center;gap:8px">'+
+      '<div style="flex:1;min-width:0">'+svgHTML+'</div>'+
+      proxTable+
+    '</div>';
   }
 
-  // Putt distribution
+  // ── PUTT DISTRIBUTION ──
   const pdEl=document.getElementById('puttDistrib');
-  if(pdEl&&ps&&ps.totalPutts>0){
+  if(pdEl&&ps&&ps.holesTracked>0){
     var total2=Object.values(ps.puttCounts).reduce(function(s,v){return s+v;},0);
     var cells='';
     [1,2,3,4].forEach(function(n){
       var cnt=ps.puttCounts[n]||0;
       var pct2=total2?Math.round(cnt/total2*100):0;
-      var col2=n===1?'var(--g)':n===2?'var(--gold)':n===3?'var(--txt)':'var(--red)';
-      cells+='<div style="background:var(--bg3);border-radius:8px;padding:8px 4px;text-align:center">'+
+      var col2=n===1?'#2ecc71':n===2?'#c9a84c':n===3?'#888':'#e74c3c';
+      cells+='<div style="background:#f5f5f5;border-radius:8px;padding:8px 4px;text-align:center;border:1.5px solid #eee">'+
         '<div style="font-size:20px;font-weight:900;color:'+col2+'">'+pct2+'%</div>'+
-        '<div style="font-size:10px;color:var(--txt3);font-weight:700">'+(n===4?'4+':n)+'-putt</div>'+
-        '<div style="font-size:9px;color:var(--txt3)">'+cnt+'</div>'+
+        '<div style="font-size:10px;color:#555;font-weight:700">'+(n===4?'4+':n)+'-putt</div>'+
+        '<div style="font-size:9px;color:#aaa">'+cnt+' holes</div>'+
       '</div>';
     });
-    pdEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+cells+'</div>';
+    pdEl.innerHTML='<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:6px">Putt Distribution</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+cells+'</div>';
+  }
+
+  // ── OVER/UNDER HIT ──
+  const ouEl=document.getElementById('overUnderBar');
+  if(ouEl){
+    const total=ps?ps.totalMissed:0;
+    if(total>=5){
+      const overPct=Math.round(ps.overHit/total*100);
+      const underPct=Math.round(ps.underHit/total*100);
+      ouEl.innerHTML=
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:6px">Over/Under Hit ('+total+' samples)</div>'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<div style="font-size:11px;color:#3b82f6;width:44px;text-align:right;line-height:1.2">Short<br><strong>'+underPct+'%</strong></div>'+
+          '<div style="flex:1;height:14px;background:#eee;border-radius:7px;overflow:hidden;display:flex">'+
+            '<div style="width:'+underPct+'%;background:#3b82f6;transition:width 0.5s"></div>'+
+            '<div style="width:'+overPct+'%;background:#e74c3c;transition:width 0.5s"></div>'+
+          '</div>'+
+          '<div style="font-size:11px;color:#e74c3c;width:44px;line-height:1.2">Long<br><strong>'+overPct+'%</strong></div>'+
+        '</div>';
+    } else {
+      ouEl.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:6px 0">Need 5+ missed putts tracked for over/under data</div>';
+    }
+  }
+
+  // ── MAKE % BY DISTANCE (only show populated rows) ──
+  const mpEl=document.getElementById('makePctTable');
+  if(mpEl){
+    const bins=ps?ps.ftBins:{};
+    var rows='';
+    var binOrder=['<4ft','4-6ft','6-8ft','8-10ft','10-12ft','12-14ft','14-16ft','16-18ft','18-20ft','20-25ft','25-30ft','30ft+'];
+    var anyData=false;
+    binOrder.forEach(function(rng){
+      var arr=(bins[rng]||[]);
+      if(!arr.length)return; // skip empty bins
+      anyData=true;
+      var made=arr.filter(function(m){return m;}).length;
+      var pct=Math.round(made/arr.length*100);
+      var col=pct>=70?'#2d5a3d':pct>=40?'#c9a84c':'#dc2626';
+      rows+='<tr style="border-top:1px solid #eee">'+
+        '<td style="padding:6px 8px;font-weight:700;font-size:13px">'+rng+'</td>'+
+        '<td style="padding:6px 8px">'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            '<div style="flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden">'+
+              '<div style="width:'+pct+'%;height:100%;background:'+col+';border-radius:4px"></div>'+
+            '</div>'+
+            '<span style="font-weight:800;font-size:13px;color:'+col+';min-width:36px;text-align:right">'+pct+'%</span>'+
+          '</div>'+
+        '</td>'+
+        '<td style="padding:6px 8px;text-align:center;color:#888;font-size:12px">'+arr.length+'</td>'+
+      '</tr>';
+    });
+    if(anyData){
+      mpEl.innerHTML=
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:6px">Make % by Distance</div>'+
+        '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+          '<thead><tr style="background:#f5f5f5">'+
+            '<th style="text-align:left;padding:5px 8px;color:#666;font-size:10px">Distance</th>'+
+            '<th style="padding:5px 8px;color:#666;font-size:10px">Make %</th>'+
+            '<th style="text-align:center;padding:5px 8px;color:#666;font-size:10px">Holes</th>'+
+          '</tr></thead>'+
+          '<tbody>'+rows+'</tbody>'+
+        '</table>';
+    } else {
+      mpEl.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:6px 0">Play rounds with putt tracking to see make %</div>';
+    }
   }
 }
 
@@ -6548,91 +6587,102 @@ async function saveStockYardage(club, val){
 
 // ── PUTTING STATS ──
 function getPuttingStats(){
-  const d=ud();
   const rr=realR();
   const allHoles=rr.flatMap(function(r){return r.holes||[];}).filter(Boolean);
   const puttData=allHoles.flatMap(function(h){return h.puttsData||[];}).filter(Boolean);
 
   if(puttData.length===0)return null;
 
-  // Average putts per hole
-  const holesWithPutts=allHoles.filter(function(h){return h.putts>0;});
-  const avgPutts=holesWithPutts.length?Math.round(holesWithPutts.reduce(function(s,h){return s+(h.putts||0);},0)/holesWithPutts.length*10)/10:null;
+  // Average putts per hole (only from holes with actual putt count)
+  const holesWithPutts=allHoles.filter(function(h){return typeof h.putts==='number'&&h.putts>0;});
+  const avgPutts=holesWithPutts.length?Math.round(holesWithPutts.reduce(function(s,h){return s+h.putts;},0)/holesWithPutts.length*10)/10:null;
 
-  // 1-putt, 2-putt, 3-putt counts
+  // 1/2/3/4+ putt distribution counts
   const puttCounts={1:0,2:0,3:0,4:0};
   holesWithPutts.forEach(function(h){
-    const p=Math.min(4,h.putts||0);
-    if(p>0)puttCounts[p]=(puttCounts[p]||0)+1;
+    const p=Math.min(4,h.putts);
+    puttCounts[p]=(puttCounts[p]||0)+1;
   });
 
-  // Make % by distance
-  const bins={'0-1':[],'1-2':[],'2-3':[],'3-5':[],'5-10':[],'10+':[]} ;
-  puttData.forEach(function(p){
-    const dist=p.distToPin||0;
-    const bin=dist<1?'0-1':dist<2?'1-2':dist<3?'2-3':dist<5?'3-5':dist<10?'5-10':'10+';
-    bins[bin].push(p.made);
-  });
-
-  // Average 1/2/3 putt distances
-  const onePuttDists=[], twoPuttDists=[], threePuttDists=[];
+  // Make % by distance — bins in FEET, distToPin stored in metres
+  // Only use FIRST putt of each hole (that's the one we're trying to make)
+  const FT=3.28084;
+  const ftBins={
+    '<4ft':[],'4-6ft':[],'6-8ft':[],'8-10ft':[],'10-12ft':[],
+    '12-14ft':[],'14-16ft':[],'16-18ft':[],'18-20ft':[],
+    '20-25ft':[],'25-30ft':[],'30ft+':[],
+  };
+  function getBinFt(distMetres){
+    const ft=distMetres*FT;
+    if(ft<4)return'<4ft';
+    if(ft<6)return'4-6ft';
+    if(ft<8)return'6-8ft';
+    if(ft<10)return'8-10ft';
+    if(ft<12)return'10-12ft';
+    if(ft<14)return'12-14ft';
+    if(ft<16)return'14-16ft';
+    if(ft<18)return'16-18ft';
+    if(ft<20)return'18-20ft';
+    if(ft<25)return'20-25ft';
+    if(ft<30)return'25-30ft';
+    return'30ft+';
+  }
+  // First putt per hole from puttsData
   holesWithPutts.forEach(function(h){
-    const hp=h.puttsData||[];
-    if(hp.length>=1&&hp[0].distToPin)onePuttDists.push(hp[0].distToPin);
-  });
-  holesWithPutts.forEach(function(h){
-    if(h.putts===1&&h.puttsData&&h.puttsData[0])onePuttDists.push(h.puttsData[0].distToPin);
+    const pd=h.puttsData||[];
+    if(!pd.length||!pd[0].distToPin)return;
+    const firstPutt=pd[0];
+    const bin=getBinFt(firstPutt.distToPin);
+    // Made = hole was completed in 1 putt (first putt went in)
+    ftBins[bin].push(h.putts===1);
   });
 
-  // Recalculate properly per hole
+  // Average proximity for 1/2/3-putt holes
   const avg1Dist=[], avg2Dist=[], avg3Dist=[];
   holesWithPutts.forEach(function(h){
     const pd=h.puttsData||[];
-    if(pd.length>0&&pd[0].distToPin){
-      if(h.putts===1)avg1Dist.push(pd[0].distToPin);
-      else if(h.putts===2)avg2Dist.push(pd[0].distToPin);
-      else if(h.putts>=3)avg3Dist.push(pd[0].distToPin);
+    if(!pd.length||!pd[0].distToPin)return;
+    const dist=pd[0].distToPin;
+    if(h.putts===1)avg1Dist.push(dist);
+    else if(h.putts===2)avg2Dist.push(dist);
+    else if(h.putts>=3)avg3Dist.push(dist);
+  });
+  const avgDist=function(arr){
+    return arr.length?Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length*3.28084):null; // return in feet
+  };
+
+  // Over/Under hit — only from tracked GPS putts with min 5 samples
+  let overHit=0,underHit=0;
+  const byHole={};
+  puttData.forEach(function(p){
+    const k=(p.roundId||'?')+'-'+(p.holeNum||0);
+    if(!byHole[k])byHole[k]=[];
+    byHole[k].push(p);
+  });
+  Object.values(byHole).forEach(function(putts){
+    for(var i=0;i<putts.length-1;i++){
+      const curr=putts[i],next=putts[i+1];
+      if(curr.made||!curr.ballPos||!next.ballPos||!curr.pinPos)continue;
+      try{
+        const distNext=hav(next.ballPos,curr.pinPos);
+        const distCurr=hav(curr.ballPos,curr.pinPos);
+        if(distNext<distCurr*0.25)continue; // effectively made
+        const bearingToPin=getBearing(curr.ballPos,curr.pinPos);
+        const bearingToNext=getBearing(curr.ballPos,next.ballPos);
+        const diff=((bearingToNext-bearingToPin+540)%360)-180;
+        if(Math.abs(diff)<90)overHit++;else underHit++;
+      }catch(e){}
     }
   });
-
-  const avgDist=function(arr){return arr.length?Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length*10)/10:null;};
-
-  // Over/under hit analysis
-  let overHit=0, underHit=0;
-  for(var i=0;i<puttData.length-1;i++){
-    const curr=puttData[i], next=puttData[i+1];
-    if(curr.made||!curr.ballPos||!next.ballPos||!curr.pinPos)continue;
-    // Is next ball position on same hole?
-    if(curr.holeNum!==next.holeNum)continue;
-    // Check which side of pin next ball is on relative to current ball
-    // Bearing from curr ball through pin
-    const ballToPin=getBearing(curr.ballPos,curr.pinPos);
-    const ballToNext=getBearing(curr.ballPos,next.ballPos);
-    const angleDiff=((ballToNext-ballToPin+540)%360)-180;
-    // If ball went past pin (next is further in direction of original ball-to-pin)
-    const distCurr=hav(curr.ballPos,curr.pinPos);
-    const distNext=hav(next.ballPos,curr.pinPos);
-    if(distNext<distCurr*0.3){
-      // Made it effectively
-    } else {
-      // Check if ball ended up past pin
-      const bearingDiff=Math.abs(angleDiff);
-      if(bearingDiff<90){overHit++;}else{underHit++;}
-    }
-  }
   const totalMissed=overHit+underHit;
 
   return{
-    avgPutts:avgPutts,
-    puttCounts:puttCounts,
-    bins:bins,
-    avg1:avgDist(avg1Dist),
-    avg2:avgDist(avg2Dist),
-    avg3:avgDist(avg3Dist),
-    overHit:overHit,
-    underHit:underHit,
-    totalMissed:totalMissed,
-    totalPutts:puttData.length
+    avgPutts,puttCounts,ftBins,getBinFt,
+    avg1ft:avgDist(avg1Dist),avg2ft:avgDist(avg2Dist),avg3ft:avgDist(avg3Dist),
+    avg1n:avg1Dist.length,avg2n:avg2Dist.length,avg3n:avg3Dist.length,
+    overHit,underHit,totalMissed,
+    totalPutts:puttData.length,
+    holesTracked:holesWithPutts.length
   };
 }
 
@@ -6645,9 +6695,10 @@ function buildPuttingGreenSvg(stats){
   // Ring radii — scaled to SVG
   // Assume green visual = 15m radius max
   const scale=Math.min(rx,ry)/15;
-  const r1=stats&&stats.avg1?Math.min(stats.avg1*scale*3,rx*0.3):15;
-  const r2=stats&&stats.avg2?Math.min(stats.avg2*scale*2,rx*0.65):40;
-  const r3=stats&&stats.avg3?Math.min(stats.avg3*scale*1.5,rx*0.9):65;
+  const FTM=0.3048;
+  const r1=stats&&stats.avg1ft?Math.min((stats.avg1ft*FTM)*scale*3,rx*0.3):15;
+  const r2=stats&&stats.avg2ft?Math.min((stats.avg2ft*FTM)*scale*2,rx*0.65):40;
+  const r3=stats&&stats.avg3ft?Math.min((stats.avg3ft*FTM)*scale*1.5,rx*0.9):65;
 
   const noData=!stats||stats.totalPutts===0;
 
@@ -6658,16 +6709,13 @@ function buildPuttingGreenSvg(stats){
     '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx+6)+'" ry="'+(ry+6)+'" fill="#3d8a4f" opacity="0.4"/>'+
 
     // 3-putt ring (red)
-    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r3+'" ry="'+(r3*0.72)+'" fill="none" stroke="#e74c3c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>'+
-    '<text x="'+(cx+r3+2)+'" y="'+cy+'" dominant-baseline="central" fill="#e74c3c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg3?Math.round(stats.avg3*3.281)+"'":"—"))+'</text>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r3+'" ry="'+(r3*0.72)+'" fill="rgba(231,76,60,0.08)" stroke="#e74c3c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>'+
 
     // 2-putt ring (gold)
-    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r2+'" ry="'+(r2*0.72)+'" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.9"/>'+
-    '<text x="'+(cx+r2+2)+'" y="'+cy+'" dominant-baseline="central" fill="#c9a84c" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg2?Math.round(stats.avg2*3.281)+"'":"—"))+'</text>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r2+'" ry="'+(r2*0.72)+'" fill="rgba(201,168,76,0.08)" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.9"/>'+
 
     // 1-putt ring (green)
-    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r1+'" ry="'+(r1*0.72)+'" fill="none" stroke="#2ecc71" stroke-width="2" opacity="0.95"/>'+
-    '<text x="'+(cx+r1+2)+'" y="'+cy+'" dominant-baseline="central" fill="#2ecc71" font-size="9" font-weight="700" font-family="sans-serif">'+(noData?'—':(stats.avg1?Math.round(stats.avg1*3.281)+"'":"—"))+'</text>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+r1+'" ry="'+(r1*0.72)+'" fill="rgba(46,204,113,0.12)" stroke="#2ecc71" stroke-width="2" opacity="0.95"/>'+
 
     // Flag pole
     '<line x1="'+cx+'" y1="'+(cy-ry+10)+'" x2="'+cx+'" y2="'+(cy+10)+'" stroke="#fff" stroke-width="1.5"/>'+
