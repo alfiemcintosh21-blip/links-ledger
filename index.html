@@ -94,8 +94,8 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .shape-btn.sel{border-color:var(–g) !important;background:rgba(45,90,61,0.2) !important;box-shadow:0 2px 8px rgba(45,90,61,0.25)}
 .dir-btn{display:block;width:100%;padding:10px 4px;border:1.5px solid var(–bdr);border-radius:10px;background:var(–bg2);color:var(–txt);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;transition:background 0.15s,color 0.15s}
 .dir-btn.sel{background:var(–g) !important;color:#fff !important;border-color:var(–g) !important;box-shadow:0 2px 8px rgba(45,90,61,0.35)}.dir-btn:active{background:var(–gd);color:#fff;border-color:var(–gd)}
-.tog{width:49px;height:27px;border-radius:14px;background:#ccc;border:2px solid #aaa;cursor:pointer;position:relative;transition:all 0.2s;flex-shrink:0}
-.tog.on{background:var(–g);border-color:var(–gd)}
+.tog{width:49px;height:27px;border-radius:14px;background:#bbb;border:2.5px solid #888;cursor:pointer;position:relative;transition:all 0.2s;flex-shrink:0}
+.tog.on{background:#2d5a3d;border-color:#1a3d29}
 .tog::after{content:’’;position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
 .tog.on::after{left:25px}
 
@@ -164,7 +164,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .chip:active{transform:scale(0.95)}
 .club-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
 .cc{padding:11px 12px;border:2px solid #aaa;border-radius:9px;background:#fff;font-size:15px;font-weight:800;cursor:pointer;color:#1a1a1a;font-family:inherit;transition:all 0.12s;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
-.cc.sel{border-color:var(–g) !important;background:var(–g) !important;color:#fff !important;box-shadow:0 2px 8px rgba(45,90,61,0.3)}
+.cc.sel{border-color:#1a3d29 !important;background:#2d5a3d !important;color:#fff !important;box-shadow:0 3px 12px rgba(45,90,61,0.5) !important;transform:scale(1.08);outline:3px solid #fff}
 .cc:active{transform:scale(0.94)}
 
 /* LIE GRID */
@@ -1226,7 +1226,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.1';
+const APP_VERSION='v1.2';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -2559,6 +2559,7 @@ function stepScore(pg){
   });
 
   pg.innerHTML=`
+${getScoreBannerHTML()}
 <div style="background:var(--g);border-radius:12px;padding:12px 14px;margin-bottom:12px;color:#fff">
   <div style="font-size:12px;text-transform:uppercase;opacity:0.75;margin-bottom:3px">Hole ${hole.h} · ${hole.name||'Par '+par}</div>
   <div style="display:flex;align-items:center;justify-content:space-between">
@@ -3860,6 +3861,7 @@ function stepPlay(pg){
   }
 
   pg.innerHTML=`
+${getScoreBannerHTML()}
 <div style="background:var(--g);border-radius:10px;padding:10px 14px;margin-bottom:8px;color:#fff;display:flex;align-items:center;justify-content:space-between">
   <div>
     <div style="font-size:11px;text-transform:uppercase;opacity:0.75">Hole ${hole.h} · Par ${hole.par} · ${hole.y}m</div>
@@ -6118,6 +6120,7 @@ function stepPutting(pg){
   const gps=getHoleGPS(AR.courseId,cHole+1);
 
   pg.innerHTML=
+    getScoreBannerHTML()+
     '<div style="background:var(--g);border-radius:10px;padding:10px 14px;margin-bottom:8px;color:#fff;display:flex;align-items:center;justify-content:space-between">'+
       '<div><div style="font-size:11px;text-transform:uppercase;opacity:0.75">Hole '+(hole.h)+' · Putting</div>'+
       '<div style="font-size:15px;font-weight:800">Shot '+shotNum+' onwards</div></div>'+
@@ -6138,8 +6141,8 @@ function stepPutting(pg){
       document.getElementById('puttHint').textContent='No GPS data — skip to score';
       return;
     }
-    _puttMap=L.map('puttMapEl',{zoomControl:false,attributionControl:false});
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:19}).addTo(_puttMap);
+    _puttMap=L.map('puttMapEl',{zoomControl:false,attributionControl:false,scrollWheelZoom:true,touchZoom:true,doubleClickZoom:true});
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19}).addTo(_puttMap);
 
     // Frame: 5m beyond frontGreen and backGreen
     const front=gps.frontGreen||gps.green;
@@ -6157,6 +6160,11 @@ function stepPutting(pg){
     // pin tooltip removed — icon is sufficient
     _puttPinMarker.on('drag',function(e){_puttPinPos={lat:e.latlng.lat,lng:e.latlng.lng};});
 
+    // Show approach ball position if GPS tracked
+    if(_prevBallGPS&&_prevBallGPS.lat){
+      const approachIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#3b82f6;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)" title="Your ball"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+      L.marker([_prevBallGPS.lat,_prevBallGPS.lng],{icon:approachIcon,interactive:false}).addTo(_puttMap);
+    }
     // Show "Set pin" popup
     showPinSetPopup();
   },150);
@@ -6203,12 +6211,21 @@ function puttPinSet(){
     '<button class="btn bg" id="puttHoleBtn" onclick="puttInHole()" style="display:none;flex:1;background:var(--g)">⛳ In the hole!</button>';
   document.getElementById('placeBallBtn').style.display='block';
 
-  // Place crosshair offset from pin - toward tee so it's clearly separate
-  // Offset ~6m in direction away from green centre (toward player)
+  // First putt: crosshair starts at last known ball position (where approach shot landed)
+  // Subsequent putts: crosshair starts at last putt position
   let crossStart=_puttPinPos;
   try{
-    const bearing=getBearing(_puttPinPos,_playerTee||_inlineTeePos||_puttPinPos);
-    crossStart=offsetCoord(_puttPinPos,bearing,6);
+    if(_puttBallPositions.length===0&&_prevBallGPS&&_prevBallGPS.lat){
+      // First putt - use last tracked ball position (approach shot landing)
+      crossStart={lat:_prevBallGPS.lat,lng:_prevBallGPS.lng};
+    } else if(_puttBallPositions.length>0){
+      // Subsequent putts - start at last putt position
+      crossStart=_puttBallPositions[_puttBallPositions.length-1];
+    } else {
+      // Fallback: offset from pin toward tee
+      const bearing=getBearing(_puttPinPos,_playerTee||_inlineTeePos||_puttPinPos);
+      crossStart=offsetCoord(_puttPinPos,bearing,6);
+    }
   }catch(e){}
 
   const crossIco=L.divIcon({className:'',html:
@@ -6290,17 +6307,40 @@ function puttPlaceBall(){
 }
 
 function puttInHole(){
-  if(window._hd.puttsData&&window._hd.puttsData.length>0){
-    window._hd.puttsData[window._hd.puttsData.length-1].made=true;
-    const lastPos=_puttBallPositions[_puttBallPositions.length-1];
-    if(lastPos&&_puttPinPos){
+  // Record the final made putt as a shot at the pin position
+  if(_puttPinPos){
+    const madePos={lat:_puttPinPos.lat,lng:_puttPinPos.lng};
+    const shotNum=_puttShotNum+_puttBallPositions.length;
+    const madePutt={
+      shotNum:shotNum, puttNum:_puttBallPositions.length+1,
+      ballPos:madePos, pinPos:_puttPinPos,
+      distToPin:0, distToPinFt:0, made:true,
+      club:'Pu', lie:'Green',
+      roundId:AR.id, courseId:AR.courseId, holeNum:cHole+1,
+      date:new Date().toISOString()
+    };
+    if(!window._hd.puttsData)window._hd.puttsData=[];
+    // Mark previous putt as not made
+    if(window._hd.puttsData.length>0)window._hd.puttsData[window._hd.puttsData.length-1].made=false;
+    window._hd.puttsData.push(madePutt);
+    if(!window._hd.shots)window._hd.shots=[];
+    window._hd.shots.push(madePutt);
+    _puttBallPositions.push(madePos);
+    // Draw line from last putt to pin
+    const lastPos=_puttBallPositions[_puttBallPositions.length-2];
+    if(lastPos&&_puttMap){
       L.polyline([[lastPos.lat,lastPos.lng],[_puttPinPos.lat,_puttPinPos.lng]],{color:'rgba(255,215,0,0.9)',weight:2,dashArray:'4,3'}).addTo(_puttMap);
     }
+    // Draw ⛳ at pin
+    if(_puttMap){
+      L.marker([_puttPinPos.lat,_puttPinPos.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:16px">⛳</div>',iconSize:[16,16],iconAnchor:[8,16]})}).addTo(_puttMap);
+    }
+  } else if(window._hd.puttsData&&window._hd.puttsData.length>0){
+    window._hd.puttsData[window._hd.puttsData.length-1].made=true;
   }
-  // Auto-set putts = number of putt positions placed
+  // Auto-set putts = total putt positions including the made one
   window._hd.putts=_puttBallPositions.length;
   window._hd.pinPos=_puttPinPos;
-  // s2g = all shots before putts (shots array contains approach shots)
   const approachShots=(window._hd.shots||[]).filter(function(s){return s.lie!=='Green';});
   window._hd._s2gFromPutting=approachShots.length||1;
   WF.step='score'; renderWF();
@@ -7951,6 +7991,121 @@ function getStockClubs(){
     .filter(function(c){return c!=='Pu';});
   return sortClubs(clubs);
 }
+
+// ══════════════════════════════════════════════════════════
+// PROJECTED SCORE ENGINE v1.2
+// ══════════════════════════════════════════════════════════
+function calcProjectedScore(AR, cHole, currentStrokes, wxData){
+  try{
+    const holes = getH(AR.courseId, AR.type==='custom'?'18':AR.type)||[];
+    const totalHoles = holes.length||18;
+    const holesPlayed = cHole; // 0-based, so cHole = holes completed
+    const holesRemaining = totalHoles - holesPlayed;
+    if(holesPlayed===0) return null; // nothing to project yet
+
+    const coursePar = holes.reduce(function(s,h){return s+(h.par||4);},0)||72;
+    const d = ud();
+
+    // ── STEP 1: BASELINE ──
+    let hcp = null;
+    try{ hcp = calcWHSHandicap(realR()); }catch(e){}
+    const course = gc(AR.courseId);
+    const rating = course&&course.rating?course.rating:coursePar;
+    const slope  = course&&course.slope?course.slope:113;
+    let expectedScore;
+    if(hcp!=null){
+      expectedScore = rating + (hcp * (slope/113));
+    } else {
+      // Use course average from real rounds
+      const rr = realR().filter(function(r){return r.courseId===AR.courseId&&!r.testMode;});
+      expectedScore = rr.length
+        ? rr.reduce(function(s,r){return s+normalizeScore(r.total,r.totalHoles||18);},0)/rr.length
+        : coursePar+18;
+    }
+
+    // ── STEP 2: PERFORMANCE DELTA ──
+    const expectedSoFar = expectedScore*(holesPlayed/totalHoles);
+    const perfDelta = currentStrokes - expectedSoFar;
+
+    // ── STEP 3: CONFIDENCE WEIGHT ──
+    const confWeight = Math.min(1.0, Math.max(0.02, Math.pow(holesPlayed/totalHoles, 1.35)));
+
+    // ── STEP 4-6: REMAINING HOLES ──
+    const playerTrend = (perfDelta/Math.max(holesPlayed,1))*confWeight;
+    let expectedRemaining = 0;
+    for(let i=holesPlayed; i<holes.length; i++){
+      const h=holes[i];
+      const par = h.par||4;
+      // Hole difficulty from historical data
+      let holeDiff = 0; // neutral fallback
+      const expectedHole = par + holeDiff + playerTrend;
+      expectedRemaining += expectedHole;
+    }
+
+    // ── STEP 7: WEATHER ──
+    let weatherAdj = 0;
+    if(wxData){
+      const wind = wxData.wind_speed_10m||wxData.windSpeed||0;
+      const windAdj = Math.pow(wind,1.15)*0.018*1.0;
+      const rain = wxData.rain||wxData.rainMm||0;
+      const rainIntensity = rain>5?3:rain>2?2:rain>0?1:0;
+      const rainAdj = rainIntensity*0.12;
+      const temp = wxData.temperature_2m||wxData.temp||18;
+      const tempAdj = temp<18?((18-temp)*0.015):0;
+      weatherAdj = windAdj+rainAdj+tempAdj;
+    }
+
+    // ── STEP 8: MOMENTUM (last 3 holes) ──
+    const completedHoles = (AR.holes||[]).slice(0,holesPlayed).filter(Boolean);
+    let momentumAdj = 0;
+    if(completedHoles.length>=1){
+      const last3 = completedHoles.slice(-3);
+      const avgRelPar = last3.reduce(function(s,h){return s+((h.score||h.par||4)-(h.par||4));},0)/last3.length;
+      momentumAdj = Math.min(1.5, Math.max(-1.5, avgRelPar*0.35));
+    }
+
+    // ── STEP 9: REGRESSION ──
+    const regWeight = Math.pow(1-(holesPlayed/totalHoles), 1.6);
+    const rawProjected = currentStrokes + expectedRemaining + weatherAdj + momentumAdj;
+    const regAdj = (expectedScore - rawProjected)*regWeight;
+
+    let projected = rawProjected + regAdj;
+
+    // ── SMOOTHING ──
+    if(window._lastProjection!=null){
+      projected = (window._lastProjection*0.65) + (projected*0.35);
+    }
+    window._lastProjection = projected;
+
+    // ── CLAMP ──
+    projected = Math.max(coursePar-10, Math.min(coursePar+45, projected));
+    return Math.round(projected);
+  }catch(e){
+    return null;
+  }
+}
+
+function getScoreBannerHTML(){
+  if(!AR)return'';
+  const completedHoles=(AR.holes||[]).filter(function(h){return h&&h.score;});
+  const holesPlayed=completedHoles.length;
+  if(!holesPlayed)return'';
+  const totalStrokes=completedHoles.reduce(function(s,h){return s+(h.score||0);},0);
+  const totalPar=completedHoles.reduce(function(s,h){return s+(h.par||4);},0);
+  const toPar=totalStrokes-totalPar;
+  const toParStr=toPar===0?'E':toPar>0?'+'+toPar:''+toPar;
+  const totalHoles=getH(AR.courseId,AR.type==='custom'?'18':AR.type)||[];
+  const proj=calcProjectedScore(AR,holesPlayed,totalStrokes,window.wxData);
+  const projStr=proj!=null?proj:'—';
+  const projPar=proj!=null?proj-(totalHoles.reduce?totalHoles.reduce(function(s,h){return s+(h.par||4);},0):72):null;
+  const projParStr=projPar!=null?(projPar===0?'E':projPar>0?'+'+projPar:''+projPar):'—';
+  return'<div style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);padding:6px 16px;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#fff;flex-shrink:0">'+
+    '<div style="font-weight:800">'+toParStr+' <span style="font-size:10px;opacity:0.8;font-weight:400">after '+holesPlayed+'H</span></div>'+
+    '<div style="font-size:10px;opacity:0.75;text-align:center">TOTAL '+totalStrokes+'</div>'+
+    '<div style="font-weight:800">Proj: '+projParStr+' <span style="font-size:10px;opacity:0.8;font-weight:400">('+projStr+')</span></div>'+
+  '</div>';
+}
+
 window.addEventListener('load',init);
 
 // GPS removed - world map only
