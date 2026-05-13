@@ -7560,7 +7560,7 @@ function viewRound(roundId){
     var gir=h.gir===true?'✅ GIR':h.gir===false?'❌ No GIR':'';
     var fw=p>=4?(h.fairway===true?'✅ FW':h.fairway===false?'❌ FW':''):'';
     var hasShots=h.shots&&h.shots.length>0;
-    var hasShotGPS=hasShots&&h.shots.some(function(s){return s.ballPos&&s.ballPos.lat;});
+    var hasShotGPS=hasShots&&h.shots.some(function(s){return s.ballPos&&s.ballPos.lat;})||(h.puttsData&&h.puttsData.some(function(p){return p.ballPos&&p.ballPos.lat;}));
     var holeNum=h.h||i+1;
     
     holesHTML+=
@@ -7645,7 +7645,7 @@ function viewHoleRoute(roundId, holeIndex){
   const r=rr.find(function(x){return x.id===roundId;});
   if(!r)return;
   const h=r.holes[holeIndex];
-  if(!h||!h.shots)return;
+  if(!h)return;
   
   const wrap=document.getElementById('vrMapWrap');
   if(!wrap)return;
@@ -7689,20 +7689,58 @@ function viewHoleRoute(roundId, holeIndex){
       }
     });
     
-    // Pin position if available
-    if(h.pinPos&&h.pinPos.lat){
+    // Putt positions (from putt tracking)
+    var puttsData=h.puttsData||[];
+    var puttNum=0;
+    puttsData.forEach(function(p,i){
+      if(p.ballPos&&p.ballPos.lat){
+        puttNum++;
+        var shotTotal=(h.shots?h.shots.filter(function(s){return s.ballPos&&s.ballPos.lat;}).length:0)+puttNum;
+        var pDotIcon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;background:#c9a84c;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)">'+shotTotal+'</div>',iconSize:[22,22],iconAnchor:[11,11]});
+        L.marker([p.ballPos.lat,p.ballPos.lng],{icon:pDotIcon})
+          .bindPopup('<b>Putt '+puttNum+'</b><br>'+p.distToPinFt+'ft to pin')
+          .addTo(map);
+        var prevPt=pts.length>0?pts[pts.length-1]:null;
+        pts.push([p.ballPos.lat,p.ballPos.lng]);
+        if(prevPt){
+          L.polyline([prevPt,pts[pts.length-1]],{color:'#c9a84c',weight:2,dashArray:'4,3',opacity:0.9}).addTo(map);
+        }
+      }
+    });
+    
+    // Pin position
+    var pinLat=h.pinPos&&h.pinPos.lat?h.pinPos.lat:(puttsData.length&&puttsData[0].pinPos?puttsData[0].pinPos.lat:null);
+    var pinLng=h.pinPos&&h.pinPos.lng?h.pinPos.lng:(puttsData.length&&puttsData[0].pinPos?puttsData[0].pinPos.lng:null);
+    if(pinLat){
       var pinIcon=L.divIcon({className:'',html:'<div style="font-size:20px;line-height:1">⛳</div>',iconSize:[20,20],iconAnchor:[10,20]});
-      L.marker([h.pinPos.lat,h.pinPos.lng],{icon:pinIcon}).addTo(map);
-      pts.push([h.pinPos.lat,h.pinPos.lng]);
+      L.marker([pinLat,pinLng],{icon:pinIcon}).addTo(map);
+      pts.push([pinLat,pinLng]);
+    } else {
+      // Try course GPS for green position
+      var gps=r.courseId?getHoleGPS(r.courseId,h.h||holeIndex+1):null;
+      if(gps&&gps.green){
+        var greenIcon=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#c9a84c;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+        L.marker([gps.green.lat,gps.green.lng],{icon:greenIcon}).addTo(map);
+        pts.push([gps.green.lat,gps.green.lng]);
+      }
     }
     
     if(pts.length>0){
-      map.fitBounds(L.latLngBounds(pts),{padding:[30,30]});
+      map.fitBounds(L.latLngBounds(pts),{padding:[35,35]});
+    } else {
+      // Fall back to course GPS hole
+      var gps2=r.courseId?getHoleGPS(r.courseId,h.h||holeIndex+1):null;
+      if(gps2&&gps2.tee)map.setView([gps2.tee.lat,gps2.tee.lng],17);
     }
     
-    // Label
+    // Add legend
+    var shotCount=(h.shots||[]).filter(function(s){return s.ballPos&&s.ballPos.lat;}).length;
+    var puttCount=puttsData.filter(function(p){return p.ballPos&&p.ballPos.lat;}).length;
+    var legendParts=[];
+    if(shotCount)legendParts.push(shotCount+' shots');
+    if(puttCount)legendParts.push(puttCount+' putts tracked');
     var hNum=h.h||holeIndex+1;
-    wrap.insertAdjacentHTML('afterbegin','<div style="background:#2d5a3d;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Hole '+hNum+' route — '+h.shots.length+' shots tracked</div>');
+    wrap.insertAdjacentHTML('afterbegin','<div style="background:#2d5a3d;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Hole '+hNum+' · '+(legendParts.length?legendParts.join(' + '):'Course map only')+'</div>');
   },200);
 }
 
