@@ -983,7 +983,7 @@ async function doLogin(){
       return;
     }
     const user=data.user;
-    CU={uid:user.id,email:user.email,name:user.user_metadata?.full_name||user.email,
+    CU={uid:user.id,email:user.email,name:user.user_metadata?.full_name||(user.user_metadata?.first_name&&user.user_metadata?.last_name?(user.user_metadata.first_name+' '+user.user_metadata.last_name):null)||user.email,
         firstName:user.user_metadata?.first_name||'',
         lastName:user.user_metadata?.last_name||'',
         phone:user.user_metadata?.phone||'',
@@ -1134,6 +1134,16 @@ function launch(){
   document.getElementById('auth').style.display='none';
   document.getElementById('app').classList.remove('gone');
   document.getElementById('rptBtn').style.display='none';
+  // Ensure CU.name is populated — fall back to stored data if metadata missing
+  if(CU&&(!CU.name||CU.name===CU.email||CU.name==='Player')){
+    const stored=LD('ll_d_'+CU.uid,{});
+    const users=GU();
+    const userByEmail=CU.email?Object.values(users).find(function(u){return u.email===CU.email;}):null;
+    if(stored.name&&stored.name!==CU.email)CU.name=stored.name;
+    else if(stored.firstName&&stored.lastName)CU.name=stored.firstName+' '+stored.lastName;
+    else if(CU.firstName&&CU.lastName)CU.name=CU.firstName+' '+CU.lastName;
+    else if(userByEmail&&userByEmail.name)CU.name=userByEmail.name;
+  }
   // Retry any pending Supabase syncs
   setTimeout(retrySyncQueue, 2000);
   setTimeout(migrateOldData, 3000);
@@ -5955,7 +5965,7 @@ function init(){
       if(session&&session.user){
         const user=session.user;
         CU={uid:user.id,email:user.email,
-            name:user.user_metadata?.full_name||user.email,
+            name:user.user_metadata?.full_name||(user.user_metadata?.first_name&&user.user_metadata?.last_name?(user.user_metadata.first_name+' '+user.user_metadata.last_name):null)||user.email,
             firstName:user.user_metadata?.first_name||'',
             lastName:user.user_metadata?.last_name||'',
             phone:user.user_metadata?.phone||'',
@@ -5974,8 +5984,8 @@ function init(){
           document.getElementById('splash').classList.add('out');
           launch();
         } else {
-          // Already launched — refresh home silently with correct name
-          rHome();
+          // Already launched — refresh home with correct name from Supabase
+          setTimeout(rHome, 50);
         }
       } else {
         // No valid session
