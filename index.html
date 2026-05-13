@@ -2565,12 +2565,16 @@ function stepScore(pg){
   // Use putt-tracking derived s2g if available, else count shots (include penalty shots)
   const penaltyStrokes=hd.penaltyStrokes||0;
   const nonGreenShots=shots.filter(function(s){return s.lie!=='Green';});
-  const s2g=hd._s2gFromPutting||(shots.length>0?nonGreenShots.length||shots.length:Math.max(1,(hd.score||par)-(hd.putts||2)));
-  // Auto-increment score for penalties if not already set
-  if(penaltyStrokes>0&&(!hd._penaltiesApplied)){
-    hd.score=(hd.score||par)+penaltyStrokes;
-    hd._penaltiesApplied=true;
-  }
+  // s2g = approach shots + penalty strokes (not putts, not green shots)
+  // penaltyStrokes are the EXTRA strokes added (the OOB shot itself is already in nonGreenShots)
+  const s2g=hd._s2gFromPutting!=null
+    ? hd._s2gFromPutting + penaltyStrokes
+    : (shots.length>0
+        ? nonGreenShots.length + penaltyStrokes
+        : Math.max(1,(hd.score||par)-(hd.putts||2)));
+  // Penalties already baked into s2g — no need to add separately to score
+  // score will be set to s2g + putts below which is the correct total
+  hd._penaltiesApplied=true; // mark as handled
   window._s2g=s2g;
 
   // ── AUTO-CALC PUTTS - default 2, but 1 if par 3 GIR ──
