@@ -375,13 +375,27 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
     <button class="ba" style="background:var(--bg3);color:var(--txt);margin-top:6px" onclick="suBack(3)">← Back</button>
     <div class="aerr" id="su-err3"></div>
   </div>
-  <!-- Step 4: Home course -->
+  <!-- Step 4: Home course + ring colour -->
   <div id="su-step4" style="display:none">
-    <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Step 4 of 4 — Home course (optional)</div>
-    <div class="fi"><label>Home golf course</label>
+    <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Step 4 of 4 — Home course &amp; avatar</div>
+    <div class="fi"><label>Home golf course <span style="color:var(--red)">*</span></label>
       <select id="su-hc" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit">
-        <option value="">Select a course...</option>
+        <option value="">— Select your home course —</option>
       </select>
+    </div>
+    <div style="margin:14px 0 8px">
+      <label style="font-size:13px;font-weight:700;display:block;margin-bottom:8px">Pick your ring colour <span style="color:var(--red)">*</span></label>
+      <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap" id="su-ring-picker">
+        <button type="button" data-col="#2d5a3d" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#2d5a3d;border:2px solid #ddd;cursor:pointer"></button>
+        <button type="button" data-col="#c9a84c" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#c9a84c;border:2px solid #ddd;cursor:pointer"></button>
+        <button type="button" data-col="#3b82f6" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#3b82f6;border:2px solid #ddd;cursor:pointer"></button>
+        <button type="button" data-col="#e74c3c" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#e74c3c;border:2px solid #ddd;cursor:pointer"></button>
+        <button type="button" data-col="#8e44ad" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#8e44ad;border:2px solid #ddd;cursor:pointer"></button>
+        <button type="button" data-col="#1abc9c" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#1abc9c;border:2px solid #ddd;cursor:pointer"></button>
+        <button type="button" data-col="#e67e22" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#e67e22;border:2px solid #ddd;cursor:pointer"></button>
+        <button type="button" data-col="#1a1a1a" onclick="suPickRing(this)" class="su-ring-dot" style="width:34px;height:34px;border-radius:50%;background:#1a1a1a;border:2px solid #ddd;cursor:pointer"></button>
+      </div>
+      <div id="su-ring-val" style="display:none">#2d5a3d</div>
     </div>
     <button class="ba" id="su-btn" onclick="doSignup()">Create account ⛳</button>
     <button class="ba" style="background:var(--bg3);color:var(--txt);margin-top:6px" onclick="suBack(4)">← Back</button>
@@ -1044,11 +1058,26 @@ function suBack(step){
   document.getElementById('su-step'+(step-1)).style.display='block';
 }
 
+function suPickRing(btn){
+  document.querySelectorAll('.su-ring-dot').forEach(function(b){
+    b.style.border='2px solid #ddd';
+    b.style.transform='scale(1)';
+  });
+  btn.style.border='3px solid #333';
+  btn.style.transform='scale(1.25)';
+  document.getElementById('su-ring-val').textContent=btn.dataset.col;
+}
+
 async function doSignup(){
   const errEl=document.getElementById('su-err4');
   const btn=document.getElementById('su-btn');
   errEl.textContent='';
   _suData.homeCourse=document.getElementById('su-hc').value||'';
+  _suData.ringColour=document.getElementById('su-ring-val').textContent||'#3b82f6';
+  if(!_suData.homeCourse){errEl.textContent='Please select your home course';return;}
+  if(!_suData.ringColour||_suData.ringColour==='#2d5a3d'&&!document.querySelector('.su-ring-dot[style*="scale(1.25)"]')){
+    // Allow default green but require explicit pick
+  }
   btn.textContent='Creating account...';btn.disabled=true;
   try{
     const {data,error}=await sb.auth.signUp({
@@ -1074,7 +1103,7 @@ async function doSignup(){
     // Create initial user data row in Supabase
     if(data.user){
       const uid=data.user.id;
-      const initData={bag:['Dr','3W','5W','Hy','4i','5i','6i','7i','8i','9i','Pw','Sw','Pu'],rounds:[],clubStats:{},holeStats:{},trackingPrefs:{shape:true,direction:true,contact:true,lie:true}};
+      const initData={bag:['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'],rounds:[],clubStats:{},holeStats:{},ringColour:_suData.ringColour||'#3b82f6',homeCourse:_suData.homeCourse||'',name:_suData.fullName||'',email:_suData.email||'',trackingPrefs:{shape:true,direction:true,contact:true,lie:true}};
       await sb.from('ll_userdata').upsert({uid:uid,data:JSON.stringify(initData)});
     }
     _suData={};
@@ -5561,12 +5590,14 @@ async function saveEditProfile(){
   errEl.textContent='';
 
   try{
+    const hc=document.getElementById('ep-hc')?document.getElementById('ep-hc').value:'';
     // Build update object
     const metaUpdate={
       first_name:fn,
       last_name:ln,
       full_name:fn+' '+ln,
-      phone:ph
+      phone:ph,
+      home_course:hc
     };
 
     // Update Supabase Auth metadata
@@ -5589,6 +5620,11 @@ async function saveEditProfile(){
     CU.lastName=ln;
     CU.name=fn+' '+ln;
     CU.phone=ph;
+    if(hc)CU.homeCourse=hc;
+    // Save home course to user data
+    const d2=ud();
+    if(hc)d2.homeCourse=hc;
+    sud(d2);
     if(em!==CU.email){
       CU.email=em;
       // Email change requires re-verification — warn user
@@ -5888,42 +5924,78 @@ function init(){
   // Set home screen icon to logo
 
   seedData();
-  // Use Supabase Auth session
+  // Check for cached session in localStorage first (instant) then verify with Supabase
+  const cachedUid=LD('ll_sess',null);
+  if(cachedUid&&LD('ll_d_'+cachedUid,null)){
+    // We have local data — launch immediately, verify session in background
+    const cachedData=LD('ll_d_'+cachedUid,{});
+    CU={uid:cachedUid,
+        email:cachedData.email||'',
+        name:cachedData.name||cachedData.email||'Player',
+        firstName:cachedData.firstName||'',
+        lastName:cachedData.lastName||'',
+        phone:cachedData.phone||'',
+        homeCourse:cachedData.homeCourse||cachedData.settings?.homeCourse||'',
+        role:cachedData.role||'user'};
+    document.getElementById('splash').classList.add('out');
+    launch();
+  }
+  // Always verify/refresh session with Supabase in background
   (async function(){
-    if(!sb){document.getElementById('auth').style.display='flex';return;}
-    const {data:{session}}=await sb.auth.getSession();
-    if(session&&session.user){
-      const user=session.user;
-      CU={uid:user.id,email:user.email,
-          name:user.user_metadata?.full_name||user.email,
-          firstName:user.user_metadata?.first_name||'',
-          lastName:user.user_metadata?.last_name||'',
-          phone:user.user_metadata?.phone||'',
-          homeCourse:user.user_metadata?.home_course||'',
-          role:user.user_metadata?.role||'user'};
-      // Load data from Supabase
-      try{
+    if(!sb){
+      if(!cachedUid)document.getElementById('auth').style.display='flex';
+      return;
+    }
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(session&&session.user){
+        const user=session.user;
+        CU={uid:user.id,email:user.email,
+            name:user.user_metadata?.full_name||user.email,
+            firstName:user.user_metadata?.first_name||'',
+            lastName:user.user_metadata?.last_name||'',
+            phone:user.user_metadata?.phone||'',
+            homeCourse:user.user_metadata?.home_course||'',
+            role:user.user_metadata?.role||'user'};
+        // Sync latest data from Supabase
         const {data:row}=await sb.from('ll_userdata').select('data').eq('uid',user.id).single();
         if(row?.data){const remote=typeof row.data==='string'?JSON.parse(row.data):row.data;SV('ll_d_'+user.id,remote);}
-      }catch(e){}
-      SV('ll_sess',user.id);
-      // Hide splash, launch immediately
-      const splashEl=document.getElementById('splash');
-      if(splashEl)splashEl.classList.add('out');
-      launch();
-    } else {
-      document.getElementById('auth').style.display='flex';
-      setTimeout(prefillRememberedEmail,100);
+        SV('ll_sess',user.id);
+        if(!cachedUid){
+          // No cached session — launch now after Supabase confirms
+          document.getElementById('splash').classList.add('out');
+          launch();
+        } else {
+          // Already launched — just refresh UI silently
+          rHome();
+        }
+      } else {
+        // No valid session
+        localStorage.removeItem('ll_sess');
+        if(!cachedUid){
+          document.getElementById('splash').classList.add('out');
+          setTimeout(function(){
+            document.getElementById('auth').style.display='flex';
+            setTimeout(prefillRememberedEmail,100);
+          },400);
+        }
+      }
+    }catch(e){
+      // Network error — if cached data exists we already launched, otherwise show auth
+      if(!cachedUid){
+        document.getElementById('splash').classList.add('out');
+        setTimeout(function(){document.getElementById('auth').style.display='flex';},400);
+      }
     }
   })();
-  // Splash already hidden if session found - only show auth fallback if needed
+  // Safety fallback — if nothing happened after 3s, show auth
   setTimeout(function(){
-    const splashEl=document.getElementById('splash');
-    if(splashEl&&!splashEl.classList.contains('out')){
-      splashEl.classList.add('out');
+    const sp=document.getElementById('splash');
+    if(sp&&!sp.classList.contains('out')){
+      sp.classList.add('out');
       setTimeout(function(){document.getElementById('auth').style.display='flex';},400);
     }
-  },1400);
+  },3000);
   document.querySelectorAll('.mbg').forEach(function(el){
     el.addEventListener('click',function(e){if(e.target===el)el.classList.remove('open');});
   });
