@@ -1106,7 +1106,7 @@ function launch(){
   cleanupTestShots();
   // One-time fix: remove hole 10 from most recent round + fix par on any Chisholm hole 10
   (function(){
-    const FIX_KEY='ll_chisholm_h10_fix_v1';
+    const FIX_KEY='ll_chisholm_h10_fix_v2';
     if(localStorage.getItem(FIX_KEY))return;
     const d=ud();
     if(!d||!d.rounds||!d.rounds.length){localStorage.setItem(FIX_KEY,'1');return;}
@@ -1133,6 +1133,20 @@ function launch(){
       if(!r||r.courseId!=='chisholm'||!r.holes)return;
       r.holes.forEach(function(h){
         if(h&&h.h===10&&h.par===4){h.par=3;console.log('Fixed hole 10 par to 3');}
+      });
+    });
+    // Fix OOB shots: remove dist from penalty shots in all rounds
+    d.rounds.forEach(function(r){
+      if(!r||!r.holes)return;
+      r.holes.forEach(function(h){
+        if(!h||!h.shots)return;
+        h.shots.forEach(function(s){
+          if(s&&(s.penalty||s.lie==='OOB')){
+            s.dist=null;
+            s.teeDist=null;
+            console.log('Cleared OOB shot distance');
+          }
+        });
       });
     });
     sud(d);
@@ -7876,10 +7890,15 @@ function viewHoleRoute(roundId, holeIndex){
       }
     });
     
-    // Pin position
+    // Pin position — always draw line from last tracked position to pin
     var pinLat=h.pinPos&&h.pinPos.lat?h.pinPos.lat:(puttsData.length&&puttsData[0].pinPos?puttsData[0].pinPos.lat:null);
     var pinLng=h.pinPos&&h.pinPos.lng?h.pinPos.lng:(puttsData.length&&puttsData[0].pinPos?puttsData[0].pinPos.lng:null);
     if(pinLat){
+      // Draw line from last tracked position to pin (the made putt)
+      var lastTrackedPt=pts.length>0?pts[pts.length-1]:null;
+      if(lastTrackedPt){
+        L.polyline([lastTrackedPt,[pinLat,pinLng]],{color:'#FFD700',weight:2.5,dashArray:'5,3',opacity:0.9}).addTo(map);
+      }
       var pinIcon=L.divIcon({className:'',html:'<div style="font-size:20px;line-height:1">⛳</div>',iconSize:[20,20],iconAnchor:[10,20]});
       L.marker([pinLat,pinLng],{icon:pinIcon}).addTo(map);
       pts.push([pinLat,pinLng]);
