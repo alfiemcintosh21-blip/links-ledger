@@ -830,6 +830,15 @@ let pendingShot=null, sfb={}, chatHist=[], wxData=null, diagramHole=0;
 const GU=()=>LD('ll_users',{});
 const SUs=u=>SV('ll_users',u);
 const GUD=uid=>LD('ll_d_'+uid,{rounds:[],clubStats:{},holeStats:{},leagues:[],achievements:[],bag:null,customCourses:{},settings:{privateRounds:false}});
+const _roundBackupKey=uid=>'ll_rounds_backup_'+uid;
+const backupRounds=(uid)=>{
+  try{
+    const d=LD('ll_d_'+uid,{});
+    if(d&&d.rounds&&d.rounds.length){
+      SV(_roundBackupKey(uid),{rounds:JSON.parse(JSON.stringify(d.rounds)),savedAt:Date.now()});
+    }
+  }catch(e){}
+};
 const SUD=async(uid,d)=>{SV('ll_d_'+uid,d);if(sb){try{await sb.from('ll_userdata').upsert({uid,data:JSON.stringify(d),updated_at:new Date().toISOString()},{onConflict:'uid'});}catch(e){console.warn('Supabase sync',e);}}};
 const GG=()=>LD('ll_global',{leagues:{},reports:[],courses:{}});
 const SG=g=>SV('ll_global',g);
@@ -1158,41 +1167,22 @@ function launch(){
     if(d.rounds.length!==before){SUD('alfie',d);console.log('Removed Otago test round');}
   }
   cleanupTestShots();
-  // One-time fix: remove hole 10 from most recent round + fix par on any Chisholm hole 10
+  // Safe par fix only - Chisholm h10 = par 3
   (function(){
-    const FIX_KEY='ll_chisholm_h10_fix_v4';
+    const FIX_KEY='ll_chisholm_par_fix_v1';
     if(localStorage.getItem(FIX_KEY))return;
-    const d=ud();
-    if(!d||!d.rounds||!d.rounds.length){localStorage.setItem(FIX_KEY,'1');return;}
-    // Sort rounds by started desc - first is most recent
-    // Fix par:4 on hole 10 in ANY Chisholm round (safe - only changes par field)
-    d.rounds.forEach(function(r){
-      if(!r||r.courseId!=='chisholm'||!r.holes)return;
-      var changed=false;
-      r.holes.forEach(function(h){
-        if(h&&h.h===10&&h.par!==3){h.par=3;changed=true;}
+    try{
+      const d=ud();
+      if(!d||!d.rounds)return;
+      var anyChanged=false;
+      d.rounds.forEach(function(r){
+        if(!r||r.courseId!=='chisholm'||!r.holes)return;
+        var changed=false;
+        r.holes.forEach(function(h){if(h&&h.h===10&&h.par!==3){h.par=3;changed=true;anyChanged=true;}});
+        if(changed){var vh=r.holes.filter(function(h){return h&&h.score;});r.toPar=vh.reduce(function(s,h){return s+(h.score||0)-(h.par||4);},0);}
       });
-      // Recalculate toPar if par was wrong
-      if(changed){
-        var validH=r.holes.filter(function(h){return h&&h.score;});
-        r.toPar=validH.reduce(function(s,h){return s+(h.score||0)-(h.par||4);},0);
-      }
-    });
-    // Fix OOB shots: remove dist from penalty shots in all rounds
-    d.rounds.forEach(function(r){
-      if(!r||!r.holes)return;
-      r.holes.forEach(function(h){
-        if(!h||!h.shots)return;
-        h.shots.forEach(function(s){
-          if(s&&(s.penalty||s.lie==='OOB')){
-            s.dist=null;
-            s.teeDist=null;
-            console.log('Cleared OOB shot distance');
-          }
-        });
-      });
-    });
-    sud(d);
+      if(anyChanged)sud(d);
+    }catch(e){}
     localStorage.setItem(FIX_KEY,'1');
   })();
   try{
@@ -1330,7 +1320,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.3';
+const APP_VERSION='v1.4';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
