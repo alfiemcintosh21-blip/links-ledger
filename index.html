@@ -1160,7 +1160,7 @@ function launch(){
   cleanupTestShots();
   // One-time fix: remove hole 10 from most recent round + fix par on any Chisholm hole 10
   (function(){
-    const FIX_KEY='ll_chisholm_h10_fix_v2';
+    const FIX_KEY='ll_chisholm_h10_fix_v3';
     if(localStorage.getItem(FIX_KEY))return;
     const d=ud();
     if(!d||!d.rounds||!d.rounds.length){localStorage.setItem(FIX_KEY,'1');return;}
@@ -8395,6 +8395,26 @@ function deleteShotEntry(btn){
   document.getElementById('editShotModal').remove();
   // Reopen with updated data
   editShotMap(roundId, holeIndex);
+}
+
+function deleteHole(roundId,holeIndex){
+  if(!confirm('Delete hole '+(holeIndex+1)+' from this round? This cannot be undone.'))return;
+  const d=ud();
+  const r=d.rounds.find(function(x){return x.id===roundId;});
+  if(!r||!r.holes){toast('Round not found');return;}
+  const h=r.holes[holeIndex];
+  if(!h){toast('Hole not found');return;}
+  // Remove the hole
+  r.holes[holeIndex]=null; // null = not played, keeps hole numbering intact
+  // Recalculate round totals from non-null holes
+  const validHoles=r.holes.filter(function(h){return h&&h.score;});
+  r.total=validHoles.reduce(function(s,h){return s+(h.score||0);},0);
+  r.toPar=validHoles.reduce(function(s,h){return s+(h.score||0)-(h.par||4);},0);
+  r.totalHoles=validHoles.length;
+  sud(d);
+  document.getElementById('editHoleModal').remove();
+  toast('Hole deleted ✓');
+  viewRound(roundId);
 }
 
 function saveEditHole(roundId,holeIndex){
