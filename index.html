@@ -1165,24 +1165,7 @@ function launch(){
     const d=ud();
     if(!d||!d.rounds||!d.rounds.length){localStorage.setItem(FIX_KEY,'1');return;}
     // Sort rounds by started desc - first is most recent
-    const sorted=d.rounds.slice().sort(function(a,b){return (b.started||0)-(a.started||0);});
-    const latest=sorted[0];
-    if(latest){
-      // Remove hole 10 from most recent round if it exists
-      if(latest.holes){
-        const before=latest.holes.length;
-        latest.holes=latest.holes.filter(function(h){return !h||h.h!==10;});
-        if(latest.holes.length!==before){
-          // Recalculate total
-          const validHoles=latest.holes.filter(function(h){return h&&h.score;});
-          latest.total=validHoles.reduce(function(s,h){return s+(h.score||0);},0);
-          latest.toPar=validHoles.reduce(function(s,h){return s+(h.score||0)-(h.par||4);},0);
-          latest.totalHoles=validHoles.length;
-          console.log('Removed hole 10 from most recent round, new total:',latest.total);
-        }
-      }
-    }
-    // Fix par:4 on hole 10 in ANY Chisholm round (including re-fix in case missed)
+    // Fix par:4 on hole 10 in ANY Chisholm round (safe - only changes par field)
     d.rounds.forEach(function(r){
       if(!r||r.courseId!=='chisholm'||!r.holes)return;
       var changed=false;
@@ -8207,24 +8190,69 @@ function viewHoleRoute(roundId, holeIndex){
 }
 
 function viewHoleMap(courseId, holeNum){
-  // Show satellite map of the hole with GPS data only (no shot data)
   const wrap=document.getElementById('vrMapWrap');
   if(!wrap)return;
+  const gps=getHoleGPS(courseId,holeNum);
+  const holes=getH(courseId,'18')||[];
+  const hd=holes[holeNum-1]||{par:4};
   wrap.style.display='block';
-  wrap.innerHTML='<div style="background:#2d5a3d;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Hole '+holeNum+' — course map</div><div id="vrMap" style="width:100%;height:280px"></div>';
+  wrap.innerHTML=
+    '<div style="background:#2d5a3d;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Hole '+holeNum+' · Par '+hd.par+(hd.y?' · '+hd.y+'m':'')+' — Course layout</div>'+
+    '<div id="vrMap" style="width:100%;height:320px"></div>';
   setTimeout(function(){wrap.scrollIntoView({behavior:'smooth',block:'start'});},100);
   setTimeout(function(){
     if(window._vrMap){window._vrMap.remove();window._vrMap=null;}
-    const map=L.map('vrMap',{zoomControl:false});
+    if(!gps){
+      wrap.innerHTML='<div style="padding:20px;text-align:center;color:#888;font-size:13px">No GPS data for this hole yet</div>';
+      return;
+    }
+    const map=L.map('vrMap',{zoomControl:true,attributionControl:false});
     window._vrMap=map;
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:''}).addTo(map);
-    const gps=getHoleGPS(courseId,holeNum);
-    if(!gps){map.setView([-45.87,170.49],15);return;}
-    if(gps.tee){L.circleMarker([gps.tee.lat,gps.tee.lng],{radius:7,color:'#fff',fillColor:'#2d5a3d',fillOpacity:1}).bindPopup('Tee').addTo(map);}
-    if(gps.green){L.circleMarker([gps.green.lat,gps.green.lng],{radius:7,color:'#fff',fillColor:'#c9a84c',fillOpacity:1}).bindPopup('Green').addTo(map);}
-    if(gps.tee&&gps.green){
-      L.polyline([[gps.tee.lat,gps.tee.lng],[gps.green.lat,gps.green.lng]],{color:'#fff',weight:1,dashArray:'4,4',opacity:0.6}).addTo(map);
-      map.fitBounds([[gps.tee.lat,gps.tee.lng],[gps.green.lat,gps.green.lng]],{padding:[40,40]});
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:''}).addTo(map);
+
+    const pts=[];
+
+    // Tee marker
+    if(gps.tee){
+      const teeIco=L.divIcon({className:'',html:'<div style="width:24px;height:24px;background:#fff;border-radius:50%;border:3px solid #2d5a3d;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#2d5a3d;box-shadow:0 1px 4px rgba(0,0,0,0.4)">T</div>',iconSize:[24,24],iconAnchor:[12,12]});
+      L.marker([gps.tee.lat,gps.tee.lng],{icon:teeIco}).bindPopup('<b>Tee</b>').addTo(map);
+      pts.push([gps.tee.lat,gps.tee.lng]);
+    }
+
+    // Layup marker (par 5s)
+    if(gps.layup){
+      const layIco=L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#f97316;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+      L.marker([gps.layup.lat,gps.layup.lng],{icon:layIco}).bindPopup('<b>Layup zone</b>').addTo(map);
+      pts.push([gps.layup.lat,gps.layup.lng]);
+    }
+
+    // Front/back green
+    if(gps.frontGreen){
+      L.circleMarker([gps.frontGreen.lat,gps.frontGreen.lng],{radius:5,color:'#fff',fillColor:'#c9a84c',fillOpacity:0.8,weight:1}).bindPopup('Front of green').addTo(map);
+    }
+    if(gps.backGreen){
+      L.circleMarker([gps.backGreen.lat,gps.backGreen.lng],{radius:5,color:'#fff',fillColor:'#c9a84c',fillOpacity:0.8,weight:1}).bindPopup('Back of green').addTo(map);
+    }
+
+    // Green
+    if(gps.green){
+      const greenIco=L.divIcon({className:'',html:'<div style="font-size:18px;line-height:1">⛳</div>',iconSize:[18,18],iconAnchor:[9,18]});
+      L.marker([gps.green.lat,gps.green.lng],{icon:greenIco}).bindPopup('<b>Green</b>').addTo(map);
+      pts.push([gps.green.lat,gps.green.lng]);
+    }
+
+    // Route line tee → layup → green
+    if(pts.length>1){
+      L.polyline(pts,{color:'#fff',weight:2.5,dashArray:'7,5',opacity:0.75}).addTo(map);
+    }
+
+    // Fit to frame coords if available, otherwise tee+green
+    const framePts=[];
+    if(gps.frameTee)framePts.push([gps.frameTee.lat,gps.frameTee.lng]);
+    if(gps.frameGreen)framePts.push([gps.frameGreen.lat,gps.frameGreen.lng]);
+    const bounds=framePts.length>1?framePts:pts;
+    if(bounds.length>0){
+      map.fitBounds(L.latLngBounds(bounds),{padding:[30,30]});
     }
   },200);
 }
@@ -8296,6 +8324,7 @@ function editHole(roundId, holeIndex){
       '</div>'+
       
       '<button onclick="saveEditHole(\''+roundId+'\','+holeIndex+')" style="width:100%;padding:14px;background:#2d5a3d;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Save changes ✓</button>'+
+      '<button onclick="deleteHole(\''+roundId+'\','+holeIndex+')" style="width:100%;padding:11px;margin-top:8px;background:#fff;color:#dc2626;border:2px solid #dc2626;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🗑 Delete this hole from round</button>'+
     '</div>';
   
   // Store working values
