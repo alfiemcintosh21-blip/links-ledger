@@ -1320,7 +1320,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.4';
+const APP_VERSION='v1.5';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -7482,6 +7482,7 @@ async function fetchHomeWeather(){
     const wdesc=wxDesc(wx.code);
     const windDir=windDirLabel(wx.dir);
     const {gwdr=null,diff=null,vari=null,phys=null}=calcGWDR(wx,4)||{};
+    const daylight=calcDaylight(lat,lng,wx.cloudcover||wx.cloud||0);
 
     // Full condition name (no abbreviations)
     const conditionNames=[
@@ -7570,6 +7571,31 @@ async function fetchHomeWeather(){
             }).join('')+
           '</div>'
         :'')+
+        // Daylight remaining
+        (daylight?
+          '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:space-between">'+
+            '<div style="display:flex;align-items:center;gap:6px">'+
+              '<span style="font-size:16px">'+(daylight.isDark?'🌙':'☀️')+'</span>'+
+              '<div>'+
+                '<div style="font-size:11px;font-weight:700;color:var(--txt)">'+
+                  (daylight.isDark?'Too dark to play':'Golf light remaining')+
+                '</div>'+
+                '<div style="font-size:10px;color:var(--txt3)">'+
+                  'Sunset '+daylight.sunsetTime+' · Usable until '+daylight.golfLightTime+
+                  (daylight.cloudPenaltyMin>0?' · −'+daylight.cloudPenaltyMin+'m cloud':'')+
+                '</div>'+
+              '</div>'+
+            '</div>'+
+            '<div style="text-align:right">'+
+              '<div style="font-size:20px;font-weight:900;color:'+(daylight.isDark?'#718096':daylight.minsLeft<60?'#e74c3c':daylight.minsLeft<120?'#e67e22':'#2d5a3d')+'">'+
+                (daylight.isDark?'Dark':daylight.label)+
+              '</div>'+
+              (daylight.isDark?'':
+                '<div style="font-size:9px;color:var(--txt3)">'+(daylight.minsLeft<60?'Hurry!':daylight.minsLeft<120?'Limited':'Plenty of time')+'</div>'
+              )+
+            '</div>'+
+          '</div>'
+        :'')+
       '</div>';
   }catch(e){
     card.innerHTML='<div style="font-size:11px;color:var(--txt3)">Weather unavailable</div>';
@@ -7637,6 +7663,67 @@ function calcGWDR(wx, roundHours, overnightLowC){
   phys = Math.max(0, Math.min(100, Math.round(phys)));
 
   return {gwdr, diff, vari, phys, freezeSeverity};
+}
+
+// ── DAYLIGHT CALCULATOR (NOAA Solar Position) ──
+function calcDaylight(lat, lng, cloudCoverPct){
+  // Returns {sunsetISO, civilTwilightISO, golfLightISO, hoursLeft, minutesLeft, label}
+  try{
+    const now=new Date();
+    const jd=Math.floor(now.getTime()/86400000)+2440587.5; // Julian date
+    const n=jd-2451545.0; // Days since J2000
+    const L=(280.460+0.9856474*n)%360;
+    const g=(357.528+0.9856003*n)%360;
+    const gR=g*Math.PI/180;
+    const lam=L+1.915*Math.sin(gR)+0.020*Math.sin(2*gR);
+    const lamR=lam*Math.PI/180;
+    const eps=(23.439-0.0000004*n)*Math.PI/180;
+    const sinDec=Math.sin(eps)*Math.sin(lamR);
+    const dec=Math.asin(sinDec);
+    const latR=lat*Math.PI/180;
+    // Hour angle for sunset (sun centre at horizon, corrected for refraction)
+    const cosH0=(-Math.sin(-0.01454)-Math.sin(latR)*sinDec)/(Math.cos(latR)*Math.cos(dec));
+    if(Math.abs(cosH0)>1)return null; // No sunset (midnight sun / polar night)
+    const H0=Math.acos(cosH0)*180/Math.PI;
+    // Hour angle for civil twilight (sun at -6°)
+    const cosH6=(-Math.sin(-6*Math.PI/180)-Math.sin(latR)*sinDec)/(Math.cos(latR)*Math.cos(dec));
+    const H6=Math.abs(cosH6)<=1?Math.acos(Math.max(-1,Math.min(1,cosH6)))*180/Math.PI:H0+30/60;
+    // Equation of time (minutes)
+    const f=(279.575+0.9856474*n)*Math.PI/180;
+    const EqT=(-104.7*Math.sin(f)+596.2*Math.sin(2*f)+4.1*Math.sin(3*f)
+              -12.8*Math.cos(f)-429.3*Math.cos(2*f)-2.1*Math.cos(3*f)+19.3*Math.cos(3*f))/3600;
+    // Solar noon in local solar time (hours UTC)
+    const lngHour=lng/15;
+    const solarNoonUTC=12-lngHour-EqT;
+    // Sunset and civil twilight in UTC hours
+    const sunsetUTC=solarNoonUTC+H0/15;
+    const civilUTC=solarNoonUTC+H6/15;
+    // Cloud cover penalty: overcast kills ~20min of usable light
+    const cloudPenaltyMin=(cloudCoverPct||0)>60?20:(cloudCoverPct||0)>30?10:0;
+    const golfLightUTC=civilUTC-cloudPenaltyMin/60;
+    // Build Date objects for today's sunset
+    const todayUTC=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
+    const sunsetMs=todayUTC.getTime()+sunsetUTC*3600000;
+    const golfMs=todayUTC.getTime()+golfLightUTC*3600000;
+    const nowMs=now.getTime();
+    const minsLeft=Math.round((golfMs-nowMs)/60000);
+    // Format
+    const fmt=function(ms){const d=new Date(ms);return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});};
+    const hrsLeft=Math.floor(Math.max(0,minsLeft)/60);
+    const minLeft=Math.max(0,minsLeft)%60;
+    let label;
+    if(minsLeft<0)label='Dark';
+    else if(minsLeft<30)label='<30 min';
+    else if(hrsLeft===0)label=minLeft+'min';
+    else label=hrsLeft+'h '+(minLeft>0?minLeft+'m':'');
+    return{
+      sunsetTime:fmt(sunsetMs),
+      golfLightTime:fmt(golfMs),
+      minsLeft,hrsLeft,minLeft,label,
+      cloudPenaltyMin,
+      isDark:minsLeft<0
+    };
+  }catch(e){return null;}
 }
 
 function gwdrNum(wx, roundHours){
