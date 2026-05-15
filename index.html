@@ -992,7 +992,10 @@ async function doLogin(){
       return;
     }
     const user=data.user;
-    CU={uid:user.id,email:user.email,name:user.user_metadata?.full_name||(user.user_metadata?.first_name&&user.user_metadata?.last_name?(user.user_metadata.first_name+' '+user.user_metadata.last_name):null)||user.email,
+    CU={uid:user.id,email:user.email,name:(function(){
+            var stored=LD('ll_d_'+user.id,{});
+            return stored.name||user.user_metadata?.full_name||(user.user_metadata?.first_name&&user.user_metadata?.last_name?(user.user_metadata.first_name+' '+user.user_metadata.last_name):null)||user.email;
+          })(),
         firstName:user.user_metadata?.first_name||'',
         lastName:user.user_metadata?.last_name||'',
         phone:user.user_metadata?.phone||'',
@@ -1320,7 +1323,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.5';
+const APP_VERSION='v1.6';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -6062,7 +6065,10 @@ function init(){
       if(session&&session.user){
         const user=session.user;
         CU={uid:user.id,email:user.email,
-            name:user.user_metadata?.full_name||(user.user_metadata?.first_name&&user.user_metadata?.last_name?(user.user_metadata.first_name+' '+user.user_metadata.last_name):null)||user.email,
+            name:(function(){
+            var stored=LD('ll_d_'+user.id,{});
+            return stored.name||user.user_metadata?.full_name||(user.user_metadata?.first_name&&user.user_metadata?.last_name?(user.user_metadata.first_name+' '+user.user_metadata.last_name):null)||user.email;
+          })(),
             firstName:user.user_metadata?.first_name||'',
             lastName:user.user_metadata?.last_name||'',
             phone:user.user_metadata?.phone||'',
