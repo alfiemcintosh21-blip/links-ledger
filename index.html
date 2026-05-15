@@ -1323,7 +1323,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.6';
+const APP_VERSION='v1.7';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -4931,7 +4931,7 @@ function buildGLB(){
     try{
       const d=GUD(u.uid);
       const rr=(d.rounds||[]).filter(function(r){return !r.testMode&&!d.settings?.privateRounds;});
-      const entry=computeEntryStats(rr,u.name||u.email,u.uid,d.ringColour||'#3b82f6',false);
+      const entry=computeEntryStats(rr,d.name||u.name||u.email,u.uid,d.ringColour||'#3b82f6',false);
       if(entry)entries.push(entry);
     }catch(e){}
   });
@@ -6078,10 +6078,17 @@ function init(){
         const {data:row}=await sb.from('ll_userdata').select('data').eq('uid',user.id).single();
         if(row?.data){const remote=typeof row.data==='string'?JSON.parse(row.data):row.data;SV('ll_d_'+user.id,remote);}
         SV('ll_sess',user.id);
-        // Store name/email into user data so instant-launch always has it
+        // Store name/email into user data - syncs to Supabase via sud
         const _d=LD('ll_d_'+user.id,{});
-        _d.name=CU.name;_d.email=CU.email;_d.firstName=CU.firstName;_d.lastName=CU.lastName;_d.homeCourse=CU.homeCourse;_d.role=CU.role;
+        // Only update name if we have a real name (not email fallback)
+        if(CU.name&&CU.name!==CU.email){_d.name=CU.name;}
+        _d.email=CU.email;_d.firstName=CU.firstName;_d.lastName=CU.lastName;
+        _d.homeCourse=_d.homeCourse||CU.homeCourse;_d.role=CU.role;
         SV('ll_d_'+user.id,_d);
+        // Update ll_users registry so leaderboard has correct name
+        const _users=GU();
+        const _userKey=Object.keys(_users).find(function(k){return _users[k].uid===user.id;});
+        if(_userKey&&CU.name&&CU.name!==CU.email){_users[_userKey].name=CU.name;SUs(_users);}
         if(!cachedUid){
           // No cached session — launch now after Supabase confirms
           document.getElementById('splash').classList.add('out');
