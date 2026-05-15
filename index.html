@@ -1330,7 +1330,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.2';
+const APP_VERSION='v1.3';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
