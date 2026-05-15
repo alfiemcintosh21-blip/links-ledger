@@ -1160,7 +1160,7 @@ function launch(){
   cleanupTestShots();
   // One-time fix: remove hole 10 from most recent round + fix par on any Chisholm hole 10
   (function(){
-    const FIX_KEY='ll_chisholm_h10_fix_v3';
+    const FIX_KEY='ll_chisholm_h10_fix_v4';
     if(localStorage.getItem(FIX_KEY))return;
     const d=ud();
     if(!d||!d.rounds||!d.rounds.length){localStorage.setItem(FIX_KEY,'1');return;}
@@ -1182,12 +1182,18 @@ function launch(){
         }
       }
     }
-    // Fix par:4 on hole 10 in any Chisholm round
+    // Fix par:4 on hole 10 in ANY Chisholm round (including re-fix in case missed)
     d.rounds.forEach(function(r){
       if(!r||r.courseId!=='chisholm'||!r.holes)return;
+      var changed=false;
       r.holes.forEach(function(h){
-        if(h&&h.h===10&&h.par===4){h.par=3;console.log('Fixed hole 10 par to 3');}
+        if(h&&h.h===10&&h.par!==3){h.par=3;changed=true;}
       });
+      // Recalculate toPar if par was wrong
+      if(changed){
+        var validH=r.holes.filter(function(h){return h&&h.score;});
+        r.toPar=validH.reduce(function(s,h){return s+(h.score||0)-(h.par||4);},0);
+      }
     });
     // Fix OOB shots: remove dist from penalty shots in all rounds
     d.rounds.forEach(function(r){
