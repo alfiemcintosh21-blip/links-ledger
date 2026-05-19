@@ -48,7 +48,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .aerr{color:var(--red);font-size:13px;text-align:center;margin-top:7px;min-height:16px}
 
 /* APP */
-#app{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--g)}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--g)}#pg-home:empty{background:var(--g)}
 #app.gone{display:none}
 .app-hdr{background:#2d5a3d;color:#fff;padding-top:calc(env(safe-area-inset-top,44px) + 10px);padding-bottom:10px;padding-left:16px;padding-right:16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;min-height:calc(env(safe-area-inset-top,44px) + 52px)}
 .app-hdr h1{font-size:19px;color:#fff;letter-spacing:-0.3px}
@@ -1312,7 +1312,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.8';
+const APP_VERSION='v1.9';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -7714,26 +7714,19 @@ async function fetchHomeWeather(){
         :'')+
         // Daylight remaining
         (daylight?
-          '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:space-between">'+
-            '<div style="display:flex;align-items:center;gap:6px">'+
-              '<span style="font-size:16px">'+(daylight.isDark?'🌙':'☀️')+'</span>'+
-              '<div>'+
-                '<div style="font-size:11px;font-weight:700;color:var(--txt)">'+
-                  (daylight.isDark?'Too dark to play':'Golf light remaining')+
-                '</div>'+
-                '<div style="font-size:10px;color:var(--txt3)">'+
-                  'Sunset '+daylight.sunsetTime+' · Usable until '+daylight.golfLightTime+
-                  (daylight.cloudPenaltyMin>0?' · −'+daylight.cloudPenaltyMin+'m cloud':'')+
+          '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.07)">'+
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+              '<div style="display:flex;align-items:center;gap:6px">'+
+                '<span style="font-size:16px">'+daylight.catIcon+'</span>'+
+                '<div>'+
+                  '<div style="font-size:11px;font-weight:800;color:'+daylight.categoryCol+'">'+daylight.categoryLabel+'</div>'+
+                  '<div style="font-size:10px;color:var(--txt3)">'+
+                    'Sunset '+daylight.sunsetTime+' · Usable light until '+daylight.golfLightTime+
+                    (daylight.cloudPenaltyMin>0?' · −'+daylight.cloudPenaltyMin+'m cloud':'')+
+                  '</div>'+
                 '</div>'+
               '</div>'+
-            '</div>'+
-            '<div style="text-align:right">'+
-              '<div style="font-size:20px;font-weight:900;color:'+(daylight.isDark?'#718096':daylight.minsLeft<60?'#e74c3c':daylight.minsLeft<120?'#e67e22':'#2d5a3d')+'">'+
-                (daylight.isDark?'Dark':daylight.label)+
-              '</div>'+
-              (daylight.isDark?'':
-                '<div style="font-size:9px;color:var(--txt3)">'+(daylight.minsLeft<60?'Hurry!':daylight.minsLeft<120?'Limited':'Plenty of time')+'</div>'
-              )+
+              '<div style="font-size:18px;font-weight:900;color:'+daylight.categoryCol+'">'+daylight.label+'</div>'+
             '</div>'+
           '</div>'
         :'')+
@@ -7843,24 +7836,44 @@ function calcDaylight(lat, lng, cloudCoverPct){
     const cloudPenaltyMin=(cloudCoverPct||0)>60?20:(cloudCoverPct||0)>30?10:0;
     const golfLightUTC=civilUTC-cloudPenaltyMin/60;
     // Build Date objects for today's sunset
-    const todayUTC=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
-    const sunsetMs=todayUTC.getTime()+sunsetUTC*3600000;
-    const golfMs=todayUTC.getTime()+golfLightUTC*3600000;
+    // Use LOCAL date not UTC date to avoid day-off bug in UTC+12/+13 timezones
+    const todayLocal=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    // Convert solar UTC times to local: add timezone offset
+    const tzOffsetHrs=-(now.getTimezoneOffset()/60); // e.g. +12 for NZ
+    const sunsetLocal=sunsetUTC+tzOffsetHrs;
+    const golfLightLocal=golfLightUTC+tzOffsetHrs;
+    const sunsetMs=todayLocal.getTime()+(sunsetLocal*3600000);
+    const golfMs=todayLocal.getTime()+(golfLightLocal*3600000);
     const nowMs=now.getTime();
     const minsLeft=Math.round((golfMs-nowMs)/60000);
     // Format
     const fmt=function(ms){const d=new Date(ms);return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});};
     const hrsLeft=Math.floor(Math.max(0,minsLeft)/60);
     const minLeft=Math.max(0,minsLeft)%60;
-    let label;
-    if(minsLeft<0)label='Dark';
-    else if(minsLeft<30)label='<30 min';
-    else if(hrsLeft===0)label=minLeft+'min';
-    else label=hrsLeft+'h '+(minLeft>0?minLeft+'m':'');
+    let label,category,catIcon;
+    if(minsLeft<0){label='Too dark';category='dark';catIcon='🌙';}
+    else if(minsLeft<30){label=(minLeft||'<1')+'min left';category='critical';catIcon='🌃';}
+    else if(minsLeft<60){label=minLeft+'min left';category='veryLow';catIcon='🌆';}
+    else if(minsLeft<120){label=hrsLeft+'h '+minLeft+'m left';category='low';catIcon='🌇';}
+    else if(minsLeft<180){label=hrsLeft+'h '+minLeft+'m left';category='moderate';catIcon='🌤';}
+    else{label=hrsLeft+'h '+(minLeft>0?minLeft+'m ':' ')+'left';category='good';catIcon='☀️';}
+    const categoryLabel={
+      dark:'Too dark to play',
+      critical:'Challenging light — finish up',
+      veryLow:'Very limited light',
+      low:'Limited light',
+      moderate:'Good light',
+      good:'Plenty of light'
+    }[category];
+    const categoryCol={
+      dark:'#718096',critical:'#dc2626',veryLow:'#e74c3c',
+      low:'#e67e22',moderate:'#f59e0b',good:'#2d5a3d'
+    }[category];
     return{
       sunsetTime:fmt(sunsetMs),
       golfLightTime:fmt(golfMs),
       minsLeft,hrsLeft,minLeft,label,
+      category,categoryLabel,categoryCol,catIcon,
       cloudPenaltyMin,
       isDark:minsLeft<0
     };
