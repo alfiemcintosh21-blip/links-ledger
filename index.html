@@ -56,7 +56,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .hbtn{background:rgba(255,255,255,0.15);border:none;color:#fff;width:35px;height:35px;border-radius:10px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .hbtn:active{background:rgba(255,255,255,0.28)}
 .pages{flex:1;overflow:hidden;position:relative}
-.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--g);padding:16px 16px calc(var(--safe-b) + 78px)}.page.loaded{background:var(--bg)}
+.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);padding:16px 16px calc(var(--safe-b) + 78px)}
 .page.gone{display:none}
 .bnav{display:flex;background:#fff;border-top:1px solid var(--bdr);padding:7px 0 calc(var(--safe-b) + 3px);flex-shrink:0;box-shadow:0 -2px 12px rgba(0,0,0,0.06)}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:3px 0;border:none;background:none;color:var(--txt3);font-size:10px;font-weight:700;font-family:inherit;text-transform:uppercase;letter-spacing:0.04em;transition:color 0.2s}
@@ -4642,7 +4642,6 @@ ${Object.keys(d.clubStats||{}).length?`</div><div class="sec" onclick="toggleSC(
   setTimeout(function(){buildStockYdTable();},150);
   setTimeout(function(){
     const mapEl=document.getElementById('statsLeafletMap');
-    if(!mapEl){setTimeout(function(){window._statsMapRetry&&window._statsMapRetry();},500);return;}
     if(!mapEl)return;
     if(typeof L==='undefined')return;
     if(window._statsMap){try{window._statsMap.remove();}catch(e){} window._statsMap=null;}
