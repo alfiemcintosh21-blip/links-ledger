@@ -720,14 +720,16 @@ h:[{h:1,par:4,y:346,si:4},{h:2,par:4,y:329,si:6},{h:3,par:4,y:423,si:2},{h:4,par
 };
 
 const ALL_CLUBS = [
-  // Driver & Woods (high to low loft = long to short)
+  // Driver & Woods
   'Dr','3W','4W','5W','7W','9W',
   // Hybrids
   '2Hy','3Hy','4Hy','5Hy','6Hy',
   // Irons
   '2i','3i','4i','5i','6i','7i','8i','9i',
-  // Wedges (no putter, no duplicate PW/Pw)
-  'PW','GW','SW','LW'
+  // Wedges
+  'PW','GW','AW','SW','LW',
+  // Putter
+  'Pu'
 ];
 const LIES = ['Fairway','Intermediate rough','Rough','Sand','Trouble','Chipping','Green'];
 // Lie icons — use provided image URLs, fall back to SVG
@@ -1316,7 +1318,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.11';
+const APP_VERSION='v1.12';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
