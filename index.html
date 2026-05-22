@@ -56,7 +56,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 .hbtn{background:rgba(255,255,255,0.15);border:none;color:#fff;width:35px;height:35px;border-radius:10px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .hbtn:active{background:rgba(255,255,255,0.28)}
 .pages{flex:1;overflow:hidden;position:relative}
-.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);padding:16px 16px calc(var(--safe-b) + 78px)}
+.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--g);padding:16px 16px calc(var(--safe-b) + 78px)}.page.loaded{background:var(--bg)}
 .page.gone{display:none}
 .bnav{display:flex;background:#fff;border-top:1px solid var(--bdr);padding:7px 0 calc(var(--safe-b) + 3px);flex-shrink:0;box-shadow:0 -2px 12px rgba(0,0,0,0.06)}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:3px 0;border:none;background:none;color:var(--txt3);font-size:10px;font-weight:700;font-family:inherit;text-transform:uppercase;letter-spacing:0.04em;transition:color 0.2s}
@@ -1327,7 +1327,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.16';
+const APP_VERSION='v1.18';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -4865,7 +4865,10 @@ function buildStockYdTable(){
   const tbody=document.getElementById('stockYdBody');
   if(!tbody)return;
   const d=ud();
-  const manual=d.stockYardages||{};
+  // Normalise stored stockYardages keys to canonical form
+  const rawManual=d.stockYardages||{};
+  const manual={};
+  Object.keys(rawManual).forEach(function(k){manual[normClub(k)]=rawManual[k];});
   const appEst=getStockYardages();
   const clubs=getStockClubs();
   if(!clubs.length){tbody.innerHTML='<tr><td colspan="4" style="padding:10px;text-align:center;color:var(--txt3)">No clubs in bag — set your bag in Profile</td></tr>';return;}
@@ -5826,6 +5829,14 @@ function openEditProfile(){
         '<label style="font-size:12px;font-weight:700;color:var(--txt3)">Phone number</label>'+
         '<input type="tel" id="ep-ph" value="'+(CU.phone||'')+'" placeholder="+64 21 123 4567" '+
           'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit;box-sizing:border-box">'+
+      '</div>'+
+      '<div class="fi" style="margin-bottom:10px">'+
+        '<label style="font-size:12px;font-weight:700;color:var(--txt3)">Home course</label>'+
+        '<select id="ep-hc" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;font-family:inherit;box-sizing:border-box">'+
+          Object.entries(CDB).sort(function(a,b){return a[1].name.localeCompare(b[1].name);}).map(function(e){
+            return '<option value="'+e[0]+'"'+(( d.homeCourse||CU.homeCourse)===e[0]?' selected':'')+'>'+e[1].name+'</option>';
+          }).join('')+
+        '</select>'+
       '</div>'+
       '<div id="ep-err" style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px"></div>'+
       '<div style="margin-bottom:14px">'+
@@ -8176,7 +8187,9 @@ function buildProfileStockYdTable(){
   const tbody=document.getElementById('profileStockYdBody');
   if(!tbody)return;
   const d=ud();
-  const manual=d.stockYardages||{};
+  const rawManual2=d.stockYardages||{};
+  const manual={};
+  Object.keys(rawManual2).forEach(function(k){manual[normClub(k)]=rawManual2[k];});
   const clubs=getStockClubs();
   tbody.innerHTML=clubs.map(function(club){
     var val=manual[club]!=null?manual[club]:'';
@@ -8788,22 +8801,29 @@ function sortClubs(clubs){
     return ai-bi;
   });
 }
+function normClub(c){
+  // Normalise club name to canonical form
+  if(!c)return c;
+  if(c==='Pw'||c==='pw')return'PW';
+  if(c==='Gw'||c==='gw')return'GW';
+  if(c==='Aw'||c==='aw')return'AW';
+  if(c==='Sw'||c==='sw')return'SW';
+  if(c==='Lw'||c==='lw')return'LW';
+  if(c==='Hy'||c==='hy')return'4Hy';
+  if(c==='Dr'||c==='dr')return'Dr';
+  if(c==='Pu'||c==='pu')return'Pu';
+  return c;
+}
 function getStockClubs(){
-  // Returns sorted club list for stock distances - same in profile and stats
   const d=ud();
   const manual=d.stockYardages||{};
-  // Migrate old bag format to new names
   const rawBag=d.bag&&d.bag.length?d.bag:['Dr','3W','5W','4Hy','5i','6i','7i','8i','9i','PW','GW','SW','LW'];
-  const bag=rawBag.map(function(c){
-    // Normalise old names to new
-    if(c==='Pw')return'PW';
-    if(c==='Sw')return'SW';
-    if(c==='Hy')return'4Hy';
-    return c;
-  });
-  // Exclude putter from stock distances
-  const clubs=Array.from(new Set([...bag,...Object.keys(manual)]))
-    .filter(function(c){return c!=='Pu';});
+  // Normalise bag club names
+  const bag=rawBag.map(normClub);
+  // Normalise stockYardages keys so old 'Pw' doesn't duplicate 'PW'
+  const normManualKeys=Object.keys(manual).map(normClub);
+  const clubs=Array.from(new Set([...bag,...normManualKeys]))
+    .filter(function(c){return c&&c!=='Pu'&&ALL_CLUBS.indexOf(c)!==-1;});
   return sortClubs(clubs);
 }
 
