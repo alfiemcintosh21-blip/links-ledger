@@ -26,7 +26,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif}
 ::-webkit-scrollbar{display:none}*{scrollbar-width:none}
 
 /* SPLASH */
-#splash{position:fixed;inset:0;background:#3d6b4f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity 0.6s}
+#splash{position:fixed;inset:0;background:#1e3d2a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity 0.6s}
 #splash.out{opacity:0;pointer-events:none}
 #splash img{width:160px;height:160px;object-fit:cover;border-radius:18px;margin-bottom:20px;box-shadow:0 8px 40px rgba(0,0,0,0.4)}
 #splash h1{color:#fff;font-size:32px;letter-spacing:-0.5px}
@@ -1327,7 +1327,7 @@ function getBdg(s,p){const d=s-p;if(d<=-3)return`<span class="bdg b-alb">Albatro
 // Real rounds only (not test)
 // Haversine distance between two GPS points in metres
 
-const APP_VERSION='v1.18';
+const APP_VERSION='v1.19';
 const normalizeScore=(total,holes)=>{if(!holes||holes>=18)return total||0;return Math.round((total||0)*(18/holes));};
 const realR=()=>[...ud().rounds].filter(r=>!r.testMode).sort((a,b)=>(b.started||0)-(a.started||0));
 function getInProgressRounds(){
@@ -4344,6 +4344,8 @@ function toggleSC(id){
 function initSC(){
   try{
     var s=JSON.parse(localStorage.getItem('ll_sc')||'{}');
+    // Never collapse Stock Distances by default so values are always visible
+    delete s['stk'];
     Object.keys(s).forEach(function(id){
       if(s[id]){
         var b=document.getElementById('scb_'+id);
@@ -4384,7 +4386,7 @@ function rStats(){
 
   document.getElementById('pg-stats').innerHTML=`
 <div class="sec" onclick="toggleSC('ovr')" style="cursor:pointer">Overall<span class="sec-chev" id="scc_ovr">▾</span></div>
-<div id="scb_ovr" class="sg">
+<div id="scb_ovr" class="sc-body sg">
   <div class="sc"><div class="sv">${avg18||'—'}</div><div class="sl">Avg score</div></div>
   <div class="sc"><div class="sv">${best18!=null?(best18>=0?'+'+best18:best18):'—'}</div><div class="sl">Best to par</div></div>
   <div class="sc"><div class="sv">${gir!=null?gir+'%':'—'}</div><div class="sl">GIR${gir===null?'<br>'+na:''}</div></div>
@@ -4416,19 +4418,19 @@ ${hcp!==null?`<div style="background:var(--g);border-radius:14px;padding:16px;ma
 
 <!-- CAREER PROGRESSION GRAPHS -->
 ${progRounds.length>=3?`</div><div class="sec" onclick="toggleSC('car')" style="cursor:pointer">Career progression<span class="sec-chev" id="scc_car">▾</span></div>
-<div id="scb_car" style="background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:14px;overflow-x:auto">
+<div id="scb_car" class="sc-body" style="background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:14px;overflow-x:auto">
   ${buildSparklines(progRounds)}
 </div>`:''}
 
 </div><div class="sec" onclick="toggleSC('act')" style="cursor:pointer">Activity<span class="sec-chev" id="scc_act">▾</span></div>
-<div id="scb_act" class="sg">
+<div id="scb_act" class="sc-body sg">
   <div class="sc"><div class="sv">${rr.length}</div><div class="sl">Rounds</div></div>
       <div class="sc"><div class="sv">${[...new Set(rr.map(r=>r.courseId))].length}</div><div class="sl">Courses played</div></div>
 </div>
 ${rr.length>0?'<div id="statsLeafletMap" style="width:100%;height:240px;border-radius:12px;overflow:hidden;border:1.5px solid #e0e0e0;margin-bottom:12px"></div>':''}
 
 <div class="sec" onclick="toggleSC('scr')" style="cursor:pointer">Score breakdown<span class="sec-chev" id="scc_scr">▾</span></div>
-<div id="scb_scr" class="sg3">
+<div id="scb_scr" class="sc-body sg3">
   <div class="sc"><div class="sv" style="color:#7c3aed">${sb.eagle}</div><div class="sl">Eagles+</div></div>
   <div class="sc"><div class="sv" style="color:#5DCAA5">${sb.birdie}</div><div class="sl">Birdies</div></div>
   <div class="sc"><div class="sv">${sb.par}</div><div class="sl">Pars</div></div>
@@ -4439,7 +4441,7 @@ ${rr.length>0?'<div id="statsLeafletMap" style="width:100%;height:240px;border-r
 <div class="score-bar">${[['#7c3aed',sb.eagle],['#5DCAA5',sb.birdie],['#bbb',sb.par],['#fbbf24',sb.bogey],['#fca5a5',sb.double],['#dc2626',sb.worse]].filter(x=>x[1]>0).map(([c,n])=>`<div style="flex:${n};background:${c}"></div>`).join('')}</div>
 
 </div><div class="sec" onclick="toggleSC('sg')" style="cursor:pointer">Strokes gained<span class="sec-chev" id="scc_sg">▾</span></div>
-<div id="scb_sg" style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px">
+<div id="scb_sg" class="sc-body" style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px">
 ${(function(){
   // SG relative to par by zone:
   // Off the tee: par4/5 first shot. Expected = par. Actual contribution = (par - score + putts + approaches)
@@ -4525,7 +4527,7 @@ ${(function(){
 })()}
 
 </div><div class="sec" onclick="toggleSC('tee')" style="cursor:pointer">Tee accuracy<span class="sec-chev" id="scc_tee">▾</span></div>
-<div id="scb_tee" style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px">
+<div id="scb_tee" class="sc-body" style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px">
 ${(function(){
   // Collect all par 4/5 first shots with direction data
   var teeShots=[];
@@ -4578,7 +4580,7 @@ ${(function(){
 </div>
 
 </div><div class="sec" onclick="toggleSC('rnd')" style="cursor:pointer">Round history<span class="sec-chev" id="scc_rnd">▾</span></div>
-<div id="scb_rnd" style="background:#fff;border-radius:12px;border:1.5px solid #e0e0e0;overflow:hidden;margin-bottom:12px">
+<div id="scb_rnd" class="sc-body" style="background:#fff;border-radius:12px;border:1.5px solid #e0e0e0;overflow:hidden;margin-bottom:12px">
 ${rr.map(r=>{
   const adj=Math.round(to18(r.toPar,r.totalHoles||9));
   const breakdown=r.breakdown;
@@ -4595,25 +4597,25 @@ ${rr.map(r=>{
 </div>`;}).join('')+'</div>'}
 
 ${drives.length?`</div><div class="sec" onclick="toggleSC('drv')" style="cursor:pointer">Driving<span class="sec-chev" id="scc_drv">▾</span></div>
-<div id="scb_drv" class="sg3">
+<div id="scb_drv" class="sc-body sg3">
   <div class="sc"><div class="sv">${Math.round(drives.reduce((a,b)=>a+b,0)/drives.length)}y</div><div class="sl">Avg drive</div></div>
   <div class="sc"><div class="sv">${Math.max(...drives)}y</div><div class="sl">Longest</div></div>
   <div class="sc"><div class="sv">${Math.min(...drives)}y</div><div class="sl">Shortest</div></div>
 </div>`:''}
 
 ${allShD.length?`</div><div class="sec" onclick="toggleSC('sdr')" style="cursor:pointer">Shot direction<span class="sec-chev" id="scc_sdr">▾</span></div>
-<div id="scb_sdr" class="card" style="padding:11px 13px">${Object.entries(mc).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([dir,n])=>`<div class="mbar-wrap"><div class="mbar-lbl"><span style="font-weight:700">${dir}</span><span>${n} · ${Math.round(n/allShD.length*100)}%</span></div><div class="mbar"><div class="mbar-fill" style="width:${Math.round(n/allShD.length*100)}%;background:${dir==='Straight'?'var(--g)':dir==='Left'||dir==='Right'?'var(--red)':'var(--orange)'}"></div></div></div>`).join('')}</div>
+<div id="scb_sdr" class="sc-body card" style="padding:11px 13px">${Object.entries(mc).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([dir,n])=>`<div class="mbar-wrap"><div class="mbar-lbl"><span style="font-weight:700">${dir}</span><span>${n} · ${Math.round(n/allShD.length*100)}%</span></div><div class="mbar"><div class="mbar-fill" style="width:${Math.round(n/allShD.length*100)}%;background:${dir==='Straight'?'var(--g)':dir==='Left'||dir==='Right'?'var(--red)':'var(--orange)'}"></div></div></div>`).join('')}</div>
 </div><div class="sec" onclick="toggleSC('con')" style="cursor:pointer">Contact quality<span class="sec-chev" id="scc_con">▾</span></div>
-<div id="scb_con" class="card" style="padding:11px 13px">${Object.entries(cc).sort((a,b)=>b[1]-a[1]).map(([con,n])=>`<div class="mbar-wrap"><div class="mbar-lbl"><span style="font-weight:700">${con}</span><span>${n} · ${Math.round(n/allShD.length*100)}%</span></div><div class="mbar"><div class="mbar-fill" style="width:${Math.round(n/allShD.length*100)}%;background:${con==='Solid'?'var(--g)':con==='Thin'||con==='Fat'?'var(--orange)':'var(--red)'}"></div></div></div>`).join('')}</div>`:''}
+<div id="scb_con" class="sc-body card" style="padding:11px 13px">${Object.entries(cc).sort((a,b)=>b[1]-a[1]).map(([con,n])=>`<div class="mbar-wrap"><div class="mbar-lbl"><span style="font-weight:700">${con}</span><span>${n} · ${Math.round(n/allShD.length*100)}%</span></div><div class="mbar"><div class="mbar-fill" style="width:${Math.round(n/allShD.length*100)}%;background:${con==='Solid'?'var(--g)':con==='Thin'||con==='Fat'?'var(--orange)':'var(--red)'}"></div></div></div>`).join('')}</div>`:''}
 
 ${Object.keys(d.clubStats||{}).length?`</div><div class="sec" onclick="toggleSC('cld')" style="cursor:pointer">Club distances<span class="sec-chev" id="scc_cld">▾</span></div>
-<div id="scb_cld" class="card" style="padding:0 13px"><table class="ctbl">
+<div id="scb_cld" class="sc-body card" style="padding:0 13px"><table class="ctbl">
 <thead><tr><th>Club</th><th>Shots</th><th>Avg</th><th>Max</th><th>Min</th></tr></thead>
 <tbody>${ALL_CLUBS.filter(c=>d.clubStats?.[c]?.shots?.length).map(c=>`<tr><td style="font-weight:800">${c}</td><td>${d.clubStats[c].shots.length}</td><td style="color:var(--g);font-weight:700">${d.clubStats[c].avg}m</td><td>${d.clubStats[c].max}m</td><td>${d.clubStats[c].min}m</td></tr>`).join('')}</tbody></table></div>`:''}
 
 <!-- PUTTING STATS -->
 <div class="sec" onclick="toggleSC('put')" style="cursor:pointer">Putting<span class="sec-chev" id="scc_put">▾</span></div>
-<div id="scb_put" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
+<div id="scb_put" class="sc-body" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
   <div id="puttGreenSvg"></div>
   <div style="margin-top:10px" id="overUnderBar"></div>
   <div style="margin-top:10px" id="makePctTable"></div>
@@ -4621,7 +4623,7 @@ ${Object.keys(d.clubStats||{}).length?`</div><div class="sec" onclick="toggleSC(
 </div>
 <!-- STOCK YARDAGES -->
 <div class="sec" onclick="toggleSC('stk')" style="cursor:pointer">Stock Distances<span class="sec-chev" id="scc_stk">▾</span></div>
-<div id="scb_stk" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
+<div id="scb_stk" class="sc-body" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px">
   <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Enter your stock distances · ★ = centre contact · ~ = median estimate</div>
   <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
     <thead><tr>
@@ -4640,6 +4642,7 @@ ${Object.keys(d.clubStats||{}).length?`</div><div class="sec" onclick="toggleSC(
   setTimeout(function(){buildStockYdTable();},150);
   setTimeout(function(){
     const mapEl=document.getElementById('statsLeafletMap');
+    if(!mapEl){setTimeout(function(){window._statsMapRetry&&window._statsMapRetry();},500);return;}
     if(!mapEl)return;
     if(typeof L==='undefined')return;
     if(window._statsMap){try{window._statsMap.remove();}catch(e){} window._statsMap=null;}
@@ -4650,7 +4653,13 @@ ${Object.keys(d.clubStats||{}).length?`</div><div class="sec" onclick="toggleSC(
       var cnt=rr.filter(function(r){return r.courseId===id;}).length;
       return{id:id,name:c.name,lat:c.lat,lng:c.lng,count:cnt};
     }).filter(Boolean);
-    if(!courseData.length)return;
+    // If no rounds yet, show all GPS courses as preview
+    if(!courseData.length){
+      courseData=Object.entries(CDB).filter(function(e){return e[1].lat&&e[1].gpsHoles;}).map(function(e){
+        return{id:e[0],name:e[1].name,lat:e[1].lat,lng:e[1].lng,count:0};
+      });
+      if(!courseData.length)return;
+    }
 
     // ── CONVEX HULL (Graham scan) ──
     function convexHull(pts){
@@ -4734,7 +4743,7 @@ ${Object.keys(d.clubStats||{}).length?`</div><div class="sec" onclick="toggleSC(
         {padding:[40,40]}
       );
     }catch(e){console.warn('Stats map error:',e);}
-  },400);
+  },600);
 }
 
 // ── PUTTING STATS UI BUILDER ──
